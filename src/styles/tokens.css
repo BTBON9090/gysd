@@ -1,0 +1,205 @@
+/* ============================================================
+   万联易达供应商端 · 设计令牌 V1
+   方向：浅色轻 C 端（1A）— 参考淘宝/抖音商家后台成熟度
+   - 仅浅色，不做深色版
+   - 正文清晰高对比，拒绝灰暗
+   - 品牌红点缀 + 语义辅助色系统，适度不滥用
+   ============================================================ */
+
+:root {
+  /* ===== 品牌 ===== */
+  --brand-red: #e53935;
+  --brand-red-hover: #f04440;
+  --brand-red-active: #c62828;
+  --brand-red-soft: rgba(229, 57, 53, 0.08);
+  --brand-red-soft-strong: rgba(229, 57, 53, 0.14);
+  --brand-gradient: linear-gradient(135deg, #ff6b66 0%, #e53935 100%);
+
+  /* ===== 页面底色：暖白，干净不冷 ===== */
+  --bg-page: #f7f8fa;
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-topbar: rgba(255, 255, 255, 0.92);
+  --bg-hover: #f3f4f6;
+  --bg-active: #fff1f0;
+  --bg-muted: #f5f6f8;
+  --bg-chip: #f1f3f7;
+
+  /* ===== 文字：清晰、分级明确、对比充足 ===== */
+  --text-primary: #111827;   /* 标题/主数据 — 近黑 */
+  --text-regular: #1f2329;   /* 正文 — 深灰黑，清晰可读 */
+  --text-secondary: #4b5563; /* 次要说明 — 中灰，≥4.5:1 */
+  --text-placeholder: #6b7280;
+  --text-on-brand: #ffffff;
+  --text-link: #d92622;
+
+  /* ===== 边框：浅但可见 ===== */
+  --border-light: #e5e7eb;
+  --border-lighter: #eef0f3;
+  --border-strong: #d1d5db;
+
+  /* ===== 语义辅助色系统（适度点缀） ===== */
+  --c-red: #e53935;
+  --c-orange: #ff7a1a;
+  --c-amber: #f59e0b;
+  --c-green: #16a34a;
+  --c-teal: #0d9488;
+  --c-cyan: #0891b2;
+  --c-blue: #2563eb;
+  --c-indigo: #4f46e5;
+  --c-purple: #7c3aed;
+  --c-pink: #db2777;
+
+  /* 语义色浅底（图标芯片/标签）— 低饱和底 + 高饱和图标 */
+  --c-red-bg: #ffece9;
+  --c-orange-bg: #fff1e6;
+  --c-amber-bg: #fff7e0;
+  --c-green-bg: #e8f8ee;
+  --c-teal-bg: #e6faf7;
+  --c-cyan-bg: #e6f7fb;
+  --c-blue-bg: #eaf1ff;
+  --c-indigo-bg: #eef0ff;
+  --c-purple-bg: #f3eaff;
+  --c-pink-bg: #fdeaf4;
+
+  /* ===== 阴影：柔和有景深 ===== */
+  --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
+  --shadow-md: 0 4px 16px rgba(17, 24, 39, 0.08), 0 1px 3px rgba(17, 24, 39, 0.04);
+  --shadow-lg: 0 12px 40px rgba(17, 24, 39, 0.12), 0 4px 12px rgba(17, 24, 39, 0.06);
+  --shadow-brand: 0 4px 14px rgba(229, 57, 53, 0.28);
+  --shadow-card-hover: 0 8px 24px rgba(17, 24, 39, 0.1);
+
+  /* ===== 圆角 ===== */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* ===== 布局 ===== */
+  --sidebar-w: 232px;
+  --sidebar-w-collapsed: 72px;
+  --topbar-h: 64px;
+
+  /* ===== 动效 ===== */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --t-fast: 160ms;
+  --t-base: 240ms;
+  --t-slow: 360ms;
+
+  /* ===== 字体 ===== */
+  --font-sans: 'PingFang SC', 'HarmonyOS Sans SC', 'SF Pro Text', 'Segoe UI',
+    'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  --font-num: 'SF Pro Rounded', 'DIN Alternate', 'PingFang SC', var(--font-sans);
+
+  /* ===== 字号阶梯（适当偏大，保证可读） ===== */
+  --fs-display: 32px;
+  --fs-h1: 24px;
+  --fs-h2: 18px;
+  --fs-h3: 16px;
+  --fs-body: 14px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --fs-num-lg: 30px;
+  --fs-num-md: 26px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--text-regular);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+::selection {
+  background: rgba(229, 57, 53, 0.16);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+  background-clip: content-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-red);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== Element Plus 局部覆盖（浅色 C 端化） ===== */
+.el-button {
+  --el-button-border-radius: 10px;
+  font-weight: 500;
+}
+.el-button--primary {
+  --el-button-bg-color: var(--brand-red);
+  --el-button-border-color: var(--brand-red);
+  --el-button-hover-bg-color: var(--brand-red-hover);
+  --el-button-hover-border-color: var(--brand-red-hover);
+  --el-button-active-bg-color: var(--brand-red-active);
+  --el-button-active-border-color: var(--brand-red-active);
+  box-shadow: var(--shadow-brand);
+}
+.el-tag {
+  --el-tag-border-radius: 999px;
+}
+.el-badge__content.is-fixed {
+  border: 2px solid #fff;
+}
+.el-popper.is-light {
+  border-radius: 14px !important;
+  border-color: var(--border-light) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.el-dropdown__popper {
+  border-radius: 14px !important;
+}

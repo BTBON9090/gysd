@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+*.log
+.playwright-cli
+.mimocode
+*.png
+!public/**
