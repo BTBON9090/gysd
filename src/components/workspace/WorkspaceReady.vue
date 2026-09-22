@@ -1,64 +1,20 @@
 <script setup lang="ts">
-import { MessageSquareText, ArrowRight, Store, Package } from 'lucide-vue-next'
-import { TrendingUp, Clock3, Wallet, Star } from 'lucide-vue-next'
+import { MessageSquareText, ArrowRight, Store, Package, TrendingUp, Clock3, Wallet, Star } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { ElButton, ElCard } from 'element-plus'
 
 const router = useRouter()
 
 const metrics = [
-  {
-    key: 'gmv',
-    label: '今日 GMV',
-    value: '¥0',
-    sub: '入驻首日',
-    icon: TrendingUp,
-    tone: 'red',
-    delta: '',
-  },
-  {
-    key: 'orders',
-    label: '待处理订单',
-    value: '0',
-    sub: '待确认 / 待发货',
-    icon: Clock3,
-    tone: 'orange',
-    delta: '',
-  },
-  {
-    key: 'balance',
-    label: '可用余额',
-    value: '¥0.00',
-    sub: '待结算 ¥0',
-    icon: Wallet,
-    tone: 'blue',
-    delta: '',
-  },
-  {
-    key: 'rating',
-    label: '店铺评分',
-    value: '—',
-    sub: '暂无评价',
-    icon: Star,
-    tone: 'purple',
-    delta: '',
-  },
+  { key: 'gmv', label: '今日 GMV', value: '¥0', sub: '入驻首日', icon: TrendingUp, tone: 'blue' },
+  { key: 'orders', label: '待处理订单', value: '0', sub: '待确认 / 待发货', icon: Clock3, tone: 'orange' },
+  { key: 'balance', label: '可用余额', value: '¥0.00', sub: '待结算 ¥0', icon: Wallet, tone: 'teal' },
+  { key: 'rating', label: '店铺评分', value: '—', sub: '暂无评价', icon: Star, tone: 'purple' },
 ]
 
 const todos = [
-  {
-    title: '开通店铺并完善店招信息',
-    desc: '入驻通过后的下一步',
-    icon: Store,
-    path: '/shop/info',
-    tone: 'blue',
-  },
-  {
-    title: '完成首次商品 / 服务上架',
-    desc: '上架后进入运营审核',
-    icon: Package,
-    path: '/service',
-    tone: 'green',
-  },
+  { title: '开通店铺并完善店招信息', desc: '入驻通过后的下一步', icon: Store, path: '/shop/info', tone: 'blue' },
+  { title: '完成首次商品 / 服务上架', desc: '上架后进入运营审核', icon: Package, path: '/service', tone: 'green' },
 ]
 
 const chain = [
@@ -67,46 +23,42 @@ const chain = [
   { label: '交易管理', tag: '交', tone: 'orange', path: '/order' },
   { label: '物流配送', tag: '流', tone: 'cyan', path: '/order' },
   { label: '营销活动', tag: '营', tone: 'pink', path: '/workspace' },
-  { label: '结算对账', tag: '算', tone: 'red', path: '/wallet' },
+  { label: '结算对账', tag: '算', tone: 'blue', path: '/wallet' },
   { label: '电子合同', tag: '合', tone: 'indigo', path: '/merchant' },
 ]
 </script>
 
 <template>
   <div class="ws">
-    <!-- 标题区 -->
     <header class="ws-head">
       <div>
         <p class="eyebrow">经营看板</p>
         <h1>早上好，周启明</h1>
         <p class="sub">今天是入驻首日，先开通店铺，生意就开张了。</p>
       </div>
-      <button class="cta" type="button" @click="router.push('/shop/info')">
+      <ElButton type="primary" round @click="router.push('/shop/info')">
         去开通店铺
-        <ArrowRight :size="16" />
-      </button>
+        <ArrowRight :size="15" style="margin-left: 6px" />
+      </ElButton>
     </header>
 
-    <!-- 指标卡：C 端理财感 -->
     <section class="metrics" aria-label="经营指标">
-      <article v-for="m in metrics" :key="m.key" class="metric-card" :class="`tone-${m.tone}`">
+      <ElCard v-for="m in metrics" :key="m.key" class="metric-card" :class="`tone-${m.tone}`" shadow="never">
         <div class="metric-top">
           <span class="metric-label">{{ m.label }}</span>
           <span class="metric-icon">
-            <component :is="m.icon" :size="18" stroke-width="1.9" />
+            <component :is="m.icon" :size="15" stroke-width="1.8" />
           </span>
         </div>
         <div class="metric-value">{{ m.value }}</div>
         <div class="metric-sub">{{ m.sub }}</div>
-        <div class="metric-glow" aria-hidden="true" />
-      </article>
+      </ElCard>
     </section>
 
-    <!-- 短信通知 -->
-    <section class="card notice-card">
+    <ElCard class="block-card" shadow="never">
       <div class="card-head">
         <span class="card-icon tone-amber">
-          <MessageSquareText :size="18" stroke-width="1.9" />
+          <MessageSquareText :size="15" stroke-width="1.8" />
         </span>
         <h2>短信通知</h2>
       </div>
@@ -120,11 +72,10 @@ const chain = [
           【万联易达】尊敬的临港企服，您的供应商入驻申请已审核通过，账号已启用。请使用手机号138****8000登录开通店铺。
         </p>
       </div>
-    </section>
+    </ElCard>
 
-    <!-- 待办 + 经营链路 -->
     <section class="grid-2">
-      <div class="card">
+      <ElCard class="block-card" shadow="never">
         <div class="card-head">
           <h2>待办事项</h2>
           <span class="pill">2 项待完成</span>
@@ -133,19 +84,19 @@ const chain = [
           <li v-for="t in todos" :key="t.title">
             <button class="todo-item" type="button" @click="router.push(t.path)">
               <span class="todo-icon" :class="`tone-${t.tone}`">
-                <component :is="t.icon" :size="20" stroke-width="1.8" />
+                <component :is="t.icon" :size="17" stroke-width="1.7" />
               </span>
               <span class="todo-text">
                 <strong>{{ t.title }}</strong>
                 <small>{{ t.desc }}</small>
               </span>
-              <ArrowRight class="todo-arrow" :size="18" />
+              <ArrowRight class="todo-arrow" :size="15" />
             </button>
           </li>
         </ul>
-      </div>
+      </ElCard>
 
-      <div class="card">
+      <ElCard class="block-card" shadow="never">
         <div class="card-head">
           <h2>后续经营链路</h2>
           <span class="pill muted">7 个环节</span>
@@ -159,107 +110,79 @@ const chain = [
             </button>
           </li>
         </ul>
-      </div>
+      </ElCard>
     </section>
   </div>
 </template>
 
 <style scoped>
 .ws {
-  padding: 28px 32px 48px;
+  padding: var(--sp-page-y) var(--sp-page-x) 28px;
   max-width: 1280px;
   margin: 0 auto;
 }
 
-/* ===== 头部 ===== */
 .ws-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 .eyebrow {
-  margin: 0 0 6px;
-  font-size: 13px;
+  margin: 0 0 4px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--brand-red);
-  letter-spacing: 0.06em;
+  color: var(--brand);
+  letter-spacing: 0.04em;
 }
 .ws-head h1 {
   margin: 0;
   font-size: var(--fs-display);
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 .sub {
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   color: var(--text-secondary);
-  font-size: 15px;
-}
-.cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 22px;
-  border: none;
-  border-radius: var(--r-pill);
-  background: var(--brand-gradient);
-  color: #fff;
-  font-size: 14.5px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--shadow-brand);
-  transition: transform var(--t-fast) var(--ease-spring), box-shadow var(--t-fast);
-  flex-shrink: 0;
-}
-.cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(229, 57, 53, 0.35);
-}
-.cta:active {
-  transform: translateY(0);
+  font-size: 13.5px;
 }
 
-/* ===== 指标卡 ===== */
+/* 指标卡：理财感但克制 */
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--sp-gap);
+  margin-bottom: var(--sp-gap);
 }
 .metric-card {
-  position: relative;
-  overflow: hidden;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
   border-radius: var(--r-lg);
-  padding: 18px 20px 16px;
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+.metric-card :deep(.el-card__body) {
+  padding: 14px 16px 12px;
 }
 .metric-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-strong);
 }
 .metric-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 .metric-label {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 .metric-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
 }
@@ -269,48 +192,36 @@ const chain = [
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
-  line-height: 1.15;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 .metric-sub {
-  margin-top: 6px;
-  font-size: 12.5px;
+  margin-top: 4px;
+  font-size: 12px;
   color: var(--text-placeholder);
 }
-.metric-glow {
-  position: absolute;
-  right: -20px;
-  top: -28px;
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  opacity: 0.5;
-  pointer-events: none;
-}
 
-.metric-card.tone-red .metric-icon { background: var(--c-red-bg); color: var(--c-red); }
-.metric-card.tone-red .metric-glow { background: radial-gradient(circle, rgba(229,57,53,0.16), transparent 70%); }
-.metric-card.tone-orange .metric-icon { background: var(--c-orange-bg); color: var(--c-orange); }
-.metric-card.tone-orange .metric-glow { background: radial-gradient(circle, rgba(255,122,26,0.16), transparent 70%); }
 .metric-card.tone-blue .metric-icon { background: var(--c-blue-bg); color: var(--c-blue); }
-.metric-card.tone-blue .metric-glow { background: radial-gradient(circle, rgba(37,99,235,0.14), transparent 70%); }
+.metric-card.tone-orange .metric-icon { background: var(--c-orange-bg); color: var(--c-orange); }
+.metric-card.tone-teal .metric-icon { background: var(--c-teal-bg); color: var(--c-teal); }
 .metric-card.tone-purple .metric-icon { background: var(--c-purple-bg); color: var(--c-purple); }
-.metric-card.tone-purple .metric-glow { background: radial-gradient(circle, rgba(124,58,237,0.14), transparent 70%); }
 
-/* ===== 通用卡片 ===== */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
+/* 区块卡片 */
+.block-card {
   border-radius: var(--r-lg);
-  padding: 20px 22px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 20px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  margin-bottom: var(--sp-gap);
 }
+.block-card :deep(.el-card__body) {
+  padding: var(--sp-card);
+}
+
 .card-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 .card-head h2 {
   margin: 0;
@@ -319,25 +230,25 @@ const chain = [
   color: var(--text-primary);
 }
 .card-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
 }
 .card-icon.tone-amber {
   background: var(--c-amber-bg);
-  color: #d97706;
+  color: var(--c-amber);
 }
 .pill {
   margin-left: auto;
-  height: 26px;
-  padding: 0 10px;
+  height: 22px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   border-radius: var(--r-pill);
-  background: var(--brand-red-soft);
-  color: var(--brand-red);
+  background: var(--brand-soft);
+  color: var(--brand);
   font-size: 12px;
   font-weight: 600;
 }
@@ -346,97 +257,86 @@ const chain = [
   color: var(--text-secondary);
 }
 
-/* ===== 短信 ===== */
-.notice-card .card-head {
-  margin-bottom: 14px;
-}
 .sms {
-  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
-  border: 1px solid #bbf7d0;
+  background: var(--status-success-soft);
+  border: 1px solid rgba(22, 163, 74, 0.14);
   border-radius: var(--r-md);
-  padding: 14px 16px;
+  padding: 10px 12px;
 }
 .sms-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  font-size: 13px;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12.5px;
 }
 .sms-to {
   font-weight: 600;
   color: var(--text-primary);
 }
 .sms-ok {
-  color: var(--c-green);
+  color: var(--status-success);
   font-weight: 600;
   background: #fff;
-  border: 1px solid #bbf7d0;
+  border: 1px solid rgba(22, 163, 74, 0.18);
   border-radius: var(--r-pill);
-  padding: 1px 8px;
-  font-size: 12px;
+  padding: 0 7px;
+  font-size: 11.5px;
+  line-height: 18px;
 }
 .sms-meta time {
   margin-left: auto;
   color: var(--text-placeholder);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .sms-body {
   margin: 0;
   color: var(--text-regular);
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: 13.5px;
+  line-height: 1.7;
 }
 
-/* ===== 双列 ===== */
 .grid-2 {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1.45fr 1fr;
+  gap: var(--sp-gap);
   align-items: start;
 }
-.grid-2 .card {
+.grid-2 .block-card {
   margin-bottom: 0;
   height: 100%;
 }
 
-/* 待办 */
 .todo-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .todo-item {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border: 1px solid var(--border-lighter);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-light);
   border-radius: var(--r-md);
-  background: #fafbfc;
+  background: var(--bg-card);
   cursor: pointer;
   text-align: left;
-  transition:
-    background var(--t-fast) var(--ease-out),
-    border-color var(--t-fast),
-    transform var(--t-fast) var(--ease-out),
-    box-shadow var(--t-fast);
+  transition: background var(--t-fast), border-color var(--t-fast);
 }
 .todo-item:hover {
-  background: #fff;
+  background: var(--bg-hover);
   border-color: var(--border-strong);
-  transform: translateX(3px);
-  box-shadow: var(--shadow-sm);
 }
 .todo-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -448,41 +348,40 @@ const chain = [
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .todo-text strong {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
 .todo-text small {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-secondary);
 }
 .todo-arrow {
   color: var(--text-placeholder);
-  transition: transform var(--t-fast) var(--ease-out), color var(--t-fast);
+  transition: color var(--t-fast), transform var(--t-fast);
 }
 .todo-item:hover .todo-arrow {
-  color: var(--brand-red);
-  transform: translateX(3px);
+  color: var(--brand);
+  transform: translateX(2px);
 }
 
-/* 链路 */
 .chain-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 .chain-item {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 8px 8px;
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
@@ -493,12 +392,12 @@ const chain = [
   background: var(--bg-hover);
 }
 .chain-tag {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -507,21 +406,20 @@ const chain = [
 .chain-tag.tone-orange { background: var(--c-orange-bg); color: var(--c-orange); }
 .chain-tag.tone-cyan { background: var(--c-cyan-bg); color: var(--c-cyan); }
 .chain-tag.tone-pink { background: var(--c-pink-bg); color: var(--c-pink); }
-.chain-tag.tone-red { background: var(--c-red-bg); color: var(--c-red); }
+.chain-tag.tone-blue { background: var(--c-blue-bg); color: var(--c-blue); }
 .chain-tag.tone-indigo { background: var(--c-indigo-bg); color: var(--c-indigo); }
 .chain-label {
   flex: 1;
   text-align: left;
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 500;
   color: var(--text-regular);
 }
 .chain-state {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-placeholder);
 }
 
-/* ===== 响应式 ===== */
 @media (max-width: 1100px) {
   .metrics {
     grid-template-columns: repeat(2, 1fr);
@@ -532,21 +430,14 @@ const chain = [
 }
 @media (max-width: 720px) {
   .ws {
-    padding: 20px 16px 40px;
+    padding: 14px 12px 32px;
   }
   .ws-head {
     flex-direction: column;
     align-items: flex-start;
   }
-  .ws-head h1 {
-    font-size: 26px;
-  }
   .metrics {
     grid-template-columns: 1fr;
-  }
-  .sms-meta time {
-    margin-left: 0;
-    width: 100%;
   }
 }
 </style>

@@ -63,7 +63,7 @@ p {
   align-items: center;
   padding: 0 20px;
   border-radius: var(--r-pill);
-  background: var(--brand-red);
+  background: var(--brand);
   color: #fff;
   font-weight: 600;
   font-size: 14px;
@@ -72,6 +72,6 @@ p {
 }
 .ph-link:hover {
   transform: translateY(-1px);
-  background: var(--brand-red-hover);
+  background: var(--brand-hover);
 }
 </style>

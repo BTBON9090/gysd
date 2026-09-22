@@ -57,10 +57,10 @@ const pageTitle = computed(() => (route.meta.title as string) || '工作台')
 }
 .page-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(3px);
 }
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(-2px);
 }
 </style>

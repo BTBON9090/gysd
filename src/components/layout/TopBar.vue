@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Bell, ChevronDown, LogOut, ArrowLeftRight, User } from 'lucide-vue-next'
-import { ElBadge, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus'
+import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus'
 </script>
 
 <template>
@@ -8,15 +8,9 @@ import { ElBadge, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plu
     <div class="topbar-left">
       <a href="#/workspace" class="brand" aria-label="万联易达供应商端">
         <span class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 32 32" width="28" height="28">
-            <rect width="32" height="32" rx="9" fill="url(#lg)" />
+          <svg viewBox="0 0 32 32" width="24" height="24">
+            <rect width="32" height="32" rx="8" fill="#3b63d3" />
             <path d="M8 10h6.2v6.2H8zm9.8 0H24v6.2h-6.2zM8 16.8h6.2V23H8zm9.8 3.2H24V23h-6.2z" fill="#fff" />
-            <defs>
-              <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
-                <stop stop-color="#ff6b66" />
-                <stop offset="1" stop-color="#e53935" />
-              </linearGradient>
-            </defs>
           </svg>
         </span>
         <span class="brand-text">
@@ -32,11 +26,11 @@ import { ElBadge, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plu
         入驻：已通过
       </span>
 
-      <button class="icon-btn" type="button" aria-label="消息通知">
-        <ElBadge :value="2" :max="99">
-          <Bell :size="20" stroke-width="1.8" />
-        </ElBadge>
-      </button>
+      <ElBadge :value="2" :max="99">
+        <ElButton text circle aria-label="消息通知" class="icon-btn">
+          <Bell :size="18" stroke-width="1.7" />
+        </ElButton>
+      </ElBadge>
 
       <ElDropdown trigger="click" placement="bottom-end">
         <button class="user-chip" type="button">
@@ -45,7 +39,7 @@ import { ElBadge, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plu
             <strong>周启明</strong>
             <small>临港企服</small>
           </span>
-          <ChevronDown :size="15" class="chev" />
+          <ChevronDown :size="14" class="chev" />
         </button>
         <template #dropdown>
           <ElDropdownMenu>
@@ -66,26 +60,19 @@ import { ElBadge, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plu
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 16px;
   background: var(--bg-topbar);
-  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-light);
   z-index: 40;
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  min-width: 0;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  border-radius: var(--r-md);
-  padding: 6px 10px 6px 6px;
-  transition: background var(--t-fast) var(--ease-out);
+  gap: 10px;
+  border-radius: var(--r-sm);
+  padding: 4px 8px 4px 4px;
+  transition: background var(--t-fast);
 }
 .brand:hover {
   background: var(--bg-hover);
@@ -103,88 +90,75 @@ import { ElBadge, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plu
   line-height: 1.2;
 }
 .brand-text strong {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: 0.01em;
 }
 .brand-text small {
   font-size: 11px;
-  color: var(--text-secondary);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--text-placeholder);
+  letter-spacing: 0.06em;
 }
 
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
 
 .entry-status {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 34px;
-  padding: 0 14px;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
   border-radius: var(--r-pill);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--c-green);
-  background: var(--c-green-bg);
-  border: 1px solid rgba(22, 163, 74, 0.18);
+  color: var(--status-success);
+  background: var(--status-success-soft);
+  border: 1px solid rgba(22, 163, 74, 0.15);
 }
 .entry-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--c-green);
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+  background: var(--status-success);
 }
 
 .icon-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--text-regular);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: background var(--t-fast) var(--ease-out), color var(--t-fast);
+  color: var(--text-secondary);
 }
 .icon-btn:hover {
-  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
 .user-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: none;
   background: transparent;
-  padding: 6px 8px 6px 6px;
+  padding: 4px 6px 4px 4px;
   border-radius: var(--r-pill);
   cursor: pointer;
-  transition: background var(--t-fast) var(--ease-out);
+  transition: background var(--t-fast);
 }
 .user-chip:hover {
   background: var(--bg-hover);
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   color: #fff;
   background: var(--brand-gradient);
-  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
 }
 
 .user-meta {
@@ -194,13 +168,13 @@ import { ElBadge, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plu
   line-height: 1.25;
 }
 .user-meta strong {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-primary);
 }
 .user-meta small {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 11.5px;
+  color: var(--text-placeholder);
 }
 
 .chev {

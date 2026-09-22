@@ -12,7 +12,7 @@ export interface DesignVersion {
 }
 
 export const DESIGN_VERSIONS: DesignVersion[] = [
-  { id: 'v1.0', label: 'V1.0 当前稿', desc: '浅色轻 C 端 · 理财感指标卡' },
+  { id: 'v1.0', label: 'V1.0 当前稿', desc: 'B 端骨架 · C 端手感 · 高级蓝主色' },
   { id: 'v0.9-proto', label: 'V0.9 原型参考', desc: '未设计原型的视觉基线（灰阶回退）' },
 ]
 
@@ -25,19 +25,12 @@ export interface AcceptanceIssue {
 }
 
 export const useAcceptanceStore = defineStore('acceptance', () => {
-  /** 是否显示悬浮验收工具 */
   const toolVisible = ref(true)
-  /** 面板展开 */
   const panelOpen = ref(false)
-  /** 当前设计版本 */
   const versionId = ref<string>(DESIGN_VERSIONS[0].id)
-  /** 页面数据状态 */
   const dataState = ref<PageDataState>('ready')
-  /** 分屏对比：左为旧版 */
   const compareMode = ref(false)
-  /** 验收问题清单 */
   const issues = ref<AcceptanceIssue[]>([])
-  /** 标注模式：点击页面区块记问题 */
   const annotateMode = ref(false)
 
   const currentVersion = computed(
