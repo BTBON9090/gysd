@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Bell, ChevronDown, LogOut, ArrowLeftRight, User, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
-import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu, ElOption, ElSelect } from 'element-plus'
+import { Bell, ChevronDown, LogOut, User, PanelLeftClose, PanelLeftOpen, Building2, Plus } from 'lucide-vue-next'
+import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu, ElMessageBox, ElOption, ElSelect } from 'element-plus'
 import { useAcceptanceStore } from '@/stores/acceptance'
 import { useOnboardingStore } from '@/stores/onboarding'
+import { useProfileStore } from '@/stores/profile'
+import { useSessionStore } from '@/stores/session'
 
 const acc = useAcceptanceStore()
 const ob = useOnboardingStore()
+const profile = useProfileStore()
+const session = useSessionStore()
 const router = useRouter()
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 const isPending = computed(() => acc.entryStatus === 'pending')
@@ -17,11 +21,33 @@ const entryText = computed(() => isPending.value
 const entryTone = computed(() => isPending.value ? ob.status : 'approved')
 const statusLabels = { draft: '待提交', reviewing: '审核中', rejected: '已驳回', approved: '已通过' }
 
+const parkName = computed(() => profile.registeredParks[0] || '')
 function switchApplication(id: string) {
+  if (id === '__new__') {
+    ob.createApplication()
+    acc.setEntryStatus('pending')
+    router.push('/workspace')
+    return
+  }
   if (!ob.selectApplication(id)) return
   acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
-  if (ob.status === 'reviewing' || ob.status === 'rejected' || ob.status === 'approved') router.push('/onboarding/progress')
+  if (ob.status === 'approved') router.push('/merchant')
+  else if (ob.status === 'reviewing' || ob.status === 'rejected') router.push('/onboarding/progress')
   else router.push(ob.entityVerified ? `/onboarding/step/${Math.max(1, ob.maxStep)}` : '/onboarding/entity')
+}
+function switchCustomer() {
+  if (!parkName.value) return
+  sessionStorage.setItem('gysd-demo-customer-park', parkName.value)
+  router.push('/customer-demo')
+}
+async function logout() {
+  try {
+    await ElMessageBox.confirm('是否确认退出？', '退出登录', {
+      customClass: 'ob-confirm-box', confirmButtonText: '确认退出', cancelButtonText: '取消', type: 'warning',
+    })
+  } catch { return }
+  session.logout()
+  router.replace('/login')
 }
 </script>
 
@@ -49,17 +75,18 @@ function switchApplication(id: string) {
         入驻：{{ entryText }}
       </span>
 
-      <div v-if="ob.applications.some(item => item.entityVerified)" class="supplier-switch">
-        <span>切换主体</span>
+      <div class="supplier-switch">
+        <span>切换供应商</span>
         <ElSelect :model-value="ob.activeId" class="supplier-select" popper-class="subject-popper" aria-label="切换主体" @change="switchApplication">
           <ElOption v-if="!ob.entityVerified" :value="ob.activeId" label="个人账号 · 新申请" />
           <ElOption v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id" :label="`${item.draft.entityName} · ${statusLabels[item.status]}`">
             <div class="subject-option">
               <strong>{{ item.draft.entityName }}</strong>
-              <small>{{ item.draft.creditCode || '主体信息待完善' }}</small>
+              <small>管理员 · {{ item.draft.creditCode || '主体信息待完善' }}</small>
               <span class="subject-state" :class="item.status">{{ statusLabels[item.status] }}</span>
             </div>
           </ElOption>
+          <ElOption value="__new__" label="供应商入驻"><div class="subject-new"><Plus :size="15" /> 供应商入驻</div></ElOption>
         </ElSelect>
       </div>
 
@@ -71,18 +98,18 @@ function switchApplication(id: string) {
 
       <ElDropdown trigger="click" placement="bottom-end">
         <button class="user-chip" type="button">
-          <span class="avatar">周</span>
+          <span class="avatar"><img v-if="profile.avatar" :src="profile.avatar" alt="" />{{ profile.avatar ? '' : profile.name.slice(0, 1) }}</span>
           <span class="user-meta">
-            <strong>周启明</strong>
-            <small>临港企服</small>
+            <strong>{{ profile.name }}</strong>
+            <small>{{ ob.draft.serviceName || '个人账号' }}</small>
           </span>
           <ChevronDown :size="14" class="chev" />
         </button>
         <template #dropdown>
           <ElDropdownMenu>
-            <ElDropdownItem :icon="User">个人资料</ElDropdownItem>
-            <ElDropdownItem :icon="ArrowLeftRight">切换账号</ElDropdownItem>
-            <ElDropdownItem :icon="LogOut" divided>退出登录</ElDropdownItem>
+            <ElDropdownItem :icon="User" @click="router.push('/settings')">个人信息</ElDropdownItem>
+            <ElDropdownItem :icon="Building2" :disabled="!parkName" :title="parkName || '暂无关联园区'" @click="switchCustomer">切换园区客户</ElDropdownItem>
+            <ElDropdownItem :icon="LogOut" divided @click="logout">退出登录</ElDropdownItem>
           </ElDropdownMenu>
         </template>
       </ElDropdown>
@@ -194,6 +221,7 @@ function switchApplication(id: string) {
   color: #fff;
   background: var(--brand-gradient);
 }
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 
 .user-meta {
   display: flex;
@@ -220,6 +248,7 @@ function switchApplication(id: string) {
 .supplier-select :deep(.el-select__wrapper) { min-height: 34px; border-radius: 8px; box-shadow: 0 0 0 1px #d8e0ed inset; padding-inline: 10px; }
 .supplier-select :deep(.el-select__wrapper:hover) { box-shadow: 0 0 0 1px #9eb0d7 inset; }
 .supplier-select :deep(.el-select__selected-item) { color: #233551; font-weight: 600; font-size: 12px; }
+.subject-new{display:flex;align-items:center;gap:7px;color:#3656c5;font-weight:650}
 @media(max-width:900px) { .supplier-switch > span { display: none; } .supplier-select { width: 180px; } .user-meta { display: none; } }
 @media(max-width:620px) { .entry-status { display: none; } .supplier-select { width: 135px; } }
 

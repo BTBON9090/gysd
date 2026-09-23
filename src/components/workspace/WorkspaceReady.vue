@@ -16,9 +16,11 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElButton, ElCard, ElTag } from 'element-plus'
 import { useAcceptanceStore } from '@/stores/acceptance'
+import { useProfileStore } from '@/stores/profile'
 
 const router = useRouter()
 const acc = useAcceptanceStore()
+const profile = useProfileStore()
 
 const metrics = [
   { key: 'gmv', label: '今日 GMV', value: '¥0', sub: '入驻首日', icon: TrendingUp, tone: 'blue' },
@@ -29,12 +31,12 @@ const metrics = [
 
 const todos = [
   { title: '开通店铺并完善店招信息', desc: '入驻通过后的下一步', icon: Store, path: '/shop/info', tone: 'blue' },
-  { title: '完成首次商品 / 服务上架', desc: '上架后进入运营审核', icon: Package, path: '/service', tone: 'green' },
+  { title: '核对入驻服务资料', desc: '查看已提交的服务范围与擅长领域', icon: Package, path: '/service', tone: 'green' },
 ]
 
 const chain = [
   { label: '店铺管理', tag: '铺', tone: 'purple', path: '/shop' },
-  { label: '商品管理', tag: '品', tone: 'green', path: '/service' },
+  { label: '服务管理', tag: '服', tone: 'green', path: '/service' },
   { label: '交易管理', tag: '交', tone: 'orange', path: '/order' },
   { label: '物流配送', tag: '流', tone: 'cyan', path: '/order' },
   { label: '营销活动', tag: '营', tone: 'pink', path: '/workspace' },
@@ -87,7 +89,7 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
     <header class="ws-head">
       <div>
         <p class="eyebrow">经营看板</p>
-        <h1>早上好，周启明</h1>
+        <h1>早上好，{{ profile.name }}</h1>
         <p class="sub">
           {{ pendingEntry ? '完成服务商入驻后，即可开通店铺、上架服务。' : '今天是入驻首日，先开通店铺，生意就开张了。' }}
         </p>

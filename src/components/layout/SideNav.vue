@@ -10,7 +10,7 @@ const acc = useAcceptanceStore()
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 const activePath = computed(() => route.path.startsWith('/onboarding') ? '/workspace' : route.path)
 const rootItems = computed(() => acc.entryStatus === 'pending'
-  ? navMenus.filter(item => item.key === 'workspace' || item.key === 'settings').map(item => item.key === 'settings' ? { ...item, children: undefined } : item)
+  ? navMenus.filter(item => item.key === 'workspace' || item.key === 'settings').map(item => item.key === 'settings' ? { ...item, children: item.children?.filter(child => child.key === 'settings-profile') } : item)
   : navMenus)
 </script>
 

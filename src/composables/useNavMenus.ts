@@ -62,7 +62,7 @@ export const navMenus: NavItem[] = [
     icon: Settings,
     tone: 'amber',
     children: [
-      { key: 'settings-account', label: '账号安全', path: '/settings/account' },
+      { key: 'settings-profile', label: '个人信息', path: '/settings' },
       { key: 'settings-member', label: '成员管理', path: '/settings/member' },
     ],
   },

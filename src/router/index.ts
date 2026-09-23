@@ -3,10 +3,13 @@ import type { RouteRecordRaw } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import { navMenus } from '@/composables/useNavMenus'
 import { useAcceptanceStore } from '@/stores/acceptance'
+import { useSessionStore } from '@/stores/session'
 
 const placeholder = () => import('@/views/PlaceholderView.vue')
 
 const routes: RouteRecordRaw[] = [
+  { path: '/login', name: 'demo-login', component: () => import('@/views/DemoLoginView.vue'), meta: { title: '重新进入演示' } },
+  { path: '/customer-demo', name: 'customer-demo', component: () => import('@/views/CustomerDemoView.vue'), meta: { title: '园区客户端演示' } },
   {
     path: '/',
     component: AppShell,
@@ -33,9 +36,10 @@ const routes: RouteRecordRaw[] = [
         .map((m) => ({
           path: m.path.replace(/^\//, ''),
           name: m.key,
-          component: placeholder,
+          component: m.key === 'settings' ? () => import('@/views/settings/ProfileView.vue') : m.key === 'service' ? () => import('@/views/service/ServiceView.vue') : m.key === 'merchant' ? () => import('@/views/merchant/MerchantArchiveView.vue') : placeholder,
           meta: { title: m.label, placeholder: true },
         })),
+      { path: 'settings/member', name: 'settings-member', component: () => import('@/views/settings/MembersView.vue'), meta: { title: '成员管理' } },
     ],
   },
 ]
@@ -47,8 +51,13 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
+  const session = useSessionStore()
+  if (!session.loggedIn && to.path !== '/login') return '/login'
+  if (session.loggedIn && to.path === '/login') return '/workspace'
   const acc = useAcceptanceStore()
-  if (acc.entryStatus === 'pending' && !['/workspace', '/settings'].includes(to.path) && !to.path.startsWith('/onboarding/')) {
+  if (to.query.entry === 'approved') acc.setEntryStatus('approved')
+  if (to.query.entry === 'pending') acc.setEntryStatus('pending')
+  if (acc.entryStatus === 'pending' && !['/workspace', '/settings', '/customer-demo'].includes(to.path) && !to.path.startsWith('/onboarding/')) {
     return '/workspace'
   }
 })
