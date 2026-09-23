@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
 import {
-  LayoutDashboard,
+  House,
   MapPinned,
   Store,
   HeartHandshake,
@@ -25,7 +25,7 @@ export interface NavItem {
 }
 
 export const navMenus: NavItem[] = [
-  { key: 'workspace', label: '工作台', path: '/workspace', icon: LayoutDashboard, tone: 'red' },
+  { key: 'workspace', label: '工作台', path: '/workspace', icon: House, tone: 'red' },
   { key: 'park', label: '我的园区', path: '/park', icon: MapPinned, tone: 'blue' },
   {
     key: 'shop',

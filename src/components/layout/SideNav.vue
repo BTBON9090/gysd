@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMenu, ElMenuItem, ElSubMenu } from 'element-plus'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
 import { navMenus } from '@/composables/useNavMenus'
 
 const route = useRoute()
-const collapsed = ref(false)
+const collapsed = defineModel<boolean>('collapsed', { default: false })
 const activePath = computed(() => route.path)
 const rootItems = navMenus
 </script>
@@ -36,10 +36,13 @@ const rootItems = navMenus
       <template v-for="item in rootItems" :key="item.key">
         <ElSubMenu v-if="item.children?.length" :index="item.path">
           <template #title>
-            <span class="nav-icon" :class="`tone-${item.tone}`">
-              <component :is="item.icon" :size="16" stroke-width="1.8" />
-            </span>
-            <span class="nav-label">{{ item.label }}</span>
+            <!-- EP collapse hides direct > span children of sub-menu title — wrap in div so icons survive -->
+            <div class="nav-title">
+              <span class="nav-icon" :class="`tone-${item.tone}`">
+                <component :is="item.icon" :size="16" stroke-width="1.8" />
+              </span>
+              <span class="nav-label">{{ item.label }}</span>
+            </div>
           </template>
           <ElMenuItem v-for="c in item.children" :key="c.key" :index="c.path">
             {{ c.label }}
@@ -87,8 +90,13 @@ const rootItems = navMenus
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 10px 6px 14px;
+  padding: 12px 8px 6px 10px;
   min-height: 44px;
+}
+/* 收起后只留折叠按钮，与下方图标对齐 */
+.sidenav.collapsed .sidenav-head {
+  justify-content: center;
+  padding: 12px 0 6px;
 }
 .section-label {
   font-size: 12px;
@@ -117,7 +125,7 @@ const rootItems = navMenus
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 4px 8px;
+  padding: 4px 6px;
 }
 
 /* 菜单项：去重描边，仅浅底选中 */
@@ -168,13 +176,46 @@ const rootItems = navMenus
   color: var(--brand);
 }
 
-/* 折叠态 */
+/* 折叠态：图标居中；标签隐藏。
+   注意不要用 `> span { visibility:hidden }` 去仿 EP —— 会连图标一起藏掉。 */
+.nav-title {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+/* 行贴满侧栏，中线 = 侧栏中心。
+   EP 折叠态会把 .el-menu--collapse 锁成 64px，比 56px 侧栏宽，必须拉回 100%。 */
+.sidenav.collapsed .nav-menu {
+  width: 100% !important;
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
 .sidenav.collapsed .nav-menu :deep(.el-menu-item),
 .sidenav.collapsed .nav-menu :deep(.el-sub-menu__title) {
   padding: 0 !important;
   justify-content: center;
 }
+/* 普通项折叠时包在 tooltip trigger 里，EP 默认左右 20px padding 把图标推向右侧 */
+.sidenav.collapsed .nav-menu :deep(.el-menu-tooltip__trigger),
+.sidenav.collapsed .nav-menu :deep(.el-tooltip__trigger) {
+  width: 100%;
+  padding: 0 !important;
+  justify-content: center;
+}
+.sidenav.collapsed .nav-title {
+  width: 100%;
+  justify-content: center;
+  flex: none;
+}
 .sidenav.collapsed .nav-label {
+  display: none;
+}
+.sidenav.collapsed .nav-icon {
+  margin-right: 0;
+}
+.sidenav.collapsed .nav-badge {
   display: none;
 }
 
@@ -185,7 +226,7 @@ const rootItems = navMenus
   display: inline-grid;
   place-items: center;
   flex-shrink: 0;
-  margin-right: 10px;
+  margin-right: 8px;
   transition: background var(--t-fast);
 }
 
@@ -222,7 +263,7 @@ const rootItems = navMenus
 }
 
 .sidenav-foot {
-  padding: 10px;
+  padding: 8px;
 }
 .foot-card {
   background: var(--bg-muted);

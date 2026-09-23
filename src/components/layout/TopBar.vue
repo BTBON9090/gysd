@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Bell, ChevronDown, LogOut, ArrowLeftRight, User } from 'lucide-vue-next'
 import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus'
+import { useAcceptanceStore } from '@/stores/acceptance'
+
+const acc = useAcceptanceStore()
+const isPending = computed(() => acc.entryStatus === 'pending')
 </script>
 
 <template>
@@ -21,9 +26,13 @@ import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'e
     </div>
 
     <div class="topbar-right">
-      <span class="entry-status" title="供应商入驻状态">
+      <span
+        class="entry-status"
+        :class="{ pending: isPending }"
+        title="供应商入驻状态"
+      >
         <span class="entry-dot" />
-        入驻：已通过
+        {{ isPending ? '入驻：待提交' : '入驻：已通过' }}
       </span>
 
       <ElBadge :value="2" :max="99">
@@ -119,6 +128,14 @@ import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'e
   color: var(--status-success);
   background: var(--status-success-soft);
   border: 1px solid rgba(22, 163, 74, 0.15);
+}
+.entry-status.pending {
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-color: rgba(59, 99, 211, 0.18);
+}
+.entry-status.pending .entry-dot {
+  background: var(--brand);
 }
 .entry-dot {
   width: 6px;

@@ -4,6 +4,9 @@ import { ref, computed } from 'vue'
 /** 页面数据状态：供验收工具一键切换 */
 export type PageDataState = 'ready' | 'loading' | 'empty' | 'error'
 
+/** 入驻状态：供验收工具切换未入驻 / 已入驻 */
+export type EntryStatus = 'pending' | 'approved'
+
 /** 设计版本：供 UI 版本管理与对比 */
 export interface DesignVersion {
   id: string
@@ -29,6 +32,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
   const panelOpen = ref(false)
   const versionId = ref<string>(DESIGN_VERSIONS[0].id)
   const dataState = ref<PageDataState>('ready')
+  const entryStatus = ref<EntryStatus>('approved')
   const compareMode = ref(false)
   const issues = ref<AcceptanceIssue[]>([])
   const annotateMode = ref(false)
@@ -43,6 +47,9 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
   }
   function setDataState(s: PageDataState) {
     dataState.value = s
+  }
+  function setEntryStatus(s: EntryStatus) {
+    entryStatus.value = s
   }
   function toggleCompare(on?: boolean) {
     compareMode.value = on ?? !compareMode.value
@@ -71,6 +78,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
     panelOpen,
     versionId,
     dataState,
+    entryStatus,
     compareMode,
     issues,
     annotateMode,
@@ -78,6 +86,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
     isPrototypeSkin,
     setVersion,
     setDataState,
+    setEntryStatus,
     toggleCompare,
     addIssue,
     removeIssue,

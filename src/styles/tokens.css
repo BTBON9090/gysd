@@ -89,8 +89,8 @@
   --r-pill: 999px;
 
   /* ===== 布局：高密度 ===== */
-  --sidebar-w: 220px;
-  --sidebar-w-collapsed: 64px;
+  --sidebar-w: 176px;
+  --sidebar-w-collapsed: 56px;
   --topbar-h: 52px;
   --sp-page-x: 20px;
   --sp-page-y: 16px;

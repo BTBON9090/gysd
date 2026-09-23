@@ -15,6 +15,9 @@ onMounted(() => {
   }
   const skin = q.get('skin')
   if (skin === 'proto') acc.setVersion('v0.9-proto')
+  const entry = q.get('entry')
+  if (entry === 'pending') acc.setEntryStatus('pending')
+  if (entry === 'approved') acc.setEntryStatus('approved')
 })
 </script>
 

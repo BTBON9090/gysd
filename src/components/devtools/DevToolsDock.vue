@@ -11,7 +11,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-vue-next'
-import { useAcceptanceStore, DESIGN_VERSIONS, type PageDataState } from '@/stores/acceptance'
+import { useAcceptanceStore, DESIGN_VERSIONS, type PageDataState, type EntryStatus } from '@/stores/acceptance'
 import { ElButton, ElSwitch } from 'element-plus'
 
 const acc = useAcceptanceStore()
@@ -23,6 +23,11 @@ const stateOptions: { value: PageDataState; label: string }[] = [
   { value: 'loading', label: '加载中' },
   { value: 'empty', label: '空态' },
   { value: 'error', label: '异常' },
+]
+
+const entryOptions: { value: EntryStatus; label: string }[] = [
+  { value: 'approved', label: '已入驻' },
+  { value: 'pending', label: '未入驻' },
 ]
 
 const levelText = { high: '高', mid: '中', low: '低' } as const
@@ -43,6 +48,11 @@ async function copyIssues() {
   } catch {
     /* ignore */
   }
+}
+
+function panelGo(path: string) {
+  acc.panelOpen = false
+  window.location.hash = `#${path}`
 }
 </script>
 
@@ -98,6 +108,33 @@ async function copyIssues() {
                 {{ s.label }}
               </button>
             </div>
+          </section>
+
+          <section class="sec">
+            <h3>入驻状态</h3>
+            <div class="seg" role="tablist" aria-label="入驻状态">
+              <button
+                v-for="s in entryOptions"
+                :key="s.value"
+                class="seg-btn"
+                :class="{ active: acc.entryStatus === s.value }"
+                type="button"
+                role="tab"
+                :aria-selected="acc.entryStatus === s.value"
+                @click="acc.setEntryStatus(s.value)"
+              >
+                {{ s.label }}
+              </button>
+            </div>
+            <ElButton
+              v-if="acc.entryStatus === 'pending'"
+              size="small"
+              style="width: 100%; margin-top: 8px"
+              type="primary"
+              @click="panelGo('/onboarding')"
+            >
+              进入入驻流程
+            </ElButton>
           </section>
 
           <section class="sec">

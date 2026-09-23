@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import TopBar from './TopBar.vue'
 import SideNav from './SideNav.vue'
@@ -8,6 +8,7 @@ import { useAcceptanceStore } from '@/stores/acceptance'
 
 const route = useRoute()
 const acc = useAcceptanceStore()
+const sideCollapsed = ref(false)
 const pageTitle = computed(() => (route.meta.title as string) || '工作台')
 </script>
 
@@ -15,7 +16,7 @@ const pageTitle = computed(() => (route.meta.title as string) || '工作台')
   <div class="shell" :class="{ 'is-proto': acc.isPrototypeSkin }">
     <TopBar />
     <div class="shell-body">
-      <SideNav />
+      <SideNav v-model:collapsed="sideCollapsed" />
       <main class="shell-main" :data-state="acc.dataState">
         <router-view v-slot="{ Component }">
           <transition name="page" mode="out-in">

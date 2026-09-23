@@ -1,9 +1,24 @@
 <script setup lang="ts">
-import { MessageSquareText, ArrowRight, Store, Package, TrendingUp, Clock3, Wallet, Star } from 'lucide-vue-next'
+import {
+  MessageSquareText,
+  ArrowRight,
+  Store,
+  Package,
+  TrendingUp,
+  Clock3,
+  Wallet,
+  Star,
+  ClipboardList,
+  Truck,
+  ReceiptText,
+} from 'lucide-vue-next'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElButton, ElCard } from 'element-plus'
+import { ElButton, ElCard, ElTag } from 'element-plus'
+import { useAcceptanceStore } from '@/stores/acceptance'
 
 const router = useRouter()
+const acc = useAcceptanceStore()
 
 const metrics = [
   { key: 'gmv', label: '今日 GMV', value: '¥0', sub: '入驻首日', icon: TrendingUp, tone: 'blue' },
@@ -26,6 +41,45 @@ const chain = [
   { label: '结算对账', tag: '算', tone: 'blue', path: '/wallet' },
   { label: '电子合同', tag: '合', tone: 'indigo', path: '/merchant' },
 ]
+
+const quickEntries = [
+  {
+    key: 'inquiry',
+    title: '询价待报',
+    count: '0',
+    unit: '条',
+    desc: '对应模块尚未接入 · 交易管理',
+    icon: ClipboardList,
+    tone: 'orange',
+    path: '/order',
+    action: '去报价',
+  },
+  {
+    key: 'ship',
+    title: '待发货',
+    count: '0',
+    unit: '单',
+    desc: '对应模块尚未接入 · 物流配送',
+    icon: Truck,
+    tone: 'cyan',
+    path: '/order',
+    action: '去发货',
+  },
+  {
+    key: 'reconcile',
+    title: '待对账',
+    count: '0',
+    unit: '笔',
+    desc: '对应模块尚未接入 · 结算对账',
+    icon: ReceiptText,
+    tone: 'blue',
+    path: '/wallet',
+    action: '去对账',
+  },
+]
+
+const pendingEntry = computed(() => acc.entryStatus === 'pending')
+
 </script>
 
 <template>
@@ -34,9 +88,15 @@ const chain = [
       <div>
         <p class="eyebrow">经营看板</p>
         <h1>早上好，周启明</h1>
-        <p class="sub">今天是入驻首日，先开通店铺，生意就开张了。</p>
+        <p class="sub">
+          {{ pendingEntry ? '完成服务商入驻后，即可开通店铺、上架服务。' : '今天是入驻首日，先开通店铺，生意就开张了。' }}
+        </p>
       </div>
-      <ElButton type="primary" round @click="router.push('/shop/info')">
+      <ElButton v-if="pendingEntry" type="primary" round @click="router.push('/onboarding')">
+        去入驻
+        <ArrowRight :size="15" style="margin-left: 6px" />
+      </ElButton>
+      <ElButton v-else type="primary" round @click="router.push('/shop/info')">
         去开通店铺
         <ArrowRight :size="15" style="margin-left: 6px" />
       </ElButton>
@@ -110,6 +170,29 @@ const chain = [
             </button>
           </li>
         </ul>
+      </ElCard>
+    </section>
+
+    <section class="quick-grid" aria-label="快捷入口">
+      <ElCard v-for="q in quickEntries" :key="q.key" class="quick-card" :class="`tone-${q.tone}`" shadow="never">
+        <div class="quick-top">
+          <span class="quick-icon">
+            <component :is="q.icon" :size="16" stroke-width="1.8" />
+          </span>
+          <ElTag :type="Number(q.count) > 0 ? 'primary' : 'info'" effect="light" round size="small">
+            {{ q.count }} {{ q.unit }}
+          </ElTag>
+        </div>
+        <h3 class="quick-title">{{ q.title }}</h3>
+        <p class="quick-desc">{{ q.desc }}</p>
+        <ElButton
+          size="small"
+          :type="Number(q.count) > 0 ? 'primary' : 'default'"
+          :disabled="Number(q.count) === 0"
+          @click="router.push(q.path)"
+        >
+          {{ q.action }}
+        </ElButton>
       </ElCard>
     </section>
   </div>
@@ -420,11 +503,63 @@ const chain = [
   color: var(--text-placeholder);
 }
 
+/* 底部快捷入口三模块 */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-gap);
+  margin-top: var(--sp-gap);
+}
+.quick-card {
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+.quick-card :deep(.el-card__body) {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+.quick-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.quick-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+}
+.quick-card.tone-orange .quick-icon { background: var(--c-orange-bg); color: var(--c-orange); }
+.quick-card.tone-cyan .quick-icon { background: var(--c-cyan-bg); color: var(--c-cyan); }
+.quick-card.tone-blue .quick-icon { background: var(--c-blue-bg); color: var(--c-blue); }
+.quick-title {
+  margin: 0 0 4px;
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.quick-desc {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--text-placeholder);
+  line-height: 1.5;
+}
+
 @media (max-width: 1100px) {
   .metrics {
     grid-template-columns: repeat(2, 1fr);
   }
   .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .quick-grid {
     grid-template-columns: 1fr;
   }
 }
