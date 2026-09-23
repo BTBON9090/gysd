@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Store, Building2, ShieldCheck, CircleAlert, ScanLine } from 'lucide-vue-next'
-import { ElInput, ElMessage, ElOption, ElSelect } from 'element-plus'
+import { ElButton, ElDialog, ElInput, ElMessage, ElOption, ElSelect } from 'element-plus'
 import {
   useOnboardingStore,
   type EntityType,
@@ -13,6 +13,12 @@ import OnboardingShell from '@/components/onboarding/OnboardingShell.vue'
 const router = useRouter()
 const ob = useOnboardingStore()
 const errors = ref<string[]>([])
+const gateDialog = ref(false)
+const gateMode = ref<'blocked' | 'verify'>('blocked')
+
+onMounted(() => {
+  if (ob.entityVerified && ob.draft.entityType !== 'personal') router.replace(`/onboarding/step/${Math.max(1, ob.maxStep)}`)
+})
 
 const options: {
   id: EntityType
@@ -56,9 +62,7 @@ const isPersonal = computed(() => ob.draft.entityType === 'personal')
 const nameLabel = computed(() => (isPersonal.value ? '姓名' : '企业名称'))
 const nameLabelShort = computed(() => (isPersonal.value ? '姓名' : '名称'))
 const codeLabel = computed(() => (isPersonal.value ? '身份证号' : '统一社会信用代码'))
-const codePlaceholder = computed(() =>
-  isPersonal.value ? '18 位身份证号' : '18 位统一社会信用代码（识别码）',
-)
+const codePlaceholder = computed(() => isPersonal.value ? '18 位身份证号' : ob.draft.entityType === 'individual' ? '15 位或 18 位证件号码' : '18 位统一社会信用代码')
 
 function pick(id: EntityType) {
   ob.setEntityType(id)
@@ -83,6 +87,16 @@ function fillDemo() {
   errors.value = []
 }
 
+function finishGate() {
+  gateDialog.value = false
+  if (!ob.confirmEntityGate()) return
+  router.push('/onboarding/step/1')
+}
+function onGatePrimary() {
+  if (gateMode.value === 'verify') finishGate()
+  else gateDialog.value = false
+}
+
 function next() {
   const errs = ob.validateEntityGate()
   errors.value = errs
@@ -90,8 +104,19 @@ function next() {
     ElMessage.error(errs[0])
     return
   }
-  if (!ob.confirmEntityGate()) return
-  router.push('/onboarding/step/1')
+  // 固定样例仅用于演示“已入驻拦截”，不代表真实查询结果。
+  const alreadyApproved = ob.applications.some((application) => application.id !== ob.activeId && application.status === 'approved' && application.draft.creditCode === ob.draft.creditCode.toUpperCase())
+  if (alreadyApproved || ob.draft.creditCode.toUpperCase() === '91310000MA1FL8K21B') {
+    gateMode.value = 'blocked'
+    gateDialog.value = true
+    return
+  }
+  if (ob.draft.entityType !== 'personal') {
+    gateMode.value = 'verify'
+    gateDialog.value = true
+    return
+  }
+  finishGate()
 }
 </script>
 
@@ -104,6 +129,20 @@ function next() {
     :step="0"
     @next="next"
   >
+    <ElDialog v-model="gateDialog" class="ob-gate-dialog" width="min(480px, 92vw)" align-center :show-close="false" :close-on-click-modal="false" :append-to-body="true">
+      <div class="gate-modal-icon" :class="gateMode"><CircleAlert v-if="gateMode === 'blocked'" :size="23" /><ShieldCheck v-else :size="23" /></div>
+      <span class="gate-modal-eyebrow">主体状态查询 · 前端演示</span>
+      <h2>{{ gateMode === 'blocked' ? '该主体已入驻' : '主体可继续申请' }}</h2>
+      <p class="gate-modal-desc">{{ gateMode === 'blocked' ? '该主体已有入驻记录，请联系管理员开通账号。' : '演示环境将模拟企业二要素认证。通过后主体名称与证件号码将锁定。' }}</p>
+      <div class="gate-modal-subject"><span>当前主体</span><strong>{{ ob.draft.entityName }}</strong><small>{{ ob.draft.creditCode }}</small></div>
+      <template #footer>
+        <div class="gate-modal-actions">
+          <ElButton v-if="gateMode === 'verify'" @click="gateDialog = false">返回修改</ElButton>
+          <ElButton type="primary" @click="onGatePrimary">{{ gateMode === 'verify' ? '模拟认证通过' : '知道了' }}</ElButton>
+        </div>
+      </template>
+    </ElDialog>
+
     <div v-if="errors.length" class="err-banner">
       <CircleAlert :size="16" />
       <ul>
@@ -114,7 +153,7 @@ function next() {
     <section class="entity-card">
       <div class="gate-head">
         <div class="card-head-text">
-          <h2 class="field-label">类型 <em>*</em></h2>
+        <h2 class="field-label">主体类型 <em>*</em></h2>
           <p class="gate-hint">选择主体后核验证件与识别信息，校验通过才可进入填写。</p>
         </div>
         <button class="card-demo" type="button" @click="fillDemo">
@@ -179,18 +218,18 @@ function next() {
               v-model="ob.draft.creditCode"
               :placeholder="codePlaceholder"
               clearable
-              maxlength="18"
+              :maxlength="ob.draft.entityType === 'individual' ? 18 : 18"
               @input="(v: string) => { ob.draft.creditCode = v.toUpperCase(); errors = [] }"
               @change="ob.persist()"
             />
             <p class="field-help">
-              {{ isPersonal ? '18 位身份证号，末位可为 X' : '18 位数字与大写字母，与证件一致' }}
+              {{ isPersonal ? '18 位身份证号，末位可为 X' : ob.draft.entityType === 'individual' ? '15 位数字或 18 位统一社会信用代码，与证件一致' : '18 位数字与大写字母，与证件一致' }}
             </p>
           </div>
         </div>
 
         <p class="gate-note">
-          校验通过后进入「入驻信息」等 5 步填写；名称与识别码将作为经营主体只读展示，可在本页返回修改。
+          核验通过后进入 5 步向导。企业和个体工商户的主体名称、证件号码将锁定；个人可返回本页修改。
         </p>
       </div>
 
@@ -393,4 +432,28 @@ function next() {
   color: var(--text-secondary);
 }
 
+@media (max-width: 760px) {
+  .entity-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .field.span-2 { grid-column: auto; }
+}
+</style>
+
+<style>
+.ob-gate-dialog { padding: 26px 28px 24px !important; border-radius: 14px !important; box-shadow: 0 22px 65px rgba(17, 35, 71, .18) !important; }
+.ob-gate-dialog .el-dialog__header { display: none; }
+.ob-gate-dialog .el-dialog__body { padding: 0; }
+.ob-gate-dialog .el-dialog__footer { padding: 22px 0 0; }
+.gate-modal-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; margin-bottom: 18px; }
+.gate-modal-icon.blocked { background: #fff2eb; color: #c86034; }
+.gate-modal-icon.verify { background: #e9f7f4; color: #0b9387; }
+.gate-modal-eyebrow { display: block; color: #62718a; font-size: 11px; font-weight: 700; letter-spacing: .05em; }
+.ob-gate-dialog h2 { margin: 5px 0 7px; font-size: 22px; letter-spacing: -.025em; color: #17243b; }
+.gate-modal-desc { margin: 0; color: #4f5f77; font-size: 13px; line-height: 1.7; }
+.gate-modal-subject { display: flex; flex-direction: column; gap: 3px; margin-top: 19px; padding: 13px 15px; background: #f5f7fb; border-radius: 8px; }
+.gate-modal-subject span { color: #6f7c91; font-size: 11px; }
+.gate-modal-subject strong { color: #26344d; font-size: 13px; overflow-wrap: anywhere; }
+.gate-modal-subject small { color: #627087; font-size: 12px; letter-spacing: .01em; }
+.gate-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.gate-modal-actions .el-button { min-width: 88px; border-radius: 8px; height: 37px; font-size: 12.5px; }
 </style>

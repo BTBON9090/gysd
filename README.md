@@ -1,30 +1,22 @@
-# 万联易达 · 供应商端 V1
+# 万联易达 · 供应商端演示
 
-C 端化风格的供应商工作台前端 Demo（纯前端界面与交互，无后端）。
+Vue 3 + TypeScript + Vite 的纯前端 Demo。本期聚焦服务商入驻：主体核验、五步填写、提交与审核进度。业务字段与规则以 PRD 为准；页面中的演示数据和未开放供应商类型都标有说明。
 
-## 技术栈
-
-- Vue 3 + TypeScript + Vite
-- Element Plus + @element-plus/icons-vue
-- Lucide 图标
-- Vue Router + Pinia
-
-## 启动
+## 本地运行
 
 ```bash
-npm install
-npm run dev        # http://127.0.0.1:5175
+npm ci
+npm run dev
+npm run typecheck
 npm run build
 ```
 
-## V1 范围
+默认地址为 `http://127.0.0.1:5175/#/onboarding`。入驻首页右侧有「验收」工具，可切换 V2 清亮版与上一版、快速填表、查看审核状态和记录问题。此工具也包含在生产构建中。
 
-- 顶栏 + 侧边导航 + 工作台主页
-- 其余菜单为占位路由
-- 悬浮「版本切换 / 验收工具」：版本、页面状态、分屏对比、验收清单
+## Netlify 部署
 
-## 设计原则
+仓库根目录的 `netlify.toml` 已设置构建命令 `npm run build`、发布目录 `dist`。在 Netlify 连接此 GitHub 仓库后，使用默认配置即可构建。入驻流程入口是站点域名后的 `/#/onboarding`；项目使用 Hash 路由，不需要服务器端的 SPA 重写规则。
 
-- C 端质感：柔和层次、圆角、微渐变、动效反馈，避免经典 B 端灰蓝死板
-- 品牌红为点缀主色，信息卡片用彩色语义点缀
-- 交互反馈 150–300ms，尊重 prefers-reduced-motion
+此 Demo 不接后端。入驻申请、验收版本和工具位置存于访问者自己的浏览器，浏览器之间不会共享数据；主体查询、二要素、OCR 和审核结果均为前端模拟。协议模板为占位文件。未开放的供应商类型仅用于展示首页扩展布局，不会创建申请。
+
+设计调整与 PRD 对照见 `docs/onboarding-design-review.md`。

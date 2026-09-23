@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Building,
-  UserCheck,
   BadgeCheck,
   ScanLine,
   CircleAlert,
@@ -15,8 +14,8 @@ import {
 } from 'lucide-vue-next'
 import {
   ElButton,
+  ElCascader,
   ElCheckbox,
-  ElDatePicker,
   ElInput,
   ElMessage,
   ElOption,
@@ -40,7 +39,17 @@ const errors = ref<string[]>([])
 const preview = ref({ open: false, title: '', fileName: '', kind: 'image' as 'image' | 'pdf' | 'text', src: '' })
 
 function openPreview(title: string, fileName: string, kind: 'image' | 'pdf' | 'text' = 'image', src = '') {
-  preview.value = { open: true, title, fileName, kind, src }
+  preview.value = { open: true, title, fileName, kind: src ? (/\.pdf$/i.test(fileName) ? 'pdf' : 'image') : kind, src }
+}
+
+function downloadDemoTemplate(name: string) {
+  const content = `${name}\n\n演示模板占位文件。正式协议正文由业务方配置，当前文件仅用于前端流程演示。\n`
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${name}-演示模板.txt`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 function demoFill(n: number) {
@@ -53,6 +62,18 @@ watch(
   step,
   (n) => {
     errors.value = []
+    if (!ob.entityVerified) {
+      router.replace('/onboarding/entity')
+      return
+    }
+    if (ob.status === 'reviewing' || ob.status === 'approved') {
+      router.replace('/onboarding/progress')
+      return
+    }
+    if (n > ob.maxStep) {
+      router.replace(`/onboarding/step/${ob.maxStep}`)
+      return
+    }
     ob.markStep(n)
   },
   { immediate: true },
@@ -73,27 +94,23 @@ const industries = [
   '营销与设计服务',
 ]
 
-const serviceCategories = [
-  'IT 外包',
-  '人力外包',
-  '财税服务',
-  '法务服务',
-  '物流服务',
-  '检测认证',
-  '营销推广',
-  '管理咨询',
+// 前端演示数据；正式省市树由 PRD 附录 A 指定的中台地区接口提供。
+const regionOptions = [
+  { value: '上海市', label: '上海市', children: [{ value: '上海市', label: '上海市' }] },
+  { value: '北京市', label: '北京市', children: [{ value: '北京市', label: '北京市' }] },
+  { value: '广东省', label: '广东省', children: [{ value: '深圳市', label: '深圳市' }, { value: '广州市', label: '广州市' }] },
+  { value: '浙江省', label: '浙江省', children: [{ value: '杭州市', label: '杭州市' }] },
+  { value: '河南省', label: '河南省', children: [{ value: '郑州市', label: '郑州市' }] },
+  { value: '江苏省', label: '江苏省', children: [{ value: '苏州市', label: '苏州市' }] },
+  { value: '四川省', label: '四川省', children: [{ value: '成都市', label: '成都市' }] },
 ]
-
-const cities = ['上海', '北京', '深圳', '广州', '杭州', '郑州', '苏州', '成都']
-
-const skillsPool = ['短视频剪辑', '企业注册', 'RPA 开发', '仓储配送', '薪税筹划', 'ISO 认证']
-
-function toggleIn(arr: string[], v: string) {
-  const i = arr.indexOf(v)
-  if (i >= 0) arr.splice(i, 1)
-  else arr.push(v)
+const selectedRegions = computed(() => d.serviceCities.map(value => value.split(' / ')))
+function onRegionChange(value: unknown) {
+  d.serviceCities = (value as string[][]).map(path => path.join(' / '))
   ob.persist()
 }
+
+const skillsPool = ['短视频剪辑', '企业注册', 'RPA 开发', '仓储配送', '薪税筹划', 'ISO 认证']
 
 function next() {
   const errs = ob.validateStep(step.value)
@@ -104,18 +121,13 @@ function next() {
   }
   ob.markStep(step.value + 1)
   if (step.value >= 5) {
-    ob.persist()
-    ElMessage.success('入驻申请已提交，等待园区审核')
-    acc.setEntryStatus('approved')
-    router.push('/workspace')
+    if (!ob.submit()) return
+    acc.setEntryStatus('pending')
+    ElMessage.success('已提交，等待园区审核')
+    router.push('/onboarding/progress')
     return
   }
   router.push(`/onboarding/step/${step.value + 1}`)
-}
-
-function prev() {
-  if (step.value > 1) router.push(`/onboarding/step/${step.value - 1}`)
-  else router.push('/onboarding/entity')
 }
 
 const meta = computed(() => {
@@ -132,12 +144,12 @@ const meta = computed(() => {
     },
     3: {
       title: '产品服务',
-      subtitle: '定义可提供的服务类目与范围，审核通过后用于店铺上架。',
+      subtitle: '填写商户介绍、服务范围和擅长业务领域。',
       icon: Handshake,
     },
     4: {
       title: '入驻协议',
-      subtitle: '阅读并勾选协议，完成电子签章后方可提交。',
+      subtitle: '下载协议模板，上传两份盖章扫描件。',
       icon: FileSignature,
     },
     5: {
@@ -158,7 +170,6 @@ const meta = computed(() => {
     :show-steps="true"
     :show-footer="true"
     @next="next"
-    @prev="prev"
   >
     <div v-if="errors.length" class="err-banner" role="alert">
       <CircleAlert :size="16" />
@@ -194,7 +205,7 @@ const meta = computed(() => {
           <div class="form-grid">
             <div class="field span-2">
               <label>申请入驻园区 <em>*</em></label>
-              <ElSelect v-model="d.park" placeholder="请选择园区" style="width: 100%" @change="ob.persist">
+              <ElSelect v-model="d.park" filterable placeholder="搜索并选择园区" style="width: 100%" @change="ob.persist">
                 <ElOption v-for="p in parks" :key="p" :label="p" :value="p" />
               </ElSelect>
             </div>
@@ -208,9 +219,10 @@ const meta = computed(() => {
                   <ElTag size="small" type="info" effect="plain" round>{{ ob.certLabel }}</ElTag>
                   <p>识别码：{{ d.creditCode || '—' }}</p>
                 </div>
-                <ElButton size="small" text type="primary" @click="router.push('/onboarding/entity')">
+                <ElButton v-if="d.entityType === 'personal'" size="small" text type="primary" @click="router.push('/onboarding/entity')">
                   修改主体
                 </ElButton>
+                <span v-else class="field-help">已核验，主体信息不可修改</span>
               </div>
             </div>
 
@@ -237,12 +249,16 @@ const meta = computed(() => {
               </ElSelect>
             </div>
             <div class="field">
-              <label>注册手机号 <em>*</em></label>
-              <ElInput v-model="d.mobile" maxlength="11" placeholder="11 位手机号" @change="ob.persist" />
+              <label>注册手机号</label>
+              <ElInput v-model="d.mobile" disabled />
             </div>
             <div class="field">
               <label>联系人姓名 <em>*</em></label>
               <ElInput v-model="d.contactName" placeholder="请填写" @change="ob.persist" />
+            </div>
+            <div class="field">
+              <label>联系人手机号 <em>*</em></label>
+              <ElInput v-model="d.contactMobile" maxlength="11" placeholder="11 位手机号" @change="ob.persist" />
             </div>
             <div class="field">
               <label>联系人职位</label>
@@ -282,24 +298,25 @@ const meta = computed(() => {
           </div>
 
           <!-- 1 营业执照 -->
-          <section class="doc-block">
+          <section v-if="d.entityType !== 'personal'" class="doc-block">
             <header class="doc-head">
+              <span class="doc-index">01</span>
               <div class="doc-title">
                 <strong>营业执照</strong>
                 <p>上传原件或扫描件，支持一键读取</p>
               </div>
-              <ElTag :type="d.licenseUploaded ? 'success' : 'info'" size="small" round effect="plain">
+              <ElTag class="doc-state" :type="d.licenseUploaded ? 'success' : 'info'" :effect="d.licenseUploaded ? 'dark' : 'light'" size="small">
                 {{ d.licenseUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </header>
             <UploadCard
               v-model="d.licenseUploaded"
-              title="点击或拖拽上传营业执照"
+              title="点击上传营业执照"
               hint="JPG / PNG / PDF"
-              file-name="license-front.png"
-              ocr-label="读取证件信息"
+              ocr-label="演示识别回填"
               @ocr="ob.fillDemoLicense()"
-              @upload="ob.fillDemoLicense()"
+              @upload="ob.persist()"
+              @remove="ob.persist()"
               @preview="(u?: string, n?: string) => openPreview('营业执照', n || 'license-front.png', 'image', u || '')"
             />
             <div class="fill-box">
@@ -318,7 +335,7 @@ const meta = computed(() => {
                   </div>
                   <div class="field">
                     <label>法定代表人 <em>*</em></label>
-                    <ElInput v-model="d.legalPerson" placeholder="请填写" @change="ob.persist" />
+                    <ElInput v-model="d.licenseLegalPerson" placeholder="请填写" @change="ob.persist" />
                   </div>
                   <div class="field">
                     <label>注册资本</label>
@@ -360,11 +377,12 @@ const meta = computed(() => {
           <!-- 2 法人身份证 -->
           <section class="doc-block">
             <header class="doc-head">
+              <span class="doc-index">{{ d.entityType === 'personal' ? '01' : '02' }}</span>
               <div class="doc-title">
-                <strong>法人身份证</strong>
+                <strong>{{ d.entityType === 'personal' ? '本人身份证' : '法人身份证' }}</strong>
                 <p>分人像面 / 国徽面上传，防止交叉</p>
               </div>
-              <ElTag :type="d.idFront && d.idBack ? 'success' : 'info'" size="small" round effect="plain">
+              <ElTag class="doc-state" :type="d.idFront && d.idBack ? 'success' : 'info'" :effect="d.idFront && d.idBack ? 'dark' : 'light'" size="small">
                 {{ d.idFront && d.idBack ? '已上传' : '待上传' }}
               </ElTag>
             </header>
@@ -373,24 +391,24 @@ const meta = computed(() => {
                 v-model="d.idFront"
                 title="人像面"
                 hint="带照片一面"
-                file-name="id-portrait.png"
                 face="portrait"
                 compact
-                ocr-label="读取证件信息"
+                ocr-label="演示识别回填"
                 @ocr="ob.fillDemoId()"
-                @upload="ob.fillDemoId()"
+                @upload="ob.persist()"
+                @remove="ob.persist()"
                 @preview="(u?: string, n?: string) => openPreview('身份证 · 人像面', n || 'id-portrait.png', 'image', u || '')"
               />
               <UploadCard
                 v-model="d.idBack"
                 title="国徽面"
                 hint="带国徽一面"
-                file-name="id-emblem.png"
                 face="emblem"
                 compact
-                ocr-label="读取证件信息"
+                ocr-label="演示识别回填"
                 @ocr="ob.fillDemoId()"
-                @upload="ob.fillDemoId()"
+                @upload="ob.persist()"
+                @remove="ob.persist()"
                 @preview="(u?: string, n?: string) => openPreview('身份证 · 国徽面', n || 'id-emblem.png', 'image', u || '')"
               />
             </div>
@@ -401,7 +419,7 @@ const meta = computed(() => {
               </div>
               <div class="form-grid">
                 <div class="field">
-                  <label>法定代表人 <em>*</em></label>
+                  <label>{{ d.entityType === 'personal' ? '本人姓名' : '身份证姓名' }} <em>*</em></label>
                   <ElInput v-model="d.legalPerson" placeholder="与证件一致" @change="ob.persist" />
                 </div>
                 <div class="field">
@@ -441,24 +459,25 @@ const meta = computed(() => {
           </section>
 
           <!-- 3 账户信息 -->
-          <section class="doc-block">
+          <section v-if="d.entityType !== 'personal'" class="doc-block">
             <header class="doc-head">
+              <span class="doc-index">03</span>
               <div class="doc-title">
                 <strong>账户信息</strong>
-                <p>开户许可证或基本存款账户信息，任选其一</p>
+                <p>可上传识别或手动填写账户信息</p>
               </div>
-              <ElTag :type="d.bankUploaded ? 'success' : 'info'" size="small" round effect="plain">
+              <ElTag class="doc-state" :type="d.bankUploaded ? 'success' : 'info'" :effect="d.bankUploaded ? 'dark' : 'light'" size="small">
                 {{ d.bankUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </header>
             <UploadCard
               v-model="d.bankUploaded"
-              title="点击或拖拽上传开户许可证 / 基本户"
+              title="点击上传开户许可证 / 基本户"
               hint="JPG / PNG / PDF"
-              file-name="bank-license.png"
-              ocr-label="读取证件信息"
+              ocr-label="演示识别回填"
               @ocr="ob.fillDemoBank()"
-              @upload="ob.fillDemoBank()"
+              @upload="ob.persist()"
+              @remove="ob.persist()"
               @preview="(u?: string, n?: string) => openPreview('开户许可 / 基本户', n || 'bank-license.png', 'image', u || '')"
             />
             <div class="fill-box">
@@ -483,23 +502,6 @@ const meta = computed(() => {
                     <label>账号 <em>*</em></label>
                     <ElInput v-model="d.bankAccount" placeholder="请填写" @change="ob.persist" />
                   </div>
-                  <div class="field">
-                    <label>经办人姓名 <em>*</em></label>
-                    <ElInput v-model="d.agentName" placeholder="请填写" @change="ob.persist" />
-                  </div>
-                  <div class="field">
-                    <label>经办人手机 <em>*</em></label>
-                    <ElInput v-model="d.agentMobile" maxlength="11" placeholder="11 位手机号" @change="ob.persist" />
-                  </div>
-                  <div class="field span-2">
-                    <label>经办人与法人关系</label>
-                    <ElSelect v-model="d.agentRelation" clearable placeholder="请选择（选填）" style="width: 100%" @change="ob.persist">
-                      <ElOption label="法人本人" value="法人本人" />
-                      <ElOption label="股东" value="股东" />
-                      <ElOption label="员工" value="员工" />
-                      <ElOption label="委托代理人" value="委托代理人" />
-                    </ElSelect>
-                  </div>
               </div>
             </div>
           </section>
@@ -512,10 +514,6 @@ const meta = computed(() => {
           <h4>需要哪些材料？</h4>
           <p>上传营业执照、法人身份证与开户证明；可点「读取」一键演示回填，再手工核对。</p>
         </div>
-        <div class="tip-card muted">
-          <strong><UserCheck :size="14" /> 经办人</strong>
-          <p>经办人须为本企业在职人员，审核可能电话核实。</p>
-        </div>
       </aside>
     </div>
 
@@ -527,7 +525,7 @@ const meta = computed(() => {
             <span class="card-ic tone-blue"><Handshake :size="16" /></span>
             <div class="card-head-text">
               <h2>产品服务</h2>
-              <p>定义服务范围与能力标签，支撑后续服务上架。</p>
+              <p>填写商户介绍、服务范围和擅长业务领域；案例与荣誉可选填。</p>
             </div>
             <button class="card-demo" type="button" @click="demoFill(3)">
               <ScanLine :size="13" />
@@ -541,8 +539,14 @@ const meta = computed(() => {
               <ElInput :model-value="d.park" disabled />
             </div>
             <div class="field span-2">
-              <label>服务商简介</label>
-              <ElInput v-model="d.serviceName" placeholder="一句话介绍对外品牌名" @change="ob.persist" />
+              <label>商户介绍 <em>*</em></label>
+              <ElInput v-model="d.merchantIntro" type="textarea" :rows="3" maxlength="5000" show-word-limit placeholder="介绍服务能力、主要客户与交付方式" @change="ob.persist" />
+            </div>
+            <div v-if="d.entityType !== 'personal'" class="field span-2">
+              <label>员工规模 <em>*</em></label>
+              <ElSelect v-model="d.employeeScale" placeholder="请选择员工规模" style="width: 100%" @change="ob.persist">
+                <ElOption v-for="size in ['1-19人', '20-99人', '100-499人', '500人及以上']" :key="size" :label="size" :value="size" />
+              </ElSelect>
             </div>
 
             <div class="field span-2 section-label">
@@ -550,61 +554,21 @@ const meta = computed(() => {
             </div>
 
             <div class="field span-2">
-              <label>服务类目 <em>*</em></label>
-              <div class="tag-picker">
-                <button
-                  v-for="c in serviceCategories"
-                  :key="c"
-                  class="tag-btn"
-                  :class="{ on: d.serviceCategories.includes(c) }"
-                  type="button"
-                  @click="toggleIn(d.serviceCategories, c)"
-                >
-                  {{ c }}
-                </button>
-              </div>
-            </div>
-
-            <div class="field span-2">
               <label>服务范围 <em>*</em></label>
-              <div class="tag-picker">
-                <button
-                  v-for="c in cities"
-                  :key="c"
-                  class="tag-btn"
-                  :class="{ on: d.serviceCities.includes(c) }"
-                  type="button"
-                  @click="toggleIn(d.serviceCities, c)"
-                >
-                  {{ c }} ×
-                </button>
-              </div>
+              <ElCascader :model-value="selectedRegions" :options="regionOptions" :props="{ multiple: true, emitPath: true }" filterable clearable collapse-tags :max-collapse-tags="2" collapse-tags-tooltip placeholder="搜索并选择省 / 市，可多选" style="width:100%" @change="onRegionChange" />
+              <span class="field-help">当前仅加载演示省市；正式版接入 PRD 附录 A 指定的中台通用地区接口。</span>
             </div>
 
             <div class="field span-2">
               <label>擅长业务领域或技能类型（最多可选 3 个）<em>*</em></label>
-              <div class="tag-picker">
-                <button
-                  v-for="s in skillsPool"
-                  :key="s"
-                  class="tag-btn"
-                  :class="{ on: d.skills.includes(s) }"
-                  type="button"
-                  @click="
-                    d.skills.includes(s)
-                      ? toggleIn(d.skills, s)
-                      : d.skills.length < 3
-                        ? toggleIn(d.skills, s)
-                        : ElMessage.warning('最多选择 3 个')
-                  "
-                >
-                  {{ s }}
-                </button>
-              </div>
+              <ElSelect v-model="d.skills" multiple filterable clearable :multiple-limit="3" collapse-tags :max-collapse-tags="2" collapse-tags-tooltip placeholder="搜索并选择擅长领域，最多 3 项" style="width:100%" @change="ob.persist">
+                <ElOption v-for="skill in skillsPool" :key="skill" :label="skill" :value="skill" />
+              </ElSelect>
+              <span class="field-help">当前仅为演示字典样例；完整选项以 PRD 附录 A 的字典表为准。</span>
             </div>
 
             <div class="field span-2">
-              <label>案例描述 <em>*</em></label>
+              <label>案例与荣誉（选填）</label>
               <ElInput
                 v-model="d.caseDesc"
                 type="textarea"
@@ -614,18 +578,6 @@ const meta = computed(() => {
                 placeholder="请描述 1–2 个成功服务案例：客户类型、服务内容、交付结果"
                 @change="ob.persist"
               />
-            </div>
-
-            <div class="field">
-              <label>成功案例数</label>
-              <ElInput v-model.number="d.caseCount" type="number" min="0" placeholder="0" @change="ob.persist" />
-            </div>
-            <div class="field">
-              <label>是否可开专票</label>
-              <div class="switch-line">
-                <ElSwitch v-model="d.canInvoice" @change="ob.persist()" />
-                <span class="switch-text">{{ d.canInvoice ? '可开专票' : '仅普票' }}</span>
-              </div>
             </div>
 
             <div class="field span-2">
@@ -639,7 +591,7 @@ const meta = computed(() => {
                 ocr-label="演示填入"
                 @update:model-value="(v: boolean) => { d.extraCerts = v ? 'certs.zip' : ''; ob.persist() }"
                 @ocr="demoFill(3)"
-                @preview="openPreview('补充资质', d.extraCerts || 'certs.zip', 'image')"
+              @preview="(u?: string, n?: string) => openPreview('补充资质', n || d.extraCerts || 'certs.zip', 'image', u || '')"
               />
             </div>
           </div>
@@ -662,8 +614,8 @@ const meta = computed(() => {
           <div class="card-head">
             <span class="card-ic tone-indigo"><FileSignature :size="16" /></span>
             <div class="card-head-text">
-              <h2>《服务商入驻合作协议》</h2>
-              <p>请完整阅读以下协议，勾选同意并完成电子签章。</p>
+              <h2>入驻协议</h2>
+              <p>下载协议模板，盖章签字后上传两份扫描件。</p>
             </div>
             <button class="card-demo" type="button" @click="demoFill(4)">
               <ScanLine :size="13" />
@@ -671,103 +623,50 @@ const meta = computed(() => {
             </button>
           </div>
 
-          <div class="agree-list">
-            <label class="agree-item">
-              <ElCheckbox v-model="d.agreePlatform" @change="ob.persist()" />
-              <span>
-                <strong>平台服务协议</strong>
-                <small>约定平台服务范围、费用结算与争议处理</small>
-              </span>
-            </label>
-            <label class="agree-item">
-              <ElCheckbox v-model="d.agreeProvider" @change="ob.persist()" />
-              <span>
-                <strong>服务商入驻协议</strong>
-                <small>约定入驻资质、服务标准与违约责任</small>
-              </span>
-            </label>
-            <label class="agree-item">
-              <ElCheckbox v-model="d.agreePrivacy" @change="ob.persist()" />
-              <span>
-                <strong>数据保密承诺</strong>
-                <small>承诺不泄露交易与企业经营数据</small>
-              </span>
-            </label>
-          </div>
-
           <div class="agreement-block">
-            <h3 class="sec-title">《服务商入驻合作协议》</h3>
-            <div class="agr-actions">
-              <ElButton size="small" round @click="openPreview('服务商入驻合作协议 · 模板', '服务商入驻合作协议-模板.pdf', 'text')">
-                <Eye :size="13" style="margin-right: 4px" />
-                预览模板
-              </ElButton>
-              <ElButton size="small" round>
-                <Download :size="13" style="margin-right: 4px" />
-                下载模板
-              </ElButton>
+            <div class="agreement-head">
+              <div><span class="agreement-kicker">协议 01</span><h3 class="sec-title">《服务商入驻合作协议》</h3></div>
+              <div class="agr-actions">
+                <button class="template-action" type="button" @click="openPreview('服务商入驻合作协议 · 模板', '服务商入驻合作协议-模板.pdf', 'text')"><Eye :size="14" />预览模板</button>
+                <button class="template-action download" type="button" @click="downloadDemoTemplate('服务商入驻合作协议')"><Download :size="14" />下载演示模板</button>
+              </div>
             </div>
             <UploadCard
               v-model="d.coopUploaded"
-              :file-name="d.coopFileName || '服务商入驻合作协议-已签.pdf'"
+              :file-name="d.coopFileName"
               title="点击上传已签署协议"
               hint="下载模板 → 盖章签字 → 上传扫描件或 PDF"
               :show-ocr="false"
               ocr-label="演示填入"
               @ocr="demoFill(4)"
-              @upload="() => { d.coopFileName = '服务商入驻合作协议-已签.pdf'; ob.persist() }"
-              @preview="openPreview('服务商入驻合作协议', d.coopFileName || '服务商入驻合作协议-已签.pdf', 'pdf')"
+              @upload="(file?: File) => { d.coopFileName = file?.name || ''; ob.persist() }"
+              @remove="() => { d.coopFileName = ''; ob.persist() }"
+              @preview="(u?: string, n?: string) => openPreview('服务商入驻合作协议', n || d.coopFileName || '服务商入驻合作协议-已签.pdf', 'pdf', u || '')"
             />
           </div>
 
           <div class="agreement-block">
-            <h3 class="sec-title">《支付分账协议》</h3>
-            <div class="agr-actions">
-              <ElButton size="small" round @click="openPreview('支付分账协议 · 模板', '支付分账协议-模板.pdf', 'text')">
-                <Eye :size="13" style="margin-right: 4px" />
-                预览模板
-              </ElButton>
-              <ElButton size="small" round>
-                <Download :size="13" style="margin-right: 4px" />
-                下载模板
-              </ElButton>
+            <div class="agreement-head">
+              <div><span class="agreement-kicker">协议 02</span><h3 class="sec-title">《支付分账协议》</h3></div>
+              <div class="agr-actions">
+                <button class="template-action" type="button" @click="openPreview('支付分账协议 · 模板', '支付分账协议-模板.pdf', 'text')"><Eye :size="14" />预览模板</button>
+                <button class="template-action download" type="button" @click="downloadDemoTemplate('支付分账协议')"><Download :size="14" />下载演示模板</button>
+              </div>
             </div>
             <UploadCard
               v-model="d.splitUploaded"
-              :file-name="d.splitFileName || '支付分账协议-已签.pdf'"
+              :file-name="d.splitFileName"
               title="点击上传已签署协议"
               hint="下载模板 → 盖章签字 → 上传扫描件或 PDF"
               :show-ocr="false"
               ocr-label="演示填入"
               @ocr="demoFill(4)"
-              @upload="() => { d.splitFileName = '支付分账协议-已签.pdf'; ob.persist() }"
-              @preview="openPreview('支付分账协议', d.splitFileName || '支付分账协议-已签.pdf', 'pdf')"
+              @upload="(file?: File) => { d.splitFileName = file?.name || ''; ob.persist() }"
+              @remove="() => { d.splitFileName = ''; ob.persist() }"
+              @preview="(u?: string, n?: string) => openPreview('支付分账协议', n || d.splitFileName || '支付分账协议-已签.pdf', 'pdf', u || '')"
             />
           </div>
 
-          <div class="fill-box">
-            <div class="fill-box-head">
-              <strong>电子签章</strong>
-              <span>姓名须与法定代表人或授权经办人一致。</span>
-            </div>
-            <div class="form-grid">
-              <div class="field">
-                <label>签章姓名 <em>*</em></label>
-                <ElInput v-model="d.signName" placeholder="请填写" @change="ob.persist" />
-              </div>
-              <div class="field">
-                <label>签署日期 <em>*</em></label>
-                <ElDatePicker
-                  v-model="d.signDate"
-                  type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="选择日期"
-                  style="width: 100%"
-                  @change="ob.persist()"
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -775,7 +674,7 @@ const meta = computed(() => {
         <div class="tip-card">
           <strong><CircleAlert :size="14" /> 本步说明</strong>
           <h4>协议要点</h4>
-          <p>三项均须勾选。演示环境不会真实调用电子签，提交即视为签署完成。</p>
+          <p>请分别下载并上传两份盖章扫描件。当前模板为前端演示占位，正式协议正文待业务方配置。</p>
         </div>
       </aside>
     </div>
@@ -810,7 +709,7 @@ const meta = computed(() => {
               <ElTag type="primary" effect="light" round>{{ ob.supplierLabel }}</ElTag>
             </div>
             <div>
-              <span class="k">已入驻园区</span>
+              <span class="k">申请入驻园区</span>
               <ElTag type="primary" effect="light" round>
                 <el-icon style="margin-right: 4px"><Building /></el-icon>
                 {{ d.park || '—' }}
@@ -823,64 +722,72 @@ const meta = computed(() => {
             <div><span class="k">服务商名称</span><span class="v">{{ d.serviceName || '—' }}</span></div>
             <div><span class="k">所属行业</span><span class="v">{{ d.industry || '—' }}</span></div>
             <div><span class="k">注册手机号</span><span class="v">{{ d.mobile || '—' }}</span></div>
+            <div><span class="k">联系人手机号</span><span class="v">{{ d.contactMobile || '—' }}</span></div>
+            <div><span class="k">员工规模</span><span class="v">{{ d.employeeScale || '不适用' }}</span></div>
+            <div><span class="k">商户介绍</span><span class="v">{{ d.merchantIntro || '—' }}</span></div>
             <div><span class="k">联系人</span><span class="v">{{ d.contactName || '—' }} {{ d.contactTitle }}</span></div>
             <div><span class="k">邮箱</span><span class="v">{{ d.email || '—' }}</span></div>
-            <div><span class="k">服务类目</span><span class="v">{{ d.serviceCategories.join('、') || '—' }}</span></div>
             <div><span class="k">服务范围</span><span class="v">{{ d.serviceCities.join('、') || '—' }}</span></div>
             <div><span class="k">擅长领域</span><span class="v">{{ d.skills.join('、') || '—' }}</span></div>
           </div>
 
+          <h3 class="sec-title">资质与账户信息</h3>
+          <div class="summary-grid">
+            <div v-if="d.entityType !== 'personal'"><span class="k">营业执照法人</span><span class="v">{{ d.licenseLegalPerson || '—' }}</span></div>
+            <div><span class="k">身份证姓名</span><span class="v">{{ d.legalPerson || '—' }}</span></div>
+            <div><span class="k">身份证号码</span><span class="v">{{ d.idNo || '—' }}</span></div>
+            <div><span class="k">账户名称</span><span class="v">{{ d.accountName || '—' }}</span></div>
+            <div><span class="k">开户银行及支行</span><span class="v">{{ d.bankName || '—' }} {{ d.bankBranch }}</span></div>
+            <div><span class="k">银行账号</span><span class="v">{{ maskAccount(d.bankAccount) }}</span></div>
+          </div>
+
           <h3 class="sec-title">资质文件</h3>
           <ul class="file-list">
-            <li class="file-row" role="button" tabindex="0" @click="openPreview('营业执照', 'license-front.png', 'image')">
+            <li v-if="d.entityType !== 'personal'" class="file-row">
               <span class="file-ic">营</span>
               <div class="file-meta">
                 <strong>营业执照</strong>
-                <small>license-front.png · 534KB</small>
+                <small>营业执照上传状态</small>
               </div>
               <span class="file-valid">有效期至 {{ d.validTo || '长期' }}</span>
               <ElTag :type="d.licenseUploaded ? 'success' : 'warning'" size="small" round>
                 {{ d.licenseUploaded ? '已上传' : '待上传' }}
               </ElTag>
-              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li class="file-row" role="button" tabindex="0" @click="openPreview('身份证 · 人像面', 'id-portrait.png', 'image')">
+            <li class="file-row">
               <span class="file-ic">证</span>
               <div class="file-meta">
                 <strong>法人身份证人像面</strong>
-                <small>id-portrait.png · 534KB</small>
+                <small>身份证人像面上传状态</small>
               </div>
               <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
               <ElTag :type="d.idFront ? 'success' : 'warning'" size="small" round>
                 {{ d.idFront ? '已上传' : '待上传' }}
               </ElTag>
-              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li class="file-row" role="button" tabindex="0" @click="openPreview('身份证 · 国徽面', 'id-emblem.png', 'image')">
+            <li class="file-row">
               <span class="file-ic">证</span>
               <div class="file-meta">
                 <strong>法人身份证国徽面</strong>
-                <small>id-emblem.png · 534KB</small>
+                <small>身份证国徽面上传状态</small>
               </div>
               <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
               <ElTag :type="d.idBack ? 'success' : 'warning'" size="small" round>
                 {{ d.idBack ? '已上传' : '待上传' }}
               </ElTag>
-              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li class="file-row" role="button" tabindex="0" @click="openPreview('开户许可 / 基本户', 'bank-license.png', 'image')">
+            <li v-if="d.entityType !== 'personal'" class="file-row">
               <span class="file-ic">银</span>
               <div class="file-meta">
                 <strong>开户许可证 / 基本户</strong>
-                <small>bank-license.png · 210KB</small>
+                <small>账户文件上传状态</small>
               </div>
               <span class="file-valid">账户 {{ maskAccount(d.bankAccount) }}</span>
               <ElTag :type="d.bankUploaded ? 'success' : 'warning'" size="small" round>
                 {{ d.bankUploaded ? '已上传' : '待上传' }}
               </ElTag>
-              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li class="file-row" role="button" tabindex="0" @click="openPreview('服务商入驻合作协议', d.coopFileName || '服务商入驻合作协议-已签.pdf', 'pdf')">
+            <li class="file-row">
               <span class="file-ic">协</span>
               <div class="file-meta">
                 <strong>服务商入驻合作协议</strong>
@@ -890,9 +797,8 @@ const meta = computed(() => {
               <ElTag :type="d.coopUploaded ? 'success' : 'warning'" size="small" round>
                 {{ d.coopUploaded ? '已上传' : '待上传' }}
               </ElTag>
-              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li class="file-row" role="button" tabindex="0" @click="openPreview('支付分账协议', d.splitFileName || '支付分账协议-已签.pdf', 'pdf')">
+            <li class="file-row">
               <span class="file-ic">协</span>
               <div class="file-meta">
                 <strong>支付分账协议</strong>
@@ -902,7 +808,6 @@ const meta = computed(() => {
               <ElTag :type="d.splitUploaded ? 'success' : 'warning'" size="small" round>
                 {{ d.splitUploaded ? '已上传' : '待上传' }}
               </ElTag>
-              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
           </ul>
 
@@ -914,8 +819,9 @@ const meta = computed(() => {
 
       <aside class="side-col">
         <div class="tip-card">
-          <strong><CircleAlert :size="14" /> 提交前检查</strong>
-          <p>1–4 步全部通过校验才能提交。缺项时点「下一步」会列出原因并回跳。</p>
+          <strong><CircleAlert :size="14" /> 本步说明</strong>
+          <h4>提交前检查</h4>
+          <p>提交前请核对 1–4 步信息。提交时将检查账户名称与主体名称、营业执照法人姓名与身份证姓名是否一致。</p>
         </div>
       </aside>
     </div>
@@ -1267,6 +1173,7 @@ export default {}
   gap: 10px;
   margin-bottom: 12px;
 }
+.doc-index { display: none; }
 .doc-title {
   flex: 1;
   min-width: 0;
@@ -1521,6 +1428,12 @@ export default {}
   gap: 8px;
   margin: 0 0 10px;
 }
+.agreement-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 13px; }
+.agreement-kicker { display: none; }
+.agreement-head .sec-title { margin-bottom: 0; }
+.agreement-head .agr-actions { margin: 0; }
+.template-action { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 11px; border: 1px solid var(--border-light); border-radius: 7px; background: #fff; color: var(--text-secondary); font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.template-action:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-soft); }
 .file-ic {
   width: 36px;
   height: 36px;
@@ -1577,4 +1490,13 @@ export default {}
   font-size: 13px;
 }
 
+@media (max-width: 900px) {
+  .step-layout { grid-template-columns: 1fr; }
+  .side-col { position: static; }
+}
+@media (max-width: 620px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .field.span-2 { grid-column: auto; }
+  .card { padding: 18px 15px; }
+}
 </style>

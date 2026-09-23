@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { House, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { House, Trash2, Save, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-vue-next'
 import { ElButton, ElMessage, ElMessageBox } from 'element-plus'
 import { useOnboardingStore, STEPS } from '@/stores/onboarding'
 import { useAcceptanceStore } from '@/stores/acceptance'
@@ -21,6 +21,9 @@ const route = useRoute()
 const router = useRouter()
 const ob = useOnboardingStore()
 const acc = useAcceptanceStore()
+const isV2 = computed(() => acc.versionId === 'v2.0-light')
+const canGoBack = computed(() => step.value === 0 || step.value > 1 || ob.draft.entityType === 'personal')
+watch(() => ob.status, (status) => acc.setEntryStatus(status === 'approved' ? 'approved' : 'pending'), { immediate: true })
 
 const showSteps = computed(() => props.showSteps ?? true)
 const showFooter = computed(() => props.showFooter ?? true)
@@ -46,6 +49,7 @@ async function onDeleteDraft() {
   try {
     await ElMessageBox.confirm('删除后将清空本流程已填内容，确定删除草稿？', '删除草稿', {
       type: 'warning',
+      customClass: 'ob-confirm-box',
       confirmButtonText: '删除',
       cancelButtonText: '取消',
     })
@@ -70,11 +74,20 @@ function goWorkspace() {
   router.push('/workspace')
 }
 
+function switchApplication(event: Event) {
+  const id = (event.target as HTMLSelectElement).value
+  if (!ob.selectApplication(id)) return
+  if (ob.status === 'reviewing' || ob.status === 'rejected' || ob.status === 'approved') router.push('/onboarding/progress')
+  else router.push(ob.entityVerified ? `/onboarding/step/${Math.max(1, ob.maxStep)}` : '/onboarding/entity')
+}
+
 function onPrev() {
   if (step.value > 1) {
     router.push(`/onboarding/step/${step.value - 1}`)
-  } else if (route.path.startsWith('/onboarding/step/')) {
+  } else if (route.path.startsWith('/onboarding/step/') && ob.draft.entityType === 'personal') {
     router.push('/onboarding/entity')
+  } else if (route.path.startsWith('/onboarding/step/')) {
+    ElMessage.info('主体已核验，如需更换主体请删除草稿后重新申请')
   } else if (route.path.startsWith('/onboarding/entity')) {
     router.push('/onboarding')
   } else {
@@ -89,7 +102,7 @@ function onNext() {
 </script>
 
 <template>
-  <div class="ob">
+  <div class="ob" :class="{ 'theme-light-v2': isV2 }">
     <header class="ob-top">
       <div class="ob-top-left">
         <button class="ob-brand" type="button" aria-label="万联易达供应商入驻" @click="goHome">
@@ -104,11 +117,22 @@ function onNext() {
             <small>供应商入驻</small>
           </span>
         </button>
-        <span class="ob-status" :class="{ done: acc.entryStatus === 'approved' }">
-          {{ acc.entryStatus === 'approved' ? '入驻：已通过' : '入驻：待提交' }}
+        <span class="ob-status" :class="{ done: ob.status === 'approved' }">
+          {{ { draft: '入驻：待提交', reviewing: '入驻：审核中', rejected: '入驻：已驳回', approved: '入驻：已通过' }[ob.status] }}
         </span>
       </div>
       <div class="ob-top-right">
+        <nav v-if="isV2" class="ob-nav" aria-label="入驻导航">
+          <button v-if="route.path !== '/onboarding'" class="ob-nav-link" type="button" @click="goHome"><House :size="15" /> 入驻首页</button>
+          <button class="ob-nav-link" type="button" @click="goWorkspace"><LayoutDashboard :size="15" /> 返回工作台</button>
+        </nav>
+        <label v-if="ob.applications.some(item => item.entityVerified)" class="supplier-switch">
+          <span>切换主体</span>
+          <select :value="ob.activeId" @change="switchApplication">
+            <option v-if="!ob.entityVerified" :value="ob.activeId">个人账号 · 新申请</option>
+            <option v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id">{{ item.draft.entityName }}</option>
+          </select>
+        </label>
         <span class="ob-user">
           <span class="ob-avatar">新</span>
           <span class="ob-user-meta">
@@ -151,7 +175,18 @@ function onNext() {
     </main>
 
     <footer v-if="showFooter" class="ob-footer">
-      <div class="ob-footer-inner">
+      <div v-if="isV2" class="ob-footer-inner ob-footer-v2">
+        <div class="ob-footer-left">
+          <span class="footer-progress">{{ step ? `第 ${step} / 5 步` : '主体核验' }}</span>
+          <button v-if="ob.status === 'draft'" class="save-link" type="button" @click="onSave"><Save :size="15" /> 暂存草稿</button>
+          <button v-if="ob.status === 'draft'" class="save-link delete-link" type="button" @click="onDeleteDraft"><Trash2 :size="15" /> 删除草稿</button>
+        </div>
+        <div class="ob-footer-right">
+          <ElButton v-if="canGoBack" class="prev-btn" @click="onPrev"><ChevronLeft :size="15" /> 上一步</ElButton>
+          <ElButton type="primary" class="next-btn" :disabled="nextDisabled" @click="onNext">{{ step === 5 ? '提交入驻' : '下一步' }} <ChevronRight :size="15" /></ElButton>
+        </div>
+      </div>
+      <div v-else class="ob-footer-inner">
         <div class="ob-footer-left">
           <button class="ghost-btn" type="button" @click="goWorkspace">
             返回工作台
@@ -161,7 +196,7 @@ function onNext() {
             <House :size="14" />
             <span>入驻首页</span>
           </button>
-          <button class="ghost-btn danger" type="button" @click="onDeleteDraft">
+          <button v-if="ob.status === 'draft'" class="ghost-btn danger" type="button" @click="onDeleteDraft">
             <Trash2 :size="14" />
             <span>删除草稿</span>
           </button>
@@ -187,12 +222,13 @@ function onNext() {
 
 <style scoped>
 .ob {
-  min-width: 960px;
+  min-width: 0;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-page);
 }
+
 
 .ob-top {
   position: sticky;
@@ -272,6 +308,9 @@ function onNext() {
   align-items: center;
   gap: 8px;
 }
+.ob-nav { display:flex; align-items:center; gap:4px; margin-right:10px; }
+.ob-nav-link { display:inline-flex; align-items:center; gap:7px; height:32px; padding:0 10px; border:0; border-radius:7px; background:transparent; color:var(--text-secondary); font-size:12.5px; font-weight:600; cursor:pointer; }
+.ob-nav-link:hover { background:var(--brand-soft); color:var(--brand); }
 .ob-status {
   height: 26px;
   padding: 0 10px;
@@ -295,6 +334,8 @@ function onNext() {
   gap: 8px;
   margin-left: 4px;
 }
+.supplier-switch { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-secondary); }
+.supplier-switch select { max-width: 230px; height: 32px; border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 9px; background: #fff; color: var(--text-primary); font: inherit; text-overflow: ellipsis; }
 .ob-avatar {
   width: 30px;
   height: 30px;
@@ -493,5 +534,26 @@ function onNext() {
   color: var(--status-danger);
   background: var(--status-danger-soft);
 }
+.footer-progress { font-size:12px; font-weight:700; color:var(--text-secondary); }
+.save-link { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:0; border-radius:7px; background:transparent; color:var(--brand); font-size:12.5px; font-weight:650; cursor:pointer; }
+.save-link:hover { background:var(--brand-soft); }
 
+@media (max-width: 760px) {
+  .ob-top { padding: 0 14px; }
+  .ob-user-meta, .ob-status { display: none; }
+  .ob-steps { overflow-x: auto; padding: 12px 14px; }
+  .steps-row { min-width: 690px; }
+  .ob-main { padding: 20px 14px 100px; }
+  .ob-footer-inner { padding: 10px 14px; }
+  .ob-footer-left { width: 100%; justify-content: flex-end; }
+  .ob-footer-right { width: 100%; justify-content: space-between; }
+  .ob-footer-right .el-button { flex: 1; min-width: 0; }
+  .ob-footer-left .ghost-btn:first-child { display: none; }
+  .ob-nav { margin-right:0; }
+  .ob-nav-link { font-size:0; padding:0 9px; }
+  .ob-nav-link svg { width:17px; height:17px; }
+  .ob-footer-v2 .ob-footer-left { width:auto; }
+  .ob-footer-v2 .ob-footer-right { width:auto; }
+  .ob-footer-v2 .ob-footer-right .el-button { flex:none; }
+}
 </style>

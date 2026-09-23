@@ -15,9 +15,21 @@ export interface DesignVersion {
 }
 
 export const DESIGN_VERSIONS: DesignVersion[] = [
-  { id: 'v1.0', label: 'V1.0 当前稿', desc: 'B 端骨架 · C 端手感 · 高级蓝主色' },
+  { id: 'v2.0-light', label: 'V2.0 清亮版', desc: '明亮底色 · 深色文字 · 留白分组 · 新入驻首页' },
+  { id: 'v1.0', label: 'V1.0 上一版', desc: '保留当前入驻页面与表单样式作为对照' },
   { id: 'v0.9-proto', label: 'V0.9 原型参考', desc: '未设计原型的视觉基线（灰阶回退）' },
 ]
+
+const VERSION_KEY = 'gysd-design-version'
+const DOCK_KEY = 'gysd-review-dock-position'
+
+function initialDockPosition() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(DOCK_KEY) || '{}')
+    if (Number.isFinite(stored.x) && Number.isFinite(stored.y)) return stored as { x: number; y: number }
+  } catch { /* ignore */ }
+  return { x: Math.max(12, window.innerWidth - 106), y: 120 }
+}
 
 export interface AcceptanceIssue {
   id: number
@@ -30,7 +42,9 @@ export interface AcceptanceIssue {
 export const useAcceptanceStore = defineStore('acceptance', () => {
   const toolVisible = ref(true)
   const panelOpen = ref(false)
-  const versionId = ref<string>(DESIGN_VERSIONS[0].id)
+  const storedVersion = localStorage.getItem(VERSION_KEY)
+  const versionId = ref<string>(DESIGN_VERSIONS.some(v => v.id === storedVersion) ? storedVersion! : DESIGN_VERSIONS[0].id)
+  const dockPosition = ref(initialDockPosition())
   const dataState = ref<PageDataState>('ready')
   const entryStatus = ref<EntryStatus>('approved')
   const compareMode = ref(false)
@@ -44,6 +58,11 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
 
   function setVersion(id: string) {
     versionId.value = id
+    localStorage.setItem(VERSION_KEY, id)
+  }
+  function setDockPosition(x: number, y: number) {
+    dockPosition.value = { x, y }
+    localStorage.setItem(DOCK_KEY, JSON.stringify(dockPosition.value))
   }
   function setDataState(s: PageDataState) {
     dataState.value = s
@@ -77,6 +96,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
     toolVisible,
     panelOpen,
     versionId,
+    dockPosition,
     dataState,
     entryStatus,
     compareMode,
@@ -85,6 +105,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
     currentVersion,
     isPrototypeSkin,
     setVersion,
+    setDockPosition,
     setDataState,
     setEntryStatus,
     toggleCompare,

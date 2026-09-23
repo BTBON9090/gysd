@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Upload, Eye, Download, Trash2, Check, UserRound, Landmark, ScanLine } from 'lucide-vue-next'
+import { Upload, Download, Trash2, Check, UserRound, Landmark, ScanLine } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 
 const props = withDefaults(
@@ -20,7 +20,7 @@ const props = withDefaults(
     fileName: '',
     face: 'none',
     compact: false,
-    ocrLabel: '读取证件信息',
+    ocrLabel: '演示识别回填',
     showOcr: true,
   },
 )
@@ -42,7 +42,7 @@ const fileNameLive = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
 
 const done = computed(() => props.modelValue || phase.value === 'done')
-const displayFile = computed(() => fileNameLive.value || props.fileName || (done.value ? 'demo-file.png' : ''))
+const displayFile = computed(() => fileNameLive.value || props.fileName || (done.value ? '已上传文件 · 演示状态' : ''))
 const isImage = computed(() => /\.(png|jpe?g|gif|webp|bmp)$/i.test(displayFile.value))
 const faceIcon = computed(() => (props.face === 'emblem' ? Landmark : UserRound))
 
@@ -50,6 +50,16 @@ function pickReal(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  if (!(/\.(jpe?g|png|pdf)$/i.test(file.name) || ['image/jpeg', 'image/png', 'application/pdf'].includes(file.type))) {
+    ElMessage.error('仅支持 JPG、PNG 或 PDF 文件')
+    input.value = ''
+    return
+  }
+  if (file.size > 100 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过 100MB')
+    input.value = ''
+    return
+  }
   if (fileUrl.value) URL.revokeObjectURL(fileUrl.value)
   fileUrl.value = URL.createObjectURL(file)
   fileNameLive.value = file.name
@@ -72,6 +82,14 @@ function pickReal(e: Event) {
 
 function onPreview() {
   emit('preview', fileUrl.value || undefined, displayFile.value)
+}
+
+function onDownload() {
+  if (!fileUrl.value) return
+  const link = document.createElement('a')
+  link.href = fileUrl.value
+  link.download = displayFile.value
+  link.click()
 }
 
 function onRemove() {
@@ -98,7 +116,7 @@ function onRemove() {
 
     <div class="uc-row">
       <input ref="inputEl" class="uc-input" type="file" accept="image/*,.pdf" @change="pickReal" />
-      <button class="uc-drop" type="button" @click="inputEl?.click()">
+      <button class="uc-drop" type="button" :title="done ? '点击预览文件' : '选择文件'" @click="done ? onPreview() : inputEl?.click()">
         <img v-if="done && isImage && fileUrl" :src="fileUrl" class="uc-thumb" alt="" />
         <span v-else-if="face !== 'none'" class="uc-face" :class="`f-${face}`">
           <component :is="faceIcon" :size="16" stroke-width="1.5" />
@@ -129,8 +147,8 @@ function onRemove() {
 
       <div class="uc-acts">
         <template v-if="done">
-          <button type="button" title="预览" @click="onPreview"><Eye :size="14" /></button>
-          <button type="button" title="下载" @click="emit('download')"><Download :size="14" /></button>
+          <button type="button" title="替换文件" @click="inputEl?.click()">替换</button>
+          <button v-if="fileUrl" type="button" title="下载" @click="onDownload"><Download :size="14" /></button>
           <button type="button" class="danger" title="删除" @click="onRemove"><Trash2 :size="14" /></button>
         </template>
         <button v-else-if="phase !== 'uploading'" type="button" class="uc-go" @click="inputEl?.click()">上传</button>
@@ -305,6 +323,7 @@ function onRemove() {
   cursor: pointer;
   transition: color var(--t-fast), background var(--t-fast);
 }
+.uc-acts button:first-child:not(.uc-go) { width: auto; padding: 0 8px; font-size: 12px; font-weight: 600; }
 .uc-acts button:hover {
   color: var(--text-primary);
   background: var(--bg-hover);

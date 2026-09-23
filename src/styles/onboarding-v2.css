@@ -1,0 +1,192 @@
+/* 入驻 V2：只作用于新版，验收工具可原样切回 V1。 */
+.ob.theme-light-v2 {
+  --brand: #3656c5;
+  --brand-hover: #4667d4;
+  --brand-active: #2945aa;
+  --brand-soft: #eef2ff;
+  --brand-soft-strong: #e5ebff;
+  --bg-page: #fff;
+  --bg-card: #fff;
+  --bg-muted: #f6f8fc;
+  --bg-chip: #eef2f8;
+  --bg-hover: #f3f6fc;
+  --text-primary: #17233b;
+  --text-regular: #25334c;
+  --text-secondary: #4f5d73;
+  --text-placeholder: #78869a;
+  --border-light: #e7ecf4;
+  --border-lighter: #edf1f7;
+  --border-strong: #cbd5e5;
+  --c-blue: #3656c5;
+  --c-blue-bg: #eaf0ff;
+  --c-amber: #c36a17;
+  --c-amber-bg: #fff0e3;
+  --c-indigo: #6950c8;
+  --c-indigo-bg: #f0edff;
+  color: var(--text-primary);
+}
+
+.ob.theme-light-v2 .ob-top {
+  height: 62px;
+  padding-inline: 30px;
+  background: rgba(255,255,255,.97);
+  border-bottom-color: #edf1f7;
+}
+.ob.theme-light-v2 .ob-brand-logo svg rect { fill: #3656c5; }
+.ob.theme-light-v2 .ob-brand-text strong { color: #17233b; }
+.ob.theme-light-v2 .ob-brand-text small { color: #53647f; }
+.ob.theme-light-v2 .ob-status { border: 0; background: #eef2ff; color: #3150b8; }
+.ob.theme-light-v2 .ob-steps {
+  top: 62px;
+  padding-block: 17px;
+  background: rgba(255,255,255,.98);
+  border-bottom-color: #edf1f7;
+}
+.ob.theme-light-v2 .step-dot { background: #f0f3f9; color: #67758d; }
+.ob.theme-light-v2 .step-item.process .step-dot { background: var(--brand); color: #fff; box-shadow: 0 0 0 4px #e9eeff; }
+.ob.theme-light-v2 .step-item.finish .step-dot { background: #139b90; color: #fff; }
+.ob.theme-light-v2 .step-item.finish .step-line { background: #99d9d1; }
+.ob.theme-light-v2 .step-item.process .step-label { color: #2548b0; }
+.ob.theme-light-v2 .ob-main { max-width: 1130px; padding: 36px 30px 85px; }
+.ob.theme-light-v2 .ob-main.no-steps { max-width: 1110px; }
+.ob.theme-light-v2 .ob-page-head { margin-bottom: 27px; }
+.ob.theme-light-v2 .ob-page-head h1 { font-size: 27px; letter-spacing: -.025em; font-weight: 750; }
+.ob.theme-light-v2 .ob-page-head p { margin-top: 7px; color: #55647b; line-height: 1.65; }
+
+.ob.theme-light-v2 .step-layout { grid-template-columns: minmax(0,1fr) 225px; gap: 48px; }
+.ob.theme-light-v2 .side-col { top: 150px; }
+.ob.theme-light-v2 .card,
+.ob.theme-light-v2 .entity-card { padding: 0; background: #fff; border: 0; border-radius: 0; box-shadow: none; }
+.ob.theme-light-v2 .card-head { align-items: center; gap: 14px; margin-bottom: 33px; }
+.ob.theme-light-v2 .card-head h2 { font-size: 18px; letter-spacing: -.015em; }
+.ob.theme-light-v2 .card-head p { margin-top: 5px; color: #5c6980; }
+.ob.theme-light-v2 .card-ic { width: 42px; height: 42px; border-radius: 10px; box-shadow: none; }
+.ob.theme-light-v2 .card-demo { border: 0; border-radius: 7px; background: #eef2ff; color: #3656c5; }
+.ob.theme-light-v2 .card-demo:hover { background: #dfe7ff; color: #2945aa; transform: none; }
+.ob.theme-light-v2 .form-grid { gap: 24px 24px; }
+.ob.theme-light-v2 .field { gap: 9px; padding: 0; }
+.ob.theme-light-v2 .field label { color: #26344d; font-size: 13px; font-weight: 650; }
+.ob.theme-light-v2 .field label em { color: #d35545; }
+.ob.theme-light-v2 .section-label { margin-top: 21px; padding-top: 10px; border: 0; }
+.ob.theme-light-v2 .section-label h3 { font-size: 15px; color: #17233b; }
+.ob.theme-light-v2 .section-label h3::before { height: 17px; width: 3px; background: #10a99a; }
+.ob.theme-light-v2 .entity-read { padding: 16px 18px; background: #f5f8ff; border: 0; border-radius: 9px; }
+.ob.theme-light-v2 .identity-chip { border: 0; border-radius: 7px; background: #eaf0ff; color: #294bb6; }
+.ob.theme-light-v2 .tip-card { padding: 18px; border: 0; border-radius: 10px; background: #ecf8f6; }
+.ob.theme-light-v2 .tip-card strong { color: #087d72; }
+.ob.theme-light-v2 .tip-card h4 { margin-top: 12px; }
+.ob.theme-light-v2 .tip-card.muted { background: #f4f7fd; }
+.ob.theme-light-v2 .doc-block { margin-bottom: 0; padding-bottom: 0; border: 0; }
+.ob.theme-light-v2 .doc-block + .doc-block { margin-top: 37px; padding-top: 36px; border-top: 1px solid #dce4f0; }
+.ob.theme-light-v2 .doc-head { align-items: center; margin-bottom: 20px; gap: 12px; }
+.ob.theme-light-v2 .doc-index { display: grid; place-items: center; width: 31px; height: 31px; flex: none; border-radius: 8px; background: #eaf0ff; color: #3556c2; font-size: 12px; font-weight: 750; }
+.ob.theme-light-v2 .doc-title strong { padding-left: 0; border: 0; font-size: 17px; font-weight: 750; color: #17243b; }
+.ob.theme-light-v2 .doc-title p { padding-left: 0; margin-top: 5px; color: #627087; }
+.ob.theme-light-v2 .doc-state { height: 23px; border: 0; border-radius: 6px; padding-inline: 9px; font-weight: 700; font-size: 11px; }
+.ob.theme-light-v2 .doc-state.el-tag--success { background: #0b9488; color: #fff; }
+.ob.theme-light-v2 .doc-state.el-tag--info { background: #e9edf4; color: #56657a; }
+.ob.theme-light-v2 .fill-box { margin-top: 20px; padding: 19px 20px; border: 0; border-radius: 9px; background: #f6f8fc; }
+.ob.theme-light-v2 .fill-box-head strong { padding: 0; color: #26344d; }
+.ob.theme-light-v2 .acc { margin-bottom: 13px; border: 0; background: #f6f8fc; }
+.ob.theme-light-v2 .acc summary { background: transparent; padding: 15px 17px; }
+.ob.theme-light-v2 .acc-body { padding: 0 17px 17px; }
+.ob.theme-light-v2 .acc-body .fill-box { margin-top: 13px; border: 0; padding: 0; }
+.ob.theme-light-v2 .agreement-block { margin-bottom: 0; padding-bottom: 0; border: 0; }
+.ob.theme-light-v2 .agreement-block + .agreement-block { margin-top: 36px; padding-top: 35px; border-top: 1px solid #dce4f0; }
+.ob.theme-light-v2 .agreement-head { align-items: end; margin-bottom: 16px; }
+.ob.theme-light-v2 .agreement-kicker { display: block; margin-bottom: 5px; color: #5571bd; font-size: 11px; font-weight: 700; }
+.ob.theme-light-v2 .agreement-head .sec-title { font-size: 16px; }
+.ob.theme-light-v2 .template-action { height: 34px; border: 0; background: #f2f5fa; color: #4f5f78; }
+.ob.theme-light-v2 .template-action:hover { background: #e8eeff; color: #3656c5; }
+.ob.theme-light-v2 .template-action.download { background: #eaf0ff; color: #3152ba; }
+.ob.theme-light-v2 .template-action.download:hover { background: #dce6ff; }
+.ob.theme-light-v2 .sec-title { padding-left: 0; border: 0; margin-bottom: 15px; font-size: 15px; }
+.ob.theme-light-v2 .tag-btn { border: 0; border-radius: 7px; background: #f1f4fa; color: #43536d; }
+.ob.theme-light-v2 .tag-btn:hover { background: #e9efff; color: #3656c5; }
+.ob.theme-light-v2 .tag-btn.on { background: #e7edff; color: #294ab4; box-shadow: inset 0 0 0 1px #b9c8f3; }
+.ob.theme-light-v2 .summary-grid .k,
+.ob.theme-light-v2 .summary-pair .k { color: #617087; }
+.ob.theme-light-v2 .summary-grid .v { color: #26344d; }
+.ob.theme-light-v2 .summary-grid { gap: 10px 12px; margin-bottom: 31px; }
+.ob.theme-light-v2 .summary-grid > div { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 12px 14px; min-height: 68px; border-radius: 8px; background: #f6f8fc; }
+.ob.theme-light-v2 .summary-grid .k { margin: 0; font-size: 12px; line-height: 1.25; }
+.ob.theme-light-v2 .summary-grid .v { display: block; color: #1c2b45; line-height: 1.45; overflow-wrap: anywhere; }
+.ob.theme-light-v2 .summary-grid + .sec-title { margin-top: 4px; }
+.ob.theme-light-v2 .summary-pair { gap: 12px; padding: 0; margin-bottom: 31px; border: 0; }
+.ob.theme-light-v2 .summary-pair > div { padding: 12px 14px; border-radius: 8px; background: #f6f8fc; }
+
+.ob.theme-light-v2 .gate-head { margin-bottom: 21px; }
+.ob.theme-light-v2 .field-label { color: #20304c; font-size: 15px; }
+.ob.theme-light-v2 .gate-hint { color: #5c6a80; }
+.ob.theme-light-v2 .entity-grid { gap: 12px; }
+.ob.theme-light-v2 .entity-option { padding: 18px; background: #f6f8fc; border: 1px solid transparent; border-radius: 9px; box-shadow: none; }
+.ob.theme-light-v2 .entity-option:hover { background: #eef2ff; transform: none; }
+.ob.theme-light-v2 .entity-option.active { background: #edf2ff; border-color: #adc0fa; box-shadow: none; }
+.ob.theme-light-v2 .entity-option.active .eo-icon { background: #3656c5; }
+.ob.theme-light-v2 .gate-divider { height: 0; margin: 34px 0 0; }
+.ob.theme-light-v2 .gate-form { margin-bottom: 25px; }
+.ob.theme-light-v2 .gate-form .field-label { margin-bottom: 19px; }
+.ob.theme-light-v2 .gate-note { margin-top: 23px; padding: 13px 16px; border: 0; border-radius: 8px; background: #ecf8f6; color: #286c68; }
+.ob.theme-light-v2 .preview { padding: 15px 17px; border: 0; background: #f6f8fc; }
+
+.ob.theme-light-v2 .el-input__wrapper,
+.ob.theme-light-v2 .el-select__wrapper,
+.ob.theme-light-v2 .el-textarea__inner { border-radius: 8px !important; min-height: 42px; box-shadow: 0 0 0 1px #d6deeb inset !important; color: #20304c; }
+.ob.theme-light-v2 .el-input__wrapper:hover,
+.ob.theme-light-v2 .el-select__wrapper:hover,
+.ob.theme-light-v2 .el-textarea__inner:hover { box-shadow: 0 0 0 1px #96aad3 inset !important; }
+.ob.theme-light-v2 .el-input__wrapper.is-focus,
+.ob.theme-light-v2 .el-select__wrapper.is-focus,
+.ob.theme-light-v2 .el-textarea__inner:focus,
+.ob.theme-light-v2 .el-input__wrapper:focus-within,
+.ob.theme-light-v2 .el-select__wrapper:focus-within { box-shadow: 0 0 0 3px #e4ebff, 0 0 0 1.5px #4565d0 inset !important; }
+.ob.theme-light-v2 .el-input__inner::placeholder,
+.ob.theme-light-v2 .el-textarea__inner::placeholder { color: #738199; }
+.ob.theme-light-v2 .el-input__inner,
+.ob.theme-light-v2 .el-textarea__inner { color: #20304c; }
+
+.ob.theme-light-v2 .ob-footer { background: rgba(255,255,255,.97); border-top-color: #e8edf5; box-shadow: 0 -5px 22px rgba(27,47,90,.035); }
+.ob.theme-light-v2 .ob-footer-inner { max-width: 1130px; min-height: 66px; padding: 10px 30px; }
+.ob.theme-light-v2 .ob-footer-v2 .ob-footer-left { gap: 16px; }
+.ob.theme-light-v2 .ob-footer-v2 .delete-link { color: #69768c; }
+.ob.theme-light-v2 .ob-footer-v2 .delete-link:hover { color: #bf473d; background: #fff1ef; }
+.ob.theme-light-v2 .ob-footer-v2 .prev-btn,
+.ob.theme-light-v2 .ob-footer-v2 .next-btn { min-width: 0; width: auto; height: 38px; padding: 0 17px; border-radius: 8px; font-size: 13px; }
+.ob.theme-light-v2 .ob-footer-v2 .next-btn { min-width: 100px; }
+.ob.theme-light-v2 .ob-footer-v2 .el-button svg { margin-inline: 0 3px; }
+.ob.theme-light-v2 .ob-footer-v2 .next-btn svg { margin-inline: 4px 0; }
+
+.ob.theme-light-v2 .hero { border: 0; box-shadow: none; background: #f6f8fc; }
+.ob.theme-light-v2 .hero.reviewing { border-top: 3px solid #df982f; }
+.ob.theme-light-v2 .hero.rejected { border-top: 3px solid #ce5447; }
+.ob.theme-light-v2 .hero.approved { border-top: 3px solid #18a28f; }
+.ob.theme-light-v2 .surface { border: 0; background: #f8faff; }
+.ob.theme-light-v2 .surface-head { border-bottom: 0; }
+.ob.theme-light-v2 .demo-panel { border: 0; background: #f4f7fc; }
+
+@media (max-width: 900px) {
+  .ob.theme-light-v2 .step-layout { grid-template-columns: 1fr; gap: 25px; }
+  .ob.theme-light-v2 .side-col { position: static; }
+}
+@media (max-width: 760px) {
+  .ob.theme-light-v2 .ob-top { padding-inline: 14px; }
+  .ob.theme-light-v2 .ob-main { padding: 24px 18px 100px; }
+  .ob.theme-light-v2 .ob-footer-inner { padding-inline: 18px; }
+  .ob.theme-light-v2 .supplier-switch { display: none; }
+  .ob.theme-light-v2 .ob-nav { margin-right: 0; }
+  .ob.theme-light-v2 .ob-nav-link { font-size: 0; }
+  .ob.theme-light-v2 .ob-footer-v2 { flex-wrap: nowrap; }
+  .ob.theme-light-v2 .ob-footer-v2 .ob-footer-left { width: auto; }
+  .ob.theme-light-v2 .ob-footer-v2 .ob-footer-right { width: auto; }
+  .ob.theme-light-v2 .agreement-head { align-items: flex-start; flex-direction: column; }
+  .ob.theme-light-v2 .summary-grid { grid-template-columns: 1fr; }
+  .ob.theme-light-v2 .summary-pair { grid-template-columns: 1fr; }
+}
+
+/* 入驻确认弹窗由 Element Plus 传送至 body，使用专属类保持与流程一致。 */
+.ob-confirm-box { width: min(440px, 92vw) !important; padding: 22px 24px 20px !important; border: 0 !important; border-radius: 13px !important; box-shadow: 0 20px 58px rgba(17,35,71,.17) !important; }
+.ob-confirm-box .el-message-box__header { padding-bottom: 13px; }
+.ob-confirm-box .el-message-box__title { color: #17243b; font-size: 18px; font-weight: 750; }
+.ob-confirm-box .el-message-box__content { padding: 4px 0 15px; color: #4f5f77; line-height: 1.7; }
+.ob-confirm-box .el-message-box__btns { padding-top: 10px; gap: 8px; }
+.ob-confirm-box .el-button { min-width: 80px; height: 36px; border-radius: 8px; }

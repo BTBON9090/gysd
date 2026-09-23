@@ -2,16 +2,11 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export type EntityType = 'personal' | 'individual' | 'enterprise'
-export type SupplierType = 'service' | 'manufacturer' | 'trader' | 'logistics' | 'material' | 'testing'
+export type SupplierType = 'service'
 export type CertType = 'business_license' | 'individual_license' | 'id_card'
 
 export const SUPPLIER_TYPES: { id: SupplierType; label: string; desc: string; enabled: boolean }[] = [
   { id: 'service', label: '服务商', desc: 'IT / 人力 / 财税等企业服务', enabled: true },
-  { id: 'manufacturer', label: '制造商', desc: '生产加工与代工', enabled: false },
-  { id: 'trader', label: '贸易商', desc: '经销代理与批发', enabled: false },
-  { id: 'logistics', label: '物流商', desc: '仓配与运输服务', enabled: false },
-  { id: 'material', label: '原材料商', desc: '大宗与辅料供应', enabled: false },
-  { id: 'testing', label: '检测认证', desc: '质检与合规认证', enabled: false },
 ]
 
 export const STEPS = [
@@ -23,6 +18,37 @@ export const STEPS = [
 ] as const
 
 const STORAGE_KEY = 'gysd-onboarding-draft'
+const FLOW_KEY = 'gysd-onboarding-flow'
+const COLLECTION_KEY = 'gysd-onboarding-applications'
+
+export type OnboardingStatus = 'draft' | 'reviewing' | 'rejected' | 'approved'
+export interface ReviewEvent {
+  status: OnboardingStatus
+  action: string
+  actor: string
+  opinion: string
+  at: string
+}
+
+export interface DemoApplication {
+  id: string
+  draft: OnboardingDraft
+  maxStep: number
+  status: OnboardingStatus
+  events: ReviewEvent[]
+  entityVerified: boolean
+  updatedAt: string
+}
+
+function loadFlow(): { status: OnboardingStatus; maxStep: number; events: ReviewEvent[]; entityVerified: boolean } {
+  try {
+    const value = JSON.parse(localStorage.getItem(FLOW_KEY) || '{}')
+    if (['draft', 'reviewing', 'rejected', 'approved'].includes(value.status)) {
+      return { status: value.status, maxStep: Number(value.maxStep) || 1, events: Array.isArray(value.events) ? value.events : [], entityVerified: Boolean(value.entityVerified) }
+    }
+  } catch { /* ignore invalid demo state */ }
+  return { status: 'draft', maxStep: 1, events: [], entityVerified: false }
+}
 
 export interface OnboardingDraft {
   supplierType: SupplierType
@@ -37,11 +63,13 @@ export interface OnboardingDraft {
   industry: string
   mobile: string
   contactName: string
+  contactMobile: string
   contactTitle: string
   email: string
   /* step 2：资质 */
   licenseUploaded: boolean
   licenseNo: string
+  licenseLegalPerson: string
   legalPerson: string
   regCapital: string
   enterpriseType: string
@@ -62,28 +90,19 @@ export interface OnboardingDraft {
   idValidFrom: string
   idValidTo: string
   idAddress: string
-  agentName: string
-  agentMobile: string
-  agentRelation: string
   bankUploaded: boolean
   accountName: string
   bankName: string
   bankBranch: string
   bankAccount: string
   /* step 3：产品服务 */
-  serviceCategories: string[]
   serviceCities: string[]
   skills: string[]
   caseDesc: string
-  caseCount: number
-  canInvoice: boolean
+  merchantIntro: string
+  employeeScale: string
   extraCerts: string
   /* step 4：协议 */
-  agreePlatform: boolean
-  agreeProvider: boolean
-  agreePrivacy: boolean
-  signName: string
-  signDate: string
   /* 协议文件（两类） */
   coopUploaded: boolean
   coopFileName: string
@@ -103,10 +122,12 @@ function emptyDraft(): OnboardingDraft {
     industry: '',
     mobile: '',
     contactName: '',
+    contactMobile: '',
     contactTitle: '',
     email: '',
     licenseUploaded: false,
     licenseNo: '',
+    licenseLegalPerson: '',
     legalPerson: '',
     regCapital: '',
     enterpriseType: '',
@@ -127,26 +148,17 @@ function emptyDraft(): OnboardingDraft {
     idValidFrom: '',
     idValidTo: '',
     idAddress: '',
-    agentName: '',
-    agentMobile: '',
-    agentRelation: '',
     bankUploaded: false,
     accountName: '',
     bankName: '',
     bankBranch: '',
     bankAccount: '',
-    serviceCategories: [],
     serviceCities: [],
     skills: [],
     caseDesc: '',
-    caseCount: 0,
-    canInvoice: true,
+    merchantIntro: '',
+    employeeScale: '',
     extraCerts: '',
-    agreePlatform: false,
-    agreeProvider: false,
-    agreePrivacy: false,
-    signName: '',
-    signDate: '',
     coopUploaded: false,
     coopFileName: '',
     splitUploaded: false,
@@ -164,9 +176,29 @@ function loadDraft(): OnboardingDraft {
   return emptyDraft()
 }
 
+function loadCollection(): { activeId: string; items: DemoApplication[] } {
+  try {
+    const value = JSON.parse(localStorage.getItem(COLLECTION_KEY) || '{}')
+    if (Array.isArray(value.items)) return { activeId: String(value.activeId || ''), items: value.items }
+  } catch { /* ignore */ }
+  return { activeId: '', items: [] }
+}
+
+function copy<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 export const useOnboardingStore = defineStore('onboarding', () => {
-  const draft = ref<OnboardingDraft>(loadDraft())
-  const maxStep = ref(1)
+  const initialCollection = loadCollection()
+  const initialApplication = initialCollection.items.find((item) => item.id === initialCollection.activeId)
+  const applications = ref<DemoApplication[]>(initialCollection.items)
+  const activeId = ref(initialApplication?.id || crypto.randomUUID())
+  const draft = ref<OnboardingDraft>(initialApplication ? { ...emptyDraft(), ...initialApplication.draft } : loadDraft())
+  const initialFlow = loadFlow()
+  const maxStep = ref(initialApplication?.maxStep ?? initialFlow.maxStep)
+  const status = ref<OnboardingStatus>(initialApplication?.status ?? initialFlow.status)
+  const events = ref<ReviewEvent[]>(initialApplication?.events ?? initialFlow.events)
+  const entityVerified = ref(initialApplication?.entityVerified ?? initialFlow.entityVerified)
   const savedAt = ref<string | null>(null)
 
   const entityLabel = computed(() => {
@@ -201,6 +233,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   function setEntityType(t: EntityType) {
     draft.value.entityType = t
     draft.value.certType = defaultCertType(t)
+    entityVerified.value = false
     persist()
   }
 
@@ -229,8 +262,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       )
     } else if (d.entityType === 'personal') {
       if (!/^\d{17}[\dX]$/.test(code)) errs.push('身份证号格式不正确（18 位）')
-    } else if (!/^[0-9A-Z]{18}$/.test(code)) {
-      errs.push('统一社会信用代码须为 18 位数字或大写字母')
+    } else if (d.entityType === 'individual' ? !/^(?:[0-9A-Z]{18}|\d{15})$/.test(code) : !/^[0-9A-Z]{18}$/.test(code)) {
+      errs.push(d.entityType === 'individual' ? '个体工商户证件号须为 15 位数字或 18 位统一社会信用代码' : '统一社会信用代码须为 18 位数字或大写字母')
     }
     return errs
   }
@@ -246,13 +279,25 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       draft.value.legalPerson = ''
     }
     draft.value.licenseNo = draft.value.creditCode
+    draft.value.mobile = draft.value.mobile || '13800008000'
+    entityVerified.value = true
     persist()
     markStep(1)
     return true
   }
 
   function persist() {
+    const item: DemoApplication = {
+      id: activeId.value, draft: copy(draft.value), maxStep: maxStep.value,
+      status: status.value, events: copy(events.value), entityVerified: entityVerified.value,
+      updatedAt: new Date().toISOString(),
+    }
+    const index = applications.value.findIndex((application) => application.id === activeId.value)
+    if (index >= 0) applications.value[index] = item
+    else applications.value.unshift(item)
+    localStorage.setItem(COLLECTION_KEY, JSON.stringify({ activeId: activeId.value, items: applications.value }))
     localStorage.setItem(STORAGE_KEY, JSON.stringify(draft.value))
+    localStorage.setItem(FLOW_KEY, JSON.stringify({ status: status.value, maxStep: maxStep.value, events: events.value, entityVerified: entityVerified.value }))
     savedAt.value = new Date().toLocaleTimeString('zh-CN', { hour12: false })
   }
 
@@ -261,10 +306,62 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   }
 
   function resetDraft() {
+    applications.value = applications.value.filter((application) => application.id !== activeId.value)
+    const next = applications.value.find((application) => application.status === 'approved') || applications.value[0]
+    if (next) selectApplication(next.id)
+    else {
+      activeId.value = crypto.randomUUID()
+      draft.value = emptyDraft()
+      maxStep.value = 1
+      status.value = 'draft'
+      events.value = []
+      entityVerified.value = false
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(FLOW_KEY)
+      localStorage.setItem(COLLECTION_KEY, JSON.stringify({ activeId: '', items: [] }))
+    }
+    savedAt.value = null
+  }
+
+  function createApplication() {
+    if (entityVerified.value || draft.value.entityName || status.value !== 'draft') persist()
+    activeId.value = crypto.randomUUID()
     draft.value = emptyDraft()
     maxStep.value = 1
-    localStorage.removeItem(STORAGE_KEY)
-    savedAt.value = null
+    status.value = 'draft'
+    events.value = []
+    entityVerified.value = false
+  }
+
+  function selectApplication(id: string) {
+    const item = applications.value.find((application) => application.id === id)
+    if (!item) return false
+    activeId.value = id
+    draft.value = { ...emptyDraft(), ...copy(item.draft) }
+    maxStep.value = item.maxStep
+    status.value = item.status
+    events.value = copy(item.events)
+    entityVerified.value = item.entityVerified
+    persist()
+    return true
+  }
+
+  function addEvent(next: OnboardingStatus, action: string, actor: string, opinion = '') {
+    status.value = next
+    events.value.unshift({ status: next, action, actor, opinion, at: new Date().toLocaleString('zh-CN', { hour12: false }) })
+    persist()
+  }
+
+  function submit() {
+    if (status.value !== 'draft' && status.value !== 'rejected') return false
+    if (validateStep(5).length) return false
+    addEvent('reviewing', status.value === 'rejected' ? '重新提交入驻申请' : '提交入驻申请', '申请人')
+    return true
+  }
+
+  function simulateReview(result: 'rejected' | 'approved') {
+    if (status.value !== 'reviewing') return
+    addEvent(result, result === 'approved' ? '审核通过' : '审核驳回', '园区运营 · 演示', result === 'rejected' ? '请补充近 12 个月服务交付证明，并核对账户信息。' : '资料核验通过')
   }
 
   function fillDemoLicense() {
@@ -274,6 +371,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     d.creditCode = d.creditCode || '91310000MA1FL8X21B'
     d.licenseNo = d.creditCode
     d.legalPerson = d.legalPerson || '周启明'
+    d.licenseLegalPerson = d.licenseLegalPerson || '周启明'
     d.regCapital = d.regCapital || '500万元人民币'
     d.enterpriseType = d.enterpriseType || '有限责任公司'
     d.foundDate = d.foundDate || '2015/06/18'
@@ -320,6 +418,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     d.industry = d.industry || '信息技术与软件服务'
     d.mobile = d.mobile || '13800008000'
     d.contactName = d.contactName || '周启明'
+    d.contactMobile = d.contactMobile || '13800008000'
     d.contactTitle = d.contactTitle || '市场负责人'
     d.email = d.email || 'service@example.com'
     persist()
@@ -327,37 +426,23 @@ export const useOnboardingStore = defineStore('onboarding', () => {
 
   function fillDemoProducts() {
     const d = draft.value
-    if (!d.serviceCategories.length) d.serviceCategories = ['IT 外包', '管理咨询']
-    if (!d.serviceCities.length) d.serviceCities = ['上海', '苏州']
+    if (!d.serviceCities.length) d.serviceCities = ['上海市 / 上海市', '江苏省 / 苏州市']
     if (!d.skills.length) d.skills = ['RPA 开发', '企业注册']
     d.caseDesc =
       d.caseDesc ||
       '为临港智能制造园区 30+ 家企业提供 IT 运维与 RPA 流程自动化，平均节省人力 40%；负责年度财税顾问与高新技术企业申报。'
-    d.caseCount = d.caseCount || 12
-    d.canInvoice = true
+    d.merchantIntro = d.merchantIntro || '面向园区企业提供信息技术咨询、流程自动化与经营支持服务。'
+    d.employeeScale = d.employeeScale || '20-99人'
     d.extraCerts = d.extraCerts || 'certs.zip'
     persist()
   }
 
   function fillDemoAgreement() {
     const d = draft.value
-    d.agreePlatform = true
-    d.agreeProvider = true
-    d.agreePrivacy = true
-    d.signName = d.signName || d.legalPerson || d.contactName || '周启明'
-    d.signDate = d.signDate || new Date().toISOString().slice(0, 10)
     d.coopUploaded = true
-    d.coopFileName = d.coopFileName || '服务商入驻合作协议-已签.pdf'
+    d.coopFileName = d.coopFileName || '演示样例-服务商入驻合作协议.pdf'
     d.splitUploaded = true
-    d.splitFileName = d.splitFileName || '支付分账协议-已签.pdf'
-    persist()
-  }
-
-  function fillDemoAgent() {
-    const d = draft.value
-    d.agentName = d.agentName || '周启明'
-    d.agentMobile = d.agentMobile || '13800008000'
-    d.agentRelation = d.agentRelation || '法定代表人'
+    d.splitFileName = d.splitFileName || '演示样例-支付分账协议.pdf'
     persist()
   }
 
@@ -367,11 +452,11 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       draft.value.creditCode = draft.value.creditCode || '91310000MA1FL8X21B'
       draft.value.certType = draft.value.certType || 'business_license'
     }
+    entityVerified.value = true
     fillDemoInfo()
     fillDemoLicense()
     fillDemoId()
     fillDemoBank()
-    fillDemoAgent()
     fillDemoProducts()
     fillDemoAgreement()
     markStep(5)
@@ -388,7 +473,6 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       fillDemoLicense()
       fillDemoId()
       fillDemoBank()
-      fillDemoAgent()
     }
     if (n === 3) fillDemoProducts()
     if (n === 4) fillDemoAgreement()
@@ -405,44 +489,41 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       if (!d.park) errs.push('请选择申请入驻园区')
       if (!d.serviceName.trim()) errs.push('请填写服务商名称')
       if (!d.industry) errs.push('请选择所属行业')
-      if (!/^1\d{10}$/.test(d.mobile.trim())) errs.push('请填写正确的注册手机号')
+      if (!/^1\d{10}$/.test(d.mobile.trim())) errs.push('注册手机号格式不正确')
       if (!d.contactName.trim()) errs.push('请填写联系人姓名')
+      if (!/^1\d{10}$/.test(d.contactMobile.trim())) errs.push('请填写正确的联系人手机号')
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim())) errs.push('请填写正确邮箱')
     }
     if (step === 2) {
-      if (!d.licenseUploaded) errs.push('请上传营业执照')
-      if (!d.legalPerson.trim()) errs.push('请填写法定代表人')
+      if (d.entityType !== 'personal' && !d.licenseUploaded) errs.push('请上传营业执照')
+      if (d.entityType !== 'personal' && !d.licenseLegalPerson.trim()) errs.push('请填写营业执照法人姓名')
+      if (!d.legalPerson.trim()) errs.push(d.entityType === 'personal' ? '请填写本人姓名' : '请填写身份证姓名')
       if (!d.idFront || !d.idBack) errs.push('请上传法人身份证正反面')
       if (!d.idNo.trim()) errs.push('请填写法人证件号码')
-      if (!d.bankUploaded) errs.push('请上传开户许可证或基本存款账户信息')
       if (!d.accountName.trim()) errs.push('请填写账户名称')
       if (!d.bankName.trim()) errs.push('请填写开户银行')
       if (!d.bankBranch.trim()) errs.push('请填写开户支行')
       if (!d.bankAccount.trim()) errs.push('请填写账号')
-      if (!d.agentName.trim()) errs.push('请填写经办人姓名')
-      if (!/^1\d{10}$/.test(d.agentMobile.trim())) errs.push('请填写正确的经办人手机')
     }
     if (step === 3) {
-      if (!d.serviceCategories.length) errs.push('请至少选择 1 个服务类目')
       if (!d.serviceCities.length) errs.push('请至少选择 1 个服务范围城市')
       if (d.skills.length > 3) errs.push('擅长领域最多 3 个')
       if (!d.skills.length) errs.push('请填写至少 1 个擅长领域')
-      if (!d.caseDesc.trim() || d.caseDesc.trim().length < 10) errs.push('案例描述至少 10 个字')
+      if (d.entityType !== 'personal' && !d.employeeScale) errs.push('请选择员工规模')
+      if (!d.merchantIntro.trim()) errs.push('请填写商户介绍')
+      if (d.merchantIntro.length > 5000) errs.push('商户介绍不能超过 5000 字')
     }
     if (step === 4) {
-      if (!d.agreePlatform) errs.push('请阅读并同意平台服务协议')
-      if (!d.agreeProvider) errs.push('请阅读并同意服务商入驻协议')
-      if (!d.agreePrivacy) errs.push('请阅读并同意数据保密承诺')
       if (!d.coopUploaded) errs.push('请上传《服务商入驻合作协议》')
       if (!d.splitUploaded) errs.push('请上传《支付分账协议》')
-      if (!d.signName.trim()) errs.push('请填写电子签章姓名')
-      if (!d.signDate) errs.push('请选择签署日期')
     }
     if (step === 5) {
       for (let s = 1; s <= 4; s++) {
         const e = validateStep(s)
         if (e.length) errs.push(`第 ${s} 步：${e[0]}`)
       }
+      if (d.accountName.trim() && d.accountName.trim() !== d.entityName.trim()) errs.push('账户名称须与主体名称一致')
+      if (d.entityType !== 'personal' && d.licenseLegalPerson.trim() && d.legalPerson.trim() && d.licenseLegalPerson.trim() !== d.legalPerson.trim()) errs.push('营业执照法人姓名须与身份证姓名一致')
     }
     return errs
   }
@@ -454,8 +535,13 @@ export const useOnboardingStore = defineStore('onboarding', () => {
 
   return {
     draft,
+    applications,
+    activeId,
     maxStep,
     savedAt,
+    status,
+    events,
+    entityVerified,
     entityLabel,
     supplierLabel,
     certLabel,
@@ -466,13 +552,16 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     persist,
     saveDraft,
     resetDraft,
+    createApplication,
+    selectApplication,
+    submit,
+    simulateReview,
     fillDemoLicense,
     fillDemoId,
     fillDemoBank,
     fillDemoInfo,
     fillDemoProducts,
     fillDemoAgreement,
-    fillDemoAgent,
     fillDemoAll,
     fillDemoStep,
     validateStep,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import {
   Wrench,
   GitCompare,
@@ -20,6 +20,41 @@ import { ElButton, ElMessage, ElSwitch } from 'element-plus'
 const acc = useAcceptanceStore()
 const draft = ref('')
 const copied = ref(false)
+const dockRef = ref<HTMLElement | null>(null)
+const viewport = ref({ width: window.innerWidth, height: window.innerHeight })
+const dockStyle = computed(() => ({ left: `${acc.dockPosition.x}px`, top: `${acc.dockPosition.y}px` }))
+const panelStyle = computed(() => {
+  const above = acc.dockPosition.y > viewport.value.height / 2
+  const available = above ? acc.dockPosition.y - 52 : viewport.value.height - acc.dockPosition.y - 52
+  const panelWidth = Math.min(340, viewport.value.width - 24)
+  const panelLeft = Math.min(Math.max(12, acc.dockPosition.x), Math.max(12, viewport.value.width - panelWidth - 12))
+  return {
+    left: `${panelLeft - acc.dockPosition.x}px`,
+    top: above ? 'auto' : '44px',
+    bottom: above ? '44px' : 'auto',
+    maxHeight: `${Math.max(120, available)}px`,
+  }
+})
+
+function onOutside(event: PointerEvent) {
+  if (acc.panelOpen && dockRef.value && !dockRef.value.contains(event.target as Node)) acc.panelOpen = false
+}
+function onResize() {
+  viewport.value = { width: window.innerWidth, height: window.innerHeight }
+  acc.setDockPosition(
+    Math.max(10, Math.min(viewport.value.width - 88, acc.dockPosition.x)),
+    Math.max(10, Math.min(viewport.value.height - 44, acc.dockPosition.y)),
+  )
+}
+onMounted(() => {
+  onResize()
+  document.addEventListener('pointerdown', onOutside, true)
+  window.addEventListener('resize', onResize)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onOutside, true)
+  window.removeEventListener('resize', onResize)
+})
 
 const stateOptions: { value: PageDataState; label: string }[] = [
   { value: 'ready', label: '有数据' },
@@ -81,11 +116,11 @@ function fillAndGo() {
 </script>
 
 <template>
-  <div class="dock" :class="{ open: acc.panelOpen }">
+  <div ref="dockRef" class="dock" :class="{ open: acc.panelOpen }" :style="dockStyle">
     <DragHandle v-if="!acc.panelOpen" @open="acc.panelOpen = true" />
     <button v-else class="dock-close" type="button" @click="acc.panelOpen = false">收起</button>
     <transition name="panel">
-      <div v-if="acc.panelOpen" class="panel" role="dialog" aria-label="验收工具">
+      <div v-if="acc.panelOpen" class="panel" role="dialog" aria-label="验收工具" :style="panelStyle">
         <header class="panel-head">
           <div class="panel-title">
             <Wrench :size="14" />
@@ -255,9 +290,7 @@ export default { components: { WorkspaceProto } }
 <style scoped>
 .dock {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 80;
+  z-index: 90;
 }
 
 .dock-close {
@@ -297,10 +330,7 @@ export default { components: { WorkspaceProto } }
 
 .panel {
   position: absolute;
-  right: 0;
-  bottom: 44px;
   width: min(340px, calc(100vw - 24px));
-  max-height: min(70vh, 600px);
   background: #fff;
   border: 1px solid var(--border-light);
   border-radius: var(--r-lg);

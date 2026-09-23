@@ -131,6 +131,11 @@ body,
   min-width: 1100px;
 }
 
+/* 入驻是独立流程页；小窗口仍应完整显示表单与操作。 */
+html:has(.ob), body:has(.ob), #app:has(.ob) {
+  min-width: 0;
+}
+
 body {
   overflow-x: auto;
 }

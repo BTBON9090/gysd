@@ -32,9 +32,10 @@ const routes: RouteRecordRaw[] = [
     path: '/onboarding',
     component: () => import('@/views/onboarding/OnboardingLayout.vue'),
     children: [
-      { path: '', name: 'onboarding-type', component: () => import('@/views/onboarding/TypeSelectView.vue'), meta: { title: '选择入驻类型' } },
+      { path: '', name: 'onboarding-type', component: () => import('@/views/onboarding/TypeSelectView.vue'), meta: { title: '供应商入驻' } },
       { path: 'entity', name: 'onboarding-entity', component: () => import('@/views/onboarding/EntityView.vue'), meta: { title: '经营主体' } },
       { path: 'step/:n', name: 'onboarding-step', component: () => import('@/views/onboarding/StepView.vue'), meta: { title: '供应商入驻' } },
+      { path: 'progress', name: 'onboarding-progress', component: () => import('@/views/onboarding/ProgressView.vue'), meta: { title: '入驻进度查询' } },
     ],
   },
 ]

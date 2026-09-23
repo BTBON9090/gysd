@@ -1,61 +1,66 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { Handshake, Factory, ShoppingBag, Truck, Boxes, ClipboardCheck, ArrowRight } from 'lucide-vue-next'
-import { ElTag } from 'element-plus'
-import { useOnboardingStore, SUPPLIER_TYPES } from '@/stores/onboarding'
+import { ArrowRight, CheckCircle2, ClipboardList, Clock3, Handshake } from 'lucide-vue-next'
+import { useOnboardingStore } from '@/stores/onboarding'
+import { useAcceptanceStore } from '@/stores/acceptance'
 import OnboardingShell from '@/components/onboarding/OnboardingShell.vue'
+import TypeSelectV2 from '@/components/onboarding/TypeSelectV2.vue'
 
 const router = useRouter()
 const ob = useOnboardingStore()
-
-const iconMap = {
-  service: Handshake,
-  manufacturer: Factory,
-  trader: ShoppingBag,
-  logistics: Truck,
-  material: Boxes,
-  testing: ClipboardCheck,
-} as const
+const acc = useAcceptanceStore()
 
 function start() {
+  if (ob.entityVerified || ob.draft.entityName || ob.status !== 'draft') ob.createApplication()
   ob.draft.supplierType = 'service'
-  ob.persist()
   router.push('/onboarding/entity')
+}
+
+function openApplication(id: string) {
+  if (!ob.selectApplication(id)) return
+  if (ob.status === 'reviewing' || ob.status === 'rejected' || ob.status === 'approved') router.push('/onboarding/progress')
+  else router.push(ob.entityVerified ? `/onboarding/step/${Math.max(1, Math.min(5, ob.maxStep))}` : '/onboarding/entity')
 }
 </script>
 
 <template>
   <OnboardingShell :show-steps="false" :show-footer="false">
-    <div class="type-page">
-      <header class="type-head">
+    <TypeSelectV2 v-if="acc.versionId === 'v2.0-light'" @start="start" />
+    <div v-else class="landing">
+      <header class="intro">
         <p class="eyebrow">供应商入驻</p>
-        <h1>选择要入驻的供应商类型</h1>
-        <p class="sub">同一账号可申请多种类型。本次开放「服务商」入驻，其他类型敬请期待。</p>
+        <h1>申请成为园区服务商</h1>
+        <p>完成主体核验与入驻资料填写后，提交园区运营审核。您可以暂存草稿，并在提交后查询进度。</p>
       </header>
 
-      <div class="type-grid">
-        <button
-          v-for="t in SUPPLIER_TYPES"
-          :key="t.id"
-          class="type-card"
-          :class="{ disabled: !t.enabled }"
-          type="button"
-          :disabled="!t.enabled"
-          @click="t.enabled && start()"
-        >
-          <span class="type-icon">
-            <component :is="iconMap[t.id]" :size="20" stroke-width="1.7" />
-          </span>
-          <strong>{{ t.label }}</strong>
-          <small>{{ t.desc }}</small>
-          <span class="type-foot">
-            <ElTag v-if="t.enabled" type="primary" size="small" effect="light" round>可入驻</ElTag>
-            <ElTag v-else type="info" size="small" effect="plain" round>敬请期待</ElTag>
-            <span v-if="t.enabled" class="type-cta">
-              开始入驻
-              <ArrowRight :size="14" />
-            </span>
-          </span>
+      <section class="service-card">
+        <div class="service-main">
+          <span class="icon"><Handshake :size="25" :stroke-width="1.7" /></span>
+          <div class="service-copy">
+            <span class="kicker">本期开放</span>
+            <h2>服务商入驻</h2>
+            <p>为园区企业提供企业服务，按流程提交主体、资质、产品服务和协议资料。</p>
+            <button class="primary-action" type="button" @click="start">
+              申请入驻
+              <ArrowRight :size="18" />
+            </button>
+          </div>
+        </div>
+        <div class="process">
+          <p class="process-title">申请流程</p>
+          <div><span>01</span><strong>核验主体</strong><CheckCircle2 :size="15" /></div>
+          <div><span>02</span><strong>填写并提交资料</strong><ClipboardList :size="15" /></div>
+          <div><span>03</span><strong>查看审核进度</strong><Clock3 :size="15" /></div>
+        </div>
+      </section>
+
+      <div v-if="ob.applications.some(item => item.entityVerified)" class="application-list">
+        <h3>我的入驻申请</h3>
+        <button v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" class="existing" type="button" @click="openApplication(item.id)">
+          <strong>{{ item.draft.entityName }}</strong>
+          <span>{{ item.draft.park || '园区待选择' }}</span>
+          <span class="state">{{ { draft: '待提交', reviewing: '审核中', rejected: '已驳回', approved: '已通过' }[item.status] }}</span>
+          <ArrowRight :size="15" />
         </button>
       </div>
     </div>
@@ -63,109 +68,5 @@ function start() {
 </template>
 
 <style scoped>
-.type-page {
-  padding-top: 12px;
-}
-.type-head {
-  margin-bottom: 22px;
-}
-.eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--brand);
-}
-.type-head h1 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.sub {
-  margin: 8px 0 0;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.type-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.type-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 18px 16px 16px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--r-xl);
-  background: var(--bg-card);
-  text-align: left;
-  cursor: pointer;
-  box-shadow: var(--shadow-xs);
-  transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast), transform var(--t-fast);
-}
-.type-card:hover:not(:disabled) {
-  border-color: var(--brand);
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
-}
-.type-card:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-.type-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--r-md);
-  display: grid;
-  place-items: center;
-  background: var(--c-blue-bg);
-  color: var(--c-blue);
-}
-.type-card:hover:not(:disabled) .type-icon {
-  background: var(--brand);
-  color: #fff;
-}
-.type-card strong {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.type-card small {
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  min-height: 36px;
-}
-.type-foot {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 4px;
-}
-.type-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 32px;
-  padding: 0 14px;
-  border-radius: var(--r-pill);
-  background: var(--brand);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: var(--shadow-brand);
-  transition: background var(--t-fast);
-}
-.type-card:hover:not(:disabled) .type-cta {
-  background: var(--brand-hover);
-}
-
+.landing{max-width:960px;margin:38px auto 0}.intro{margin-bottom:28px}.eyebrow{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--brand)}.intro h1{font-size:32px;letter-spacing:-.025em;color:var(--text-primary);margin:0}.intro>p:last-child{font-size:14px;color:var(--text-secondary);line-height:1.7;margin:10px 0 0;max-width:680px}.service-card{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.8fr);background:#fff;border:1px solid var(--border-light);border-radius:18px;box-shadow:var(--shadow-sm);overflow:hidden}.service-main{display:flex;gap:22px;padding:38px 34px 40px}.icon{width:58px;height:58px;display:grid;place-items:center;flex:none;border-radius:15px;background:var(--brand-soft);color:var(--brand)}.service-copy{min-width:0}.kicker{color:var(--brand);font-size:12px;font-weight:700}.service-copy h2{font-size:23px;margin:4px 0 8px;color:var(--text-primary)}.service-copy p{color:var(--text-secondary);font-size:13px;line-height:1.75;margin:0 0 26px;max-width:360px}.primary-action{height:42px;padding:0 19px;display:inline-flex;align-items:center;gap:22px;border:0;border-radius:9px;background:var(--brand);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:background var(--t-fast),transform var(--t-fast)}.primary-action:hover{background:var(--brand-active);transform:translateY(-1px)}.process{padding:29px 25px;background:#f7f9fc;border-left:1px solid var(--border-light)}.process-title{margin:0 0 17px;color:var(--text-placeholder);font-size:12px;font-weight:700;letter-spacing:.06em}.process>div{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #e6eaf0}.process>div:last-child{border-bottom:0}.process span{color:var(--brand);font-size:12px;font-weight:700}.process strong{flex:1;color:var(--text-primary);font-size:13px}.process svg{color:#9aa7bc}.application-list{margin-top:24px}.application-list h3{font-size:15px;color:var(--text-primary);margin:0 0 10px}.existing{display:flex;align-items:center;gap:13px;width:100%;margin-top:8px;background:#fff;border:1px solid var(--border-light);border-radius:12px;padding:14px 19px;font-size:13px;color:var(--text-secondary);text-align:left;cursor:pointer}.existing:hover{border-color:var(--brand)}.existing strong{color:var(--text-primary);flex:1}.state{color:var(--brand);background:var(--brand-soft);border-radius:999px;padding:3px 8px;font-size:12px}@media(max-width:760px){.landing{margin-top:20px}.service-card{grid-template-columns:1fr}.process{border-left:0;border-top:1px solid var(--border-light)}.service-main{padding:28px 22px}.intro h1{font-size:27px}.existing{flex-wrap:wrap}}
 </style>

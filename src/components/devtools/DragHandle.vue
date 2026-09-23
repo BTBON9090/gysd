@@ -1,74 +1,50 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useAcceptanceStore } from '@/stores/acceptance'
 
-const x = ref(Math.min(window.innerWidth - 80, window.innerWidth - 88))
-const y = ref(Math.min(120, window.innerHeight / 3))
+const emit = defineEmits<{ open: [] }>()
+const acc = useAcceptanceStore()
 const dragging = ref(false)
-let ox = 0
-let oy = 0
+let startX = 0
+let startY = 0
+let originX = 0
+let originY = 0
+let moved = false
 
-function onDown(e: PointerEvent) {
+function onDown(event: PointerEvent) {
   dragging.value = true
-  ox = e.clientX - x.value
-  oy = e.clientY - y.value
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  moved = false
+  startX = event.clientX
+  startY = event.clientY
+  originX = acc.dockPosition.x
+  originY = acc.dockPosition.y
+  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
 }
-function onMove(e: PointerEvent) {
+function onMove(event: PointerEvent) {
   if (!dragging.value) return
-  x.value = Math.max(8, Math.min(window.innerWidth - 56, e.clientX - ox))
-  y.value = Math.max(8, Math.min(window.innerHeight - 48, e.clientY - oy))
+  const dx = event.clientX - startX
+  const dy = event.clientY - startY
+  if (Math.abs(dx) + Math.abs(dy) > 5) moved = true
+  if (!moved) return
+  acc.setDockPosition(
+    Math.max(10, Math.min(window.innerWidth - 88, originX + dx)),
+    Math.max(10, Math.min(window.innerHeight - 44, originY + dy)),
+  )
 }
-function onUp(e: PointerEvent) {
+function onUp(event: PointerEvent) {
+  if (!dragging.value) return
   dragging.value = false
-  try {
-    ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
-  } catch {
-    /* ignore */
-  }
+  ;(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId)
+  if (!moved) emit('open')
 }
 </script>
 
 <template>
-  <button
-    class="drag-handle"
-    type="button"
-    title="拖动移动 · 点击打开验收工具"
-    :style="{ left: x + 'px', top: y + 'px' }"
-    @pointerdown="onDown"
-    @pointermove="onMove"
-    @pointerup="onUp"
-    @click="$emit('open')"
-  >
-    <span class="grip">⠿</span>
-    验收
+  <button class="drag-handle" :class="{ dragging }" type="button" title="拖动移动 · 点击打开验收工具" @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp">
+    <span class="grip">⠿</span>验收
   </button>
 </template>
 
 <style scoped>
-.drag-handle {
-  position: fixed;
-  z-index: 90;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 36px;
-  padding: 0 12px 0 8px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-pill);
-  background: #fff;
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: grab;
-  box-shadow: var(--shadow-lg);
-  touch-action: none;
-  user-select: none;
-}
-.drag-handle:active {
-  cursor: grabbing;
-}
-.grip {
-  opacity: 0.45;
-  letter-spacing: -1px;
-}
+.drag-handle{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 12px 0 8px;border:1px solid #d8dfeb;border-radius:9px;background:#fff;color:#26354f;font-size:13px;font-weight:650;cursor:grab;box-shadow:0 8px 24px rgba(26,45,84,.14);touch-action:none;user-select:none}.drag-handle.dragging{cursor:grabbing}.grip{opacity:.55;font-size:15px;line-height:1}
 </style>
