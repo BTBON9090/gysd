@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell, ChevronDown, LogOut, ArrowLeftRight, User, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
-import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus'
+import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu, ElOption, ElSelect } from 'element-plus'
 import { useAcceptanceStore } from '@/stores/acceptance'
 import { useOnboardingStore } from '@/stores/onboarding'
 
@@ -17,8 +17,7 @@ const entryText = computed(() => isPending.value
 const entryTone = computed(() => isPending.value ? ob.status : 'approved')
 const statusLabels = { draft: '待提交', reviewing: '审核中', rejected: '已驳回', approved: '已通过' }
 
-function switchApplication(event: Event) {
-  const id = (event.target as HTMLSelectElement).value
+function switchApplication(id: string) {
   if (!ob.selectApplication(id)) return
   acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
   if (ob.status === 'reviewing' || ob.status === 'rejected' || ob.status === 'approved') router.push('/onboarding/progress')
@@ -50,13 +49,19 @@ function switchApplication(event: Event) {
         入驻：{{ entryText }}
       </span>
 
-      <label v-if="ob.applications.some(item => item.entityVerified)" class="supplier-switch">
+      <div v-if="ob.applications.some(item => item.entityVerified)" class="supplier-switch">
         <span>切换主体</span>
-        <select :value="ob.activeId" @change="switchApplication">
-          <option v-if="!ob.entityVerified" :value="ob.activeId">个人账号 · 新申请</option>
-          <option v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id">{{ item.draft.entityName }} · {{ statusLabels[item.status] }}</option>
-        </select>
-      </label>
+        <ElSelect :model-value="ob.activeId" class="supplier-select" popper-class="subject-popper" aria-label="切换主体" @change="switchApplication">
+          <ElOption v-if="!ob.entityVerified" :value="ob.activeId" label="个人账号 · 新申请" />
+          <ElOption v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id" :label="`${item.draft.entityName} · ${statusLabels[item.status]}`">
+            <div class="subject-option">
+              <strong>{{ item.draft.entityName }}</strong>
+              <small>{{ item.draft.creditCode || '主体信息待完善' }}</small>
+              <span class="subject-state" :class="item.status">{{ statusLabels[item.status] }}</span>
+            </div>
+          </ElOption>
+        </ElSelect>
+      </div>
 
       <ElBadge :value="2" :max="99">
         <ElButton text circle aria-label="消息通知" class="icon-btn">
@@ -211,8 +216,11 @@ function switchApplication(event: Event) {
 }
 
 .supplier-switch { display: flex; align-items: center; gap: 7px; color: var(--text-secondary); font-size: 12px; }
-.supplier-switch select { width: 205px; height: 31px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 7px; background: #fff; color: var(--text-primary); font: inherit; text-overflow: ellipsis; }
-@media(max-width:900px) { .supplier-switch span { display: none; } .supplier-switch select { width: 150px; } .user-meta { display: none; } }
-@media(max-width:620px) { .entry-status { display: none; } .supplier-switch select { width: 115px; } }
+.supplier-select { width: 246px; }
+.supplier-select :deep(.el-select__wrapper) { min-height: 34px; border-radius: 8px; box-shadow: 0 0 0 1px #d8e0ed inset; padding-inline: 10px; }
+.supplier-select :deep(.el-select__wrapper:hover) { box-shadow: 0 0 0 1px #9eb0d7 inset; }
+.supplier-select :deep(.el-select__selected-item) { color: #233551; font-weight: 600; font-size: 12px; }
+@media(max-width:900px) { .supplier-switch > span { display: none; } .supplier-select { width: 180px; } .user-meta { display: none; } }
+@media(max-width:620px) { .entry-status { display: none; } .supplier-select { width: 135px; } }
 
 </style>

@@ -228,6 +228,16 @@ button {
 .el-badge__content.is-fixed {
   border: 2px solid #fff;
 }
+.subject-popper { width: min(380px, calc(100vw - 24px)); }
+.subject-popper .el-select-dropdown__item { height: auto; min-height: 58px; padding: 7px 11px; margin: 3px 5px; border-radius: 8px; line-height: 1.35; }
+.subject-popper .el-select-dropdown__item.is-selected { background: #eef2ff; }
+.subject-option { position: relative; display: grid; gap: 3px; padding-right: 58px; }
+.subject-option strong { overflow: hidden; color: #233551; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.subject-option small { color: #758299; font-size: 11px; font-variant-numeric: tabular-nums; }
+.subject-state { position: absolute; right: 0; top: 4px; padding: 3px 6px; border-radius: 5px; background: #eef2ff; color: #3656c5; font-size: 10px; font-weight: 700; }
+.subject-state.reviewing { background: #fff3df; color: #91580e; }
+.subject-state.rejected { background: #fff0ed; color: #a93c34; }
+.subject-state.approved { background: #e8f7f1; color: #087654; }
 .el-popper.is-light,
 .el-dropdown__popper {
   border-radius: 10px !important;
