@@ -58,6 +58,10 @@ function demoFill(n: number) {
   errors.value = []
 }
 
+watch(d, () => {
+  if (errors.value.length) errors.value = ob.validateStep(step.value)
+}, { deep: true })
+
 watch(
   step,
   (n) => {
@@ -116,7 +120,7 @@ function next() {
   const errs = ob.validateStep(step.value)
   errors.value = errs
   if (errs.length) {
-    ElMessage.error(errs[0])
+    requestAnimationFrame(() => document.querySelector('.field.has-error, .inline-error, .submission-errors')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
     return
   }
   ob.markStep(step.value + 1)
@@ -128,6 +132,15 @@ function next() {
     return
   }
   router.push(`/onboarding/step/${step.value + 1}`)
+}
+
+function fieldError(message: string) {
+  return errors.value.includes(message)
+}
+
+function goToSubmissionError(message: string) {
+  const match = message.match(/^第 ([1-4]) 步/)
+  router.push(`/onboarding/step/${match ? Number(match[1]) : 2}`)
 }
 
 const meta = computed(() => {
@@ -171,13 +184,6 @@ const meta = computed(() => {
     :show-footer="true"
     @next="next"
   >
-    <div v-if="errors.length" class="err-banner" role="alert">
-      <CircleAlert :size="16" />
-      <ul>
-        <li v-for="e in errors" :key="e">{{ e }}</li>
-      </ul>
-    </div>
-
     <FilePreview
       v-model="preview.open"
       :title="preview.title"
@@ -203,11 +209,12 @@ const meta = computed(() => {
           </div>
 
           <div class="form-grid">
-            <div class="field span-2">
+            <div class="field span-2" :class="{ 'has-error': fieldError('请选择申请入驻园区') }">
               <label>申请入驻园区 <em>*</em></label>
               <ElSelect v-model="d.park" filterable placeholder="搜索并选择园区" style="width: 100%" @change="ob.persist">
                 <ElOption v-for="p in parks" :key="p" :label="p" :value="p" />
               </ElSelect>
+              <span v-if="fieldError('请选择申请入驻园区')" class="field-error">请选择申请入驻园区</span>
             </div>
 
             <div class="field span-2">
@@ -238,35 +245,41 @@ const meta = computed(() => {
               <h3>服务商信息</h3>
             </div>
 
-            <div class="field">
+            <div class="field" :class="{ 'has-error': fieldError('请填写服务商名称') }">
               <label>服务商名称 <em>*</em></label>
               <ElInput v-model="d.serviceName" placeholder="请填写对外展示名称" @change="ob.persist" />
+              <span v-if="fieldError('请填写服务商名称')" class="field-error">请填写服务商名称</span>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'has-error': fieldError('请选择所属行业') }">
               <label>所属行业 <em>*</em></label>
               <ElSelect v-model="d.industry" placeholder="请选择行业" style="width: 100%" @change="ob.persist">
                 <ElOption v-for="i in industries" :key="i" :label="i" :value="i" />
               </ElSelect>
+              <span v-if="fieldError('请选择所属行业')" class="field-error">请选择所属行业</span>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'has-error': fieldError('注册手机号格式不正确') }">
               <label>注册手机号</label>
               <ElInput v-model="d.mobile" disabled />
+              <span v-if="fieldError('注册手机号格式不正确')" class="field-error">注册手机号格式不正确，请返回主体核验后重试</span>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'has-error': fieldError('请填写联系人姓名') }">
               <label>联系人姓名 <em>*</em></label>
               <ElInput v-model="d.contactName" placeholder="请填写" @change="ob.persist" />
+              <span v-if="fieldError('请填写联系人姓名')" class="field-error">请填写联系人姓名</span>
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'has-error': fieldError('请填写正确的联系人手机号') }">
               <label>联系人手机号 <em>*</em></label>
               <ElInput v-model="d.contactMobile" maxlength="11" placeholder="11 位手机号" @change="ob.persist" />
+              <span v-if="fieldError('请填写正确的联系人手机号')" class="field-error">请填写正确的联系人手机号</span>
             </div>
             <div class="field">
               <label>联系人职位</label>
               <ElInput v-model="d.contactTitle" placeholder="选填，如 市场负责人" @change="ob.persist" />
             </div>
-            <div class="field">
+            <div class="field" :class="{ 'has-error': fieldError('请填写正确邮箱') }">
               <label>邮箱 <em>*</em></label>
               <ElInput v-model="d.email" placeholder="接收入驻结果通知" @change="ob.persist" />
+              <span v-if="fieldError('请填写正确邮箱')" class="field-error">请填写正确邮箱</span>
             </div>
           </div>
         </div>
@@ -319,6 +332,7 @@ const meta = computed(() => {
               @remove="ob.persist()"
               @preview="(u?: string, n?: string) => openPreview('营业执照', n || 'license-front.png', 'image', u || '')"
             />
+            <span v-if="fieldError('请上传营业执照')" class="field-error inline-error">请上传营业执照</span>
             <div class="fill-box">
               <div class="fill-box-head">
                 <strong>识别信息</strong>
@@ -333,9 +347,10 @@ const meta = computed(() => {
                     <label>统一社会信用代码 <em>*</em></label>
                     <ElInput v-model="d.creditCode" disabled />
                   </div>
-                  <div class="field">
+                  <div class="field" :class="{ 'has-error': fieldError('请填写营业执照法人姓名') }">
                     <label>法定代表人 <em>*</em></label>
                     <ElInput v-model="d.licenseLegalPerson" placeholder="请填写" @change="ob.persist" />
+                    <span v-if="fieldError('请填写营业执照法人姓名')" class="field-error">请填写营业执照法人姓名</span>
                   </div>
                   <div class="field">
                     <label>注册资本</label>
@@ -412,19 +427,22 @@ const meta = computed(() => {
                 @preview="(u?: string, n?: string) => openPreview('身份证 · 国徽面', n || 'id-emblem.png', 'image', u || '')"
               />
             </div>
+            <span v-if="fieldError('请上传法人身份证正反面')" class="field-error inline-error">请上传法人身份证人像面和国徽面</span>
             <div class="fill-box">
               <div class="fill-box-head">
                 <strong>识别信息</strong>
                 <span>可手动修改</span>
               </div>
               <div class="form-grid">
-                <div class="field">
+                <div class="field" :class="{ 'has-error': fieldError('请填写本人姓名') || fieldError('请填写身份证姓名') }">
                   <label>{{ d.entityType === 'personal' ? '本人姓名' : '身份证姓名' }} <em>*</em></label>
                   <ElInput v-model="d.legalPerson" placeholder="与证件一致" @change="ob.persist" />
+                  <span v-if="fieldError('请填写本人姓名') || fieldError('请填写身份证姓名')" class="field-error">{{ d.entityType === 'personal' ? '请填写本人姓名' : '请填写身份证姓名' }}</span>
                 </div>
-                <div class="field">
+                <div class="field" :class="{ 'has-error': fieldError('请填写法人证件号码') }">
                   <label>证件号码 <em>*</em></label>
                   <ElInput v-model="d.idNo" maxlength="18" placeholder="18 位身份证号" @change="ob.persist" />
+                  <span v-if="fieldError('请填写法人证件号码')" class="field-error">请填写法人证件号码</span>
                 </div>
                 <div class="field">
                   <label>性别</label>
@@ -459,9 +477,9 @@ const meta = computed(() => {
           </section>
 
           <!-- 3 账户信息 -->
-          <section v-if="d.entityType !== 'personal'" class="doc-block">
+          <section class="doc-block">
             <header class="doc-head">
-              <span class="doc-index">03</span>
+              <span class="doc-index">{{ d.entityType === 'personal' ? '02' : '03' }}</span>
               <div class="doc-title">
                 <strong>账户信息</strong>
                 <p>可上传识别或手动填写账户信息</p>
@@ -486,21 +504,25 @@ const meta = computed(() => {
                 <span>可手动修改</span>
               </div>
               <div class="form-grid">
-                  <div class="field">
+                  <div class="field" :class="{ 'has-error': fieldError('请填写账户名称') }">
                     <label>账户名称 <em>*</em></label>
                     <ElInput v-model="d.accountName" placeholder="与企业名称一致的户名" @change="ob.persist" />
+                    <span v-if="fieldError('请填写账户名称')" class="field-error">请填写账户名称</span>
                   </div>
-                  <div class="field">
+                  <div class="field" :class="{ 'has-error': fieldError('请填写开户银行') }">
                     <label>开户银行 <em>*</em></label>
                     <ElInput v-model="d.bankName" placeholder="请填写开户银行" @change="ob.persist" />
+                    <span v-if="fieldError('请填写开户银行')" class="field-error">请填写开户银行</span>
                   </div>
-                  <div class="field">
+                  <div class="field" :class="{ 'has-error': fieldError('请填写开户支行') }">
                     <label>开户支行 <em>*</em></label>
                     <ElInput v-model="d.bankBranch" placeholder="请填写开户支行" @change="ob.persist" />
+                    <span v-if="fieldError('请填写开户支行')" class="field-error">请填写开户支行</span>
                   </div>
-                  <div class="field">
+                  <div class="field" :class="{ 'has-error': fieldError('请填写账号') }">
                     <label>账号 <em>*</em></label>
                     <ElInput v-model="d.bankAccount" placeholder="请填写" @change="ob.persist" />
+                    <span v-if="fieldError('请填写账号')" class="field-error">请填写账号</span>
                   </div>
               </div>
             </div>
@@ -538,32 +560,36 @@ const meta = computed(() => {
               <label>申请入驻园区 <em>*</em></label>
               <ElInput :model-value="d.park" disabled />
             </div>
-            <div class="field span-2">
+            <div class="field span-2" :class="{ 'has-error': fieldError('请填写商户介绍') || fieldError('商户介绍不能超过 5000 字') }">
               <label>商户介绍 <em>*</em></label>
               <ElInput v-model="d.merchantIntro" type="textarea" :rows="3" maxlength="5000" show-word-limit placeholder="介绍服务能力、主要客户与交付方式" @change="ob.persist" />
+              <span v-if="fieldError('请填写商户介绍') || fieldError('商户介绍不能超过 5000 字')" class="field-error">{{ fieldError('请填写商户介绍') ? '请填写商户介绍' : '商户介绍不能超过 5000 字' }}</span>
             </div>
-            <div v-if="d.entityType !== 'personal'" class="field span-2">
+            <div v-if="d.entityType !== 'personal'" class="field span-2" :class="{ 'has-error': fieldError('请选择员工规模') }">
               <label>员工规模 <em>*</em></label>
               <ElSelect v-model="d.employeeScale" placeholder="请选择员工规模" style="width: 100%" @change="ob.persist">
                 <ElOption v-for="size in ['1-19人', '20-99人', '100-499人', '500人及以上']" :key="size" :label="size" :value="size" />
               </ElSelect>
+              <span v-if="fieldError('请选择员工规模')" class="field-error">请选择员工规模</span>
             </div>
 
             <div class="field span-2 section-label">
               <h3>服务商信息</h3>
             </div>
 
-            <div class="field span-2">
+            <div class="field span-2" :class="{ 'has-error': fieldError('请至少选择 1 个服务范围城市') }">
               <label>服务范围 <em>*</em></label>
               <ElCascader :model-value="selectedRegions" :options="regionOptions" :props="{ multiple: true, emitPath: true }" filterable clearable collapse-tags :max-collapse-tags="2" collapse-tags-tooltip placeholder="搜索并选择省 / 市，可多选" style="width:100%" @change="onRegionChange" />
+              <span v-if="fieldError('请至少选择 1 个服务范围城市')" class="field-error">请至少选择 1 个服务范围城市</span>
               <span class="field-help">当前仅加载演示省市；正式版接入 PRD 附录 A 指定的中台通用地区接口。</span>
             </div>
 
-            <div class="field span-2">
+            <div class="field span-2" :class="{ 'has-error': fieldError('擅长领域最多 3 个') || fieldError('请填写至少 1 个擅长领域') }">
               <label>擅长业务领域或技能类型（最多可选 3 个）<em>*</em></label>
               <ElSelect v-model="d.skills" multiple filterable clearable :multiple-limit="3" collapse-tags :max-collapse-tags="2" collapse-tags-tooltip placeholder="搜索并选择擅长领域，最多 3 项" style="width:100%" @change="ob.persist">
                 <ElOption v-for="skill in skillsPool" :key="skill" :label="skill" :value="skill" />
               </ElSelect>
+              <span v-if="fieldError('擅长领域最多 3 个') || fieldError('请填写至少 1 个擅长领域')" class="field-error">{{ fieldError('擅长领域最多 3 个') ? '擅长领域最多 3 个' : '请填写至少 1 个擅长领域' }}</span>
               <span class="field-help">当前仅为演示字典样例；完整选项以 PRD 附录 A 的字典表为准。</span>
             </div>
 
@@ -643,6 +669,7 @@ const meta = computed(() => {
               @remove="() => { d.coopFileName = ''; ob.persist() }"
               @preview="(u?: string, n?: string) => openPreview('服务商入驻合作协议', n || d.coopFileName || '服务商入驻合作协议-已签.pdf', 'pdf', u || '')"
             />
+            <span v-if="fieldError('请上传《服务商入驻合作协议》')" class="field-error inline-error">请上传《服务商入驻合作协议》</span>
           </div>
 
           <div class="agreement-block">
@@ -665,6 +692,7 @@ const meta = computed(() => {
               @remove="() => { d.splitFileName = ''; ob.persist() }"
               @preview="(u?: string, n?: string) => openPreview('支付分账协议', n || d.splitFileName || '支付分账协议-已签.pdf', 'pdf', u || '')"
             />
+            <span v-if="fieldError('请上传《支付分账协议》')" class="field-error inline-error">请上传《支付分账协议》</span>
           </div>
 
         </div>
@@ -693,6 +721,11 @@ const meta = computed(() => {
               <ScanLine :size="13" />
               一键填满
             </button>
+          </div>
+
+          <div v-if="errors.length" class="submission-errors" role="alert">
+            <strong>请先处理以下信息</strong>
+            <button v-for="error in errors" :key="error" type="button" @click="goToSubmissionError(error)">{{ error }} <span>去修改 →</span></button>
           </div>
 
           <div class="entity-read summary-entity">
@@ -1489,6 +1522,15 @@ export default {}
   border-radius: var(--r-sm);
   font-size: 13px;
 }
+.field-error { display: block; color: #ba3b33; font-size: 12px; line-height: 1.45; }
+.inline-error { margin: 9px 0 0 2px; }
+.field.has-error :deep(.el-input__wrapper),
+.field.has-error :deep(.el-select__wrapper) { box-shadow: 0 0 0 1px #d45349 inset !important; }
+.submission-errors { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin: 0 0 22px; padding: 12px 14px; border-left: 3px solid #ce483f; background: #fff8f6; }
+.submission-errors strong { margin-bottom: 3px; color: #8f302b; font-size: 13px; }
+.submission-errors button { padding: 3px 0; border: 0; background: none; color: #a8342e; font-size: 12px; text-align: left; cursor: pointer; }
+.submission-errors button span { margin-left: 7px; font-weight: 700; }
+.submission-errors button:hover { text-decoration: underline; }
 
 @media (max-width: 900px) {
   .step-layout { grid-template-columns: 1fr; }
