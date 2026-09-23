@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import TopBar from './TopBar.vue'
 import SideNav from './SideNav.vue'
@@ -8,15 +8,20 @@ import { useAcceptanceStore } from '@/stores/acceptance'
 const route = useRoute()
 const acc = useAcceptanceStore()
 const sideCollapsed = ref(false)
+const mainRef = ref<HTMLElement | null>(null)
 const pageTitle = computed(() => (route.meta.title as string) || '工作台')
+watch(() => route.path, async () => {
+  await nextTick()
+  if (mainRef.value) mainRef.value.scrollTop = 0
+})
 </script>
 
 <template>
   <div class="shell" :class="{ 'is-proto': acc.isPrototypeSkin }">
-    <TopBar />
+    <TopBar v-model:collapsed="sideCollapsed" />
     <div class="shell-body">
       <SideNav v-model:collapsed="sideCollapsed" />
-      <main class="shell-main" :data-state="acc.dataState">
+      <main ref="mainRef" class="shell-main" :data-state="acc.dataState">
         <router-view v-slot="{ Component }">
           <transition name="page" mode="out-in">
             <component :is="Component" :key="route.path" :page-title="pageTitle" />

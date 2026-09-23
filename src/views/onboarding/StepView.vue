@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Building,
@@ -36,6 +36,9 @@ const d = ob.draft
 
 const step = computed(() => Math.min(5, Math.max(1, Number(route.params.n) || 1)))
 const errors = ref<string[]>([])
+const regionField = ref<HTMLElement | null>(null)
+const regionTagLimit = ref(4)
+let regionObserver: ResizeObserver | null = null
 const preview = ref({ open: false, title: '', fileName: '', kind: 'image' as 'image' | 'pdf' | 'text', src: '' })
 
 function openPreview(title: string, fileName: string, kind: 'image' | 'pdf' | 'text' = 'image', src = '') {
@@ -109,9 +112,34 @@ const regionOptions = [
   { value: '四川省', label: '四川省', children: [{ value: '成都市', label: '成都市' }] },
 ]
 const selectedRegions = computed(() => d.serviceCities.map(value => value.split(' / ')))
+function updateRegionTagLimit() {
+  if (!regionField.value) return
+  const available = Math.max(0, regionField.value.clientWidth - 80)
+  let used = 0
+  let count = 0
+  for (const city of d.serviceCities) {
+    const tagWidth = city.length * 10 + 28
+    if (used + tagWidth > available) break
+    used += tagWidth + 6
+    count += 1
+  }
+  regionTagLimit.value = Math.max(1, count)
+}
+watch([step, () => d.serviceCities.length], async ([n]) => {
+  regionObserver?.disconnect()
+  if (n !== 3) return
+  await nextTick()
+  updateRegionTagLimit()
+  if (regionField.value) {
+    regionObserver = new ResizeObserver(updateRegionTagLimit)
+    regionObserver.observe(regionField.value)
+  }
+}, { immediate: true })
+onBeforeUnmount(() => regionObserver?.disconnect())
 function onRegionChange(value: unknown) {
   d.serviceCities = (value as string[][]).map(path => path.join(' / '))
   ob.persist()
+  nextTick(updateRegionTagLimit)
 }
 
 const skillsPool = ['短视频剪辑', '企业注册', 'RPA 开发', '仓储配送', '薪税筹划', 'ISO 认证']
@@ -220,10 +248,9 @@ const meta = computed(() => {
             <div class="field span-2">
               <label>经营主体 <em>*</em> · 主体核验</label>
               <div class="entity-read">
-                <div>
+                <div class="entity-read-info">
                   <strong>{{ d.entityName || '未填写名称' }}</strong>
-                  <ElTag size="small" effect="plain" round>{{ ob.entityLabel }}</ElTag>
-                  <ElTag size="small" type="info" effect="plain" round>{{ ob.certLabel }}</ElTag>
+                  <div class="entity-badges"><span class="entity-badge">{{ ob.entityLabel }}</span><span class="entity-badge neutral">{{ ob.certLabel }}</span></div>
                   <p>识别码：{{ d.creditCode || '—' }}</p>
                 </div>
                 <ElButton v-if="d.entityType === 'personal'" size="small" text type="primary" @click="router.push('/onboarding/entity')">
@@ -577,9 +604,9 @@ const meta = computed(() => {
               <h3>服务商信息</h3>
             </div>
 
-            <div class="field span-2" :class="{ 'has-error': fieldError('请至少选择 1 个服务范围城市') }">
+            <div ref="regionField" class="field span-2" :class="{ 'has-error': fieldError('请至少选择 1 个服务范围城市') }">
               <label>服务范围 <em>*</em></label>
-              <ElCascader :model-value="selectedRegions" :options="regionOptions" :props="{ multiple: true, emitPath: true }" filterable clearable collapse-tags :max-collapse-tags="2" collapse-tags-tooltip placeholder="搜索并选择省 / 市，可多选" style="width:100%" @change="onRegionChange" />
+              <ElCascader :model-value="selectedRegions" :options="regionOptions" :props="{ multiple: true, emitPath: true }" filterable clearable collapse-tags :max-collapse-tags="regionTagLimit" collapse-tags-tooltip placeholder="搜索并选择省 / 市，可多选" style="width:100%" @change="onRegionChange" />
               <span v-if="fieldError('请至少选择 1 个服务范围城市')" class="field-error">请至少选择 1 个服务范围城市</span>
               <span class="field-help">当前仅加载演示省市；正式版接入 PRD 附录 A 指定的中台通用地区接口。</span>
             </div>
@@ -729,9 +756,9 @@ const meta = computed(() => {
           </div>
 
           <div class="entity-read summary-entity">
-            <div>
+            <div class="entity-read-info">
               <strong>{{ d.entityName || '—' }}</strong>
-              <ElTag size="small" effect="plain" round>{{ ob.entityLabel }}</ElTag>
+              <div class="entity-badges"><span class="entity-badge">{{ ob.entityLabel }}</span></div>
               <p>企业识别码：{{ d.creditCode || '—' }}</p>
             </div>
           </div>
@@ -739,14 +766,13 @@ const meta = computed(() => {
           <div class="summary-pair">
             <div>
               <span class="k">入驻身份</span>
-              <ElTag type="primary" effect="light" round>{{ ob.supplierLabel }}</ElTag>
+              <span class="summary-chip">{{ ob.supplierLabel }}</span>
             </div>
             <div>
               <span class="k">申请入驻园区</span>
-              <ElTag type="primary" effect="light" round>
-                <el-icon style="margin-right: 4px"><Building /></el-icon>
+              <span class="summary-chip park-chip"><Building :size="14" />
                 {{ d.park || '—' }}
-              </ElTag>
+              </span>
             </div>
           </div>
 
@@ -783,7 +809,7 @@ const meta = computed(() => {
                 <small>营业执照上传状态</small>
               </div>
               <span class="file-valid">有效期至 {{ d.validTo || '长期' }}</span>
-              <ElTag :type="d.licenseUploaded ? 'success' : 'warning'" size="small" round>
+              <ElTag :type="d.licenseUploaded ? 'success' : 'warning'" size="small">
                 {{ d.licenseUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </li>
@@ -794,7 +820,7 @@ const meta = computed(() => {
                 <small>身份证人像面上传状态</small>
               </div>
               <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
-              <ElTag :type="d.idFront ? 'success' : 'warning'" size="small" round>
+              <ElTag :type="d.idFront ? 'success' : 'warning'" size="small">
                 {{ d.idFront ? '已上传' : '待上传' }}
               </ElTag>
             </li>
@@ -805,7 +831,7 @@ const meta = computed(() => {
                 <small>身份证国徽面上传状态</small>
               </div>
               <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
-              <ElTag :type="d.idBack ? 'success' : 'warning'" size="small" round>
+              <ElTag :type="d.idBack ? 'success' : 'warning'" size="small">
                 {{ d.idBack ? '已上传' : '待上传' }}
               </ElTag>
             </li>
@@ -816,7 +842,7 @@ const meta = computed(() => {
                 <small>账户文件上传状态</small>
               </div>
               <span class="file-valid">账户 {{ maskAccount(d.bankAccount) }}</span>
-              <ElTag :type="d.bankUploaded ? 'success' : 'warning'" size="small" round>
+              <ElTag :type="d.bankUploaded ? 'success' : 'warning'" size="small">
                 {{ d.bankUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </li>
@@ -827,7 +853,7 @@ const meta = computed(() => {
                 <small>{{ d.coopFileName || '服务商入驻合作协议-已签.pdf' }}</small>
               </div>
               <span class="file-valid">—</span>
-              <ElTag :type="d.coopUploaded ? 'success' : 'warning'" size="small" round>
+              <ElTag :type="d.coopUploaded ? 'success' : 'warning'" size="small">
                 {{ d.coopUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </li>
@@ -838,7 +864,7 @@ const meta = computed(() => {
                 <small>{{ d.splitFileName || '支付分账协议-已签.pdf' }}</small>
               </div>
               <span class="file-valid">—</span>
-              <ElTag :type="d.splitUploaded ? 'success' : 'warning'" size="small" round>
+              <ElTag :type="d.splitUploaded ? 'success' : 'warning'" size="small">
                 {{ d.splitUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </li>
@@ -913,7 +939,7 @@ export default {}
   height: 32px;
   padding: 0 14px;
   border: 1px solid rgba(59, 99, 211, 0.28);
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: var(--brand-soft);
   color: var(--brand);
   font-size: 12.5px;
@@ -1014,22 +1040,25 @@ export default {}
 }
 
 .entity-read {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: block;
   padding: 12px 14px;
   background: var(--bg-muted);
   border: 1px solid var(--border-light);
   border-radius: var(--r-md);
 }
 .entity-read strong {
+  display: block;
   font-size: 14px;
   color: var(--text-primary);
-  margin-right: 8px;
 }
+.entity-read-info { min-width: 0; }
+.entity-read > .field-help { display: block; margin-top: 9px; font-size: 12px; }
+.entity-read > .el-button { margin-top: 9px; }
+.entity-badges { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.entity-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border-radius: 6px; background: #e6edff; color: #3051b7; font-size: 12px; font-weight: 700; line-height: 1.3; }
+.entity-badge.neutral { background: #edf1f6; color: #526178; }
 .entity-read p {
-  margin: 4px 0 0;
+  margin: 8px 0 0;
   font-size: 12.5px;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
@@ -1307,7 +1336,7 @@ export default {}
 .tag-btn {
   height: 32px;
   padding: 0 12px;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   border: 1px solid var(--border-strong);
   background: #fff;
   font-size: 13px;
@@ -1393,6 +1422,9 @@ export default {}
   color: var(--text-placeholder);
   margin-bottom: 6px;
 }
+.summary-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 27px; padding: 4px 9px; border-radius: 6px; background: #e6edff; color: #294bb2; font-size: 13px; font-weight: 700; line-height: 1.35; vertical-align: top; }
+.summary-chip.park-chip { overflow-wrap: anywhere; }
+.summary-chip svg { flex: none; }
 .sec-title {
   margin: 0 0 10px;
   font-size: 14.5px;

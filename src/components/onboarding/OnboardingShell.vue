@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { House, Trash2, Save, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-vue-next'
+import { Trash2, Save, ChevronLeft, ChevronRight, LogOut } from 'lucide-vue-next'
 import { ElButton, ElMessage, ElMessageBox } from 'element-plus'
 import { useOnboardingStore, STEPS } from '@/stores/onboarding'
 import { useAcceptanceStore } from '@/stores/acceptance'
@@ -22,8 +22,7 @@ const router = useRouter()
 const ob = useOnboardingStore()
 const acc = useAcceptanceStore()
 const isV2 = computed(() => acc.versionId === 'v2.0-light')
-const canGoBack = computed(() => step.value === 0 || step.value > 1 || ob.draft.entityType === 'personal')
-watch(() => ob.status, (status) => acc.setEntryStatus(status === 'approved' ? 'approved' : 'pending'), { immediate: true })
+const canGoBack = computed(() => step.value > 1 || (step.value === 1 && ob.draft.entityType === 'personal'))
 
 const showSteps = computed(() => props.showSteps ?? true)
 const showFooter = computed(() => props.showFooter ?? true)
@@ -54,8 +53,9 @@ async function onDeleteDraft() {
       cancelButtonText: '取消',
     })
     ob.resetDraft()
+    acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
     ElMessage.success('草稿已删除')
-    router.push('/onboarding')
+    router.push('/workspace')
   } catch {
     /* cancel */
   }
@@ -66,19 +66,10 @@ function onSave() {
   ElMessage.success(ob.savedAt ? `已暂存 ${ob.savedAt}` : '已暂存')
 }
 
-function goHome() {
-  router.push('/onboarding')
-}
-
-function goWorkspace() {
+function onExit() {
+  ob.saveDraft()
+  ElMessage.success('已退出入驻，当前资料已保留')
   router.push('/workspace')
-}
-
-function switchApplication(event: Event) {
-  const id = (event.target as HTMLSelectElement).value
-  if (!ob.selectApplication(id)) return
-  if (ob.status === 'reviewing' || ob.status === 'rejected' || ob.status === 'approved') router.push('/onboarding/progress')
-  else router.push(ob.entityVerified ? `/onboarding/step/${Math.max(1, ob.maxStep)}` : '/onboarding/entity')
 }
 
 function onPrev() {
@@ -89,7 +80,7 @@ function onPrev() {
   } else if (route.path.startsWith('/onboarding/step/')) {
     ElMessage.info('主体已核验，如需更换主体请删除草稿后重新申请')
   } else if (route.path.startsWith('/onboarding/entity')) {
-    router.push('/onboarding')
+    router.push('/workspace')
   } else {
     router.push('/workspace')
   }
@@ -103,46 +94,6 @@ function onNext() {
 
 <template>
   <div class="ob" :class="{ 'theme-light-v2': isV2 }">
-    <header class="ob-top">
-      <div class="ob-top-left">
-        <button class="ob-brand" type="button" aria-label="万联易达供应商入驻" @click="goHome">
-          <span class="ob-brand-logo" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="24" height="24">
-              <rect width="32" height="32" rx="8" fill="#3b63d3" />
-              <path d="M8 10h6.2v6.2H8zm9.8 0H24v6.2h-6.2zM8 16.8h6.2V23H8zm9.8 3.2H24V23h-6.2z" fill="#fff" />
-            </svg>
-          </span>
-          <span class="ob-brand-text">
-            <strong>万联易达集团</strong>
-            <small>供应商入驻</small>
-          </span>
-        </button>
-        <span class="ob-status" :class="{ done: ob.status === 'approved' }">
-          {{ { draft: '入驻：待提交', reviewing: '入驻：审核中', rejected: '入驻：已驳回', approved: '入驻：已通过' }[ob.status] }}
-        </span>
-      </div>
-      <div class="ob-top-right">
-        <nav v-if="isV2" class="ob-nav" aria-label="入驻导航">
-          <button v-if="route.path !== '/onboarding'" class="ob-nav-link" type="button" @click="goHome"><House :size="15" /> 入驻首页</button>
-          <button class="ob-nav-link" type="button" @click="goWorkspace"><LayoutDashboard :size="15" /> 返回工作台</button>
-        </nav>
-        <label v-if="ob.applications.some(item => item.entityVerified)" class="supplier-switch">
-          <span>切换主体</span>
-          <select :value="ob.activeId" @change="switchApplication">
-            <option v-if="!ob.entityVerified" :value="ob.activeId">个人账号 · 新申请</option>
-            <option v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id">{{ item.draft.entityName }}</option>
-          </select>
-        </label>
-        <span class="ob-user">
-          <span class="ob-avatar">新</span>
-          <span class="ob-user-meta">
-            <strong>新注册用户</strong>
-            <small>未完善企业信息</small>
-          </span>
-        </span>
-      </div>
-    </header>
-
     <div v-if="showSteps && step > 0" class="ob-steps">
       <ol class="steps-row">
         <li
@@ -175,45 +126,15 @@ function onNext() {
     </main>
 
     <footer v-if="showFooter" class="ob-footer">
-      <div v-if="isV2" class="ob-footer-inner ob-footer-v2">
+      <div class="ob-footer-inner ob-footer-v2">
         <div class="ob-footer-left">
-          <span class="footer-progress">{{ step ? `第 ${step} / 5 步` : '主体核验' }}</span>
+          <button class="save-link exit-link" type="button" @click="onExit"><LogOut :size="15" /> 退出入驻</button>
           <button v-if="ob.status === 'draft'" class="save-link" type="button" @click="onSave"><Save :size="15" /> 暂存草稿</button>
           <button v-if="ob.status === 'draft'" class="save-link delete-link" type="button" @click="onDeleteDraft"><Trash2 :size="15" /> 删除草稿</button>
         </div>
         <div class="ob-footer-right">
           <ElButton v-if="canGoBack" class="prev-btn" @click="onPrev"><ChevronLeft :size="15" /> 上一步</ElButton>
           <ElButton type="primary" class="next-btn" :disabled="nextDisabled" @click="onNext">{{ step === 5 ? '提交入驻' : '下一步' }} <ChevronRight :size="15" /></ElButton>
-        </div>
-      </div>
-      <div v-else class="ob-footer-inner">
-        <div class="ob-footer-left">
-          <button class="ghost-btn" type="button" @click="goWorkspace">
-            返回工作台
-            <span class="ghost-sub">稍后再入驻</span>
-          </button>
-          <button class="ghost-btn" type="button" @click="goHome">
-            <House :size="14" />
-            <span>入驻首页</span>
-          </button>
-          <button v-if="ob.status === 'draft'" class="ghost-btn danger" type="button" @click="onDeleteDraft">
-            <Trash2 :size="14" />
-            <span>删除草稿</span>
-          </button>
-          <ElButton size="default" round @click="onSave">
-            <Save :size="14" style="margin-right: 4px" />
-            暂存草稿
-          </ElButton>
-        </div>
-        <div class="ob-footer-right">
-          <ElButton class="prev-btn" round @click="onPrev">
-            <ChevronLeft :size="15" style="margin-right: 4px" />
-            上一步
-          </ElButton>
-          <ElButton type="primary" class="next-btn" round :disabled="nextDisabled" @click="onNext">
-            {{ step === 5 ? '提交入驻' : '下一步' }}
-            <ChevronRight :size="15" style="margin-left: 4px" />
-          </ElButton>
         </div>
       </div>
     </footer>
@@ -289,7 +210,7 @@ function onNext() {
   height: 32px;
   padding: 0 12px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: #fff;
   color: var(--text-regular);
   font-size: 13px;
@@ -316,7 +237,7 @@ function onNext() {
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--brand);
@@ -363,7 +284,7 @@ function onNext() {
 
 .ob-steps {
   position: sticky;
-  top: 56px;
+  top: 0;
   z-index: 29;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(8px);
@@ -508,7 +429,7 @@ function onNext() {
   height: 40px;
   padding: 0 16px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: #fff;
   color: var(--text-regular);
   font-size: 13px;
@@ -537,6 +458,8 @@ function onNext() {
 .footer-progress { font-size:12px; font-weight:700; color:var(--text-secondary); }
 .save-link { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:0; border-radius:7px; background:transparent; color:var(--brand); font-size:12.5px; font-weight:650; cursor:pointer; }
 .save-link:hover { background:var(--brand-soft); }
+.exit-link { color:var(--text-secondary); }
+.exit-link:hover { color:var(--text-primary); background:var(--bg-hover); }
 
 @media (max-width: 760px) {
   .ob-top { padding: 0 14px; }

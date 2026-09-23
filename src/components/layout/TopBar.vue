@@ -1,39 +1,62 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Bell, ChevronDown, LogOut, ArrowLeftRight, User } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Bell, ChevronDown, LogOut, ArrowLeftRight, User, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
 import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu } from 'element-plus'
 import { useAcceptanceStore } from '@/stores/acceptance'
+import { useOnboardingStore } from '@/stores/onboarding'
 
 const acc = useAcceptanceStore()
+const ob = useOnboardingStore()
+const router = useRouter()
+const collapsed = defineModel<boolean>('collapsed', { default: false })
 const isPending = computed(() => acc.entryStatus === 'pending')
+const entryText = computed(() => isPending.value
+  ? { draft: '待提交', reviewing: '审核中', rejected: '已驳回', approved: '待提交' }[ob.status]
+  : '已通过')
+const entryTone = computed(() => isPending.value ? ob.status : 'approved')
+const statusLabels = { draft: '待提交', reviewing: '审核中', rejected: '已驳回', approved: '已通过' }
+
+function switchApplication(event: Event) {
+  const id = (event.target as HTMLSelectElement).value
+  if (!ob.selectApplication(id)) return
+  acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
+  if (ob.status === 'reviewing' || ob.status === 'rejected' || ob.status === 'approved') router.push('/onboarding/progress')
+  else router.push(ob.entityVerified ? `/onboarding/step/${Math.max(1, ob.maxStep)}` : '/onboarding/entity')
+}
 </script>
 
 <template>
   <header class="topbar">
     <div class="topbar-left">
       <a href="#/workspace" class="brand" aria-label="万联易达供应商端">
-        <span class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 32 32" width="24" height="24">
-            <rect width="32" height="32" rx="8" fill="#3b63d3" />
-            <path d="M8 10h6.2v6.2H8zm9.8 0H24v6.2h-6.2zM8 16.8h6.2V23H8zm9.8 3.2H24V23h-6.2z" fill="#fff" />
-          </svg>
-        </span>
-        <span class="brand-text">
-          <strong>万联易达集团</strong>
-          <small>供应商工作台</small>
-        </span>
+        <img v-if="collapsed" src="/zqyq-logo-icon.png" alt="" class="brand-icon" />
+        <img v-else src="/zqyq-logo-all.png" alt="万联易达集团" class="brand-image" />
       </a>
     </div>
+
+    <button class="sidebar-toggle" type="button" :aria-label="collapsed ? '展开侧栏' : '收起侧栏'" @click="collapsed = !collapsed">
+      <PanelLeftOpen v-if="collapsed" :size="18" />
+      <PanelLeftClose v-else :size="18" />
+    </button>
 
     <div class="topbar-right">
       <span
         class="entry-status"
-        :class="{ pending: isPending }"
+        :class="[entryTone, { pending: isPending }]"
         title="供应商入驻状态"
       >
         <span class="entry-dot" />
-        {{ isPending ? '入驻：待提交' : '入驻：已通过' }}
+        入驻：{{ entryText }}
       </span>
+
+      <label v-if="ob.applications.some(item => item.entityVerified)" class="supplier-switch">
+        <span>切换主体</span>
+        <select :value="ob.activeId" @change="switchApplication">
+          <option v-if="!ob.entityVerified" :value="ob.activeId">个人账号 · 新申请</option>
+          <option v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id">{{ item.draft.entityName }} · {{ statusLabels[item.status] }}</option>
+        </select>
+      </label>
 
       <ElBadge :value="2" :max="99">
         <ElButton text circle aria-label="消息通知" class="icon-btn">
@@ -69,7 +92,7 @@ const isPending = computed(() => acc.entryStatus === 'pending')
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 16px 0 0;
   background: var(--bg-topbar);
   border-bottom: 1px solid var(--border-light);
   z-index: 40;
@@ -78,42 +101,27 @@ const isPending = computed(() => acc.entryStatus === 'pending')
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border-radius: var(--r-sm);
-  padding: 4px 8px 4px 4px;
+  justify-content: center;
+  width: var(--sidebar-w);
+  height: var(--topbar-h);
+  padding: 0 9px;
+  background: #17233b;
   transition: background var(--t-fast);
 }
 .brand:hover {
-  background: var(--bg-hover);
+  background: #213657;
 }
-
-.brand-logo {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-.brand-text strong {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 0.01em;
-}
-.brand-text small {
-  font-size: 11px;
-  color: var(--text-placeholder);
-  letter-spacing: 0.06em;
-}
+.brand-image { display: block; width: 157px; height: auto; max-height: 36px; object-fit: contain; }
+.brand-icon { display: block; width: 30px; height: 30px; object-fit: contain; }
+.topbar:has(.brand-icon) .brand { width: var(--sidebar-w-collapsed); }
+.sidebar-toggle { width: 32px; height: 32px; display: grid; place-items: center; flex: none; margin-left: 10px; border: 0; border-radius: 8px; background: transparent; color: #63728a; cursor: pointer; }
+.sidebar-toggle:hover { background: #eef2f8; color: #233c69; }
 
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .entry-status {
@@ -122,7 +130,7 @@ const isPending = computed(() => acc.entryStatus === 'pending')
   gap: 6px;
   height: 28px;
   padding: 0 10px;
-  border-radius: var(--r-pill);
+  border-radius: 7px;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--status-success);
@@ -137,6 +145,10 @@ const isPending = computed(() => acc.entryStatus === 'pending')
 .entry-status.pending .entry-dot {
   background: var(--brand);
 }
+.entry-status.pending.reviewing { color: #91580e; background: #fff4df; border-color: #f0dcb8; }
+.entry-status.pending.reviewing .entry-dot { background: #c2812a; }
+.entry-status.pending.rejected { color: #a93c34; background: #fff0ed; border-color: #f3d3cf; }
+.entry-status.pending.rejected .entry-dot { background: #c55349; }
 .entry-dot {
   width: 6px;
   height: 6px;
@@ -158,7 +170,7 @@ const isPending = computed(() => acc.entryStatus === 'pending')
   border: none;
   background: transparent;
   padding: 4px 6px 4px 4px;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   cursor: pointer;
   transition: background var(--t-fast);
 }
@@ -197,5 +209,10 @@ const isPending = computed(() => acc.entryStatus === 'pending')
 .chev {
   color: var(--text-placeholder);
 }
+
+.supplier-switch { display: flex; align-items: center; gap: 7px; color: var(--text-secondary); font-size: 12px; }
+.supplier-switch select { width: 205px; height: 31px; padding: 0 8px; border: 1px solid var(--border-strong); border-radius: 7px; background: #fff; color: var(--text-primary); font: inherit; text-overflow: ellipsis; }
+@media(max-width:900px) { .supplier-switch span { display: none; } .supplier-switch select { width: 150px; } .user-meta { display: none; } }
+@media(max-width:620px) { .entry-status { display: none; } .supplier-switch select { width: 115px; } }
 
 </style>

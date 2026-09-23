@@ -62,7 +62,7 @@
 .sk-btn {
   width: 140px;
   height: 44px;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
 }
 .sk-metrics {
   display: grid;

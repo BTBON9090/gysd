@@ -128,11 +128,6 @@ html,
 body,
 #app {
   height: 100%;
-  min-width: 1100px;
-}
-
-/* 入驻是独立流程页；小窗口仍应完整显示表单与操作。 */
-html:has(.ob), body:has(.ob), #app:has(.ob) {
   min-width: 0;
 }
 
@@ -204,8 +199,8 @@ button {
   --el-color-primary-light-9: #eef1fc;
   --el-color-primary-dark-2: #2f54b8;
 
-  /* 圆角三层：按钮胶囊 / 表单 10px / 卡片 16·12 */
-  --el-button-border-radius: 999px;
+  /* 按钮与标签采用圆角矩形 */
+  --el-button-border-radius: 8px;
   --el-border-radius-base: 10px;
   --el-border-radius-small: 8px;
   --el-input-border-radius: 10px;
@@ -214,7 +209,9 @@ button {
 
 .el-button {
   font-weight: 500;
+  border-radius: 8px;
 }
+.el-button.is-round { border-radius: 8px; }
 .el-button--primary {
   --el-button-bg-color: var(--brand);
   --el-button-border-color: var(--brand);
@@ -225,8 +222,9 @@ button {
   --el-button-box-shadow: var(--shadow-brand);
 }
 .el-tag {
-  --el-tag-border-radius: 999px;
+  --el-tag-border-radius: 6px;
 }
+.el-tag.is-round { border-radius: 6px; }
 .el-badge__content.is-fixed {
   border: 2px solid #fff;
 }

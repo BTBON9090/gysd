@@ -69,7 +69,7 @@ p {
 .btn {
   height: 42px;
   padding: 0 20px;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

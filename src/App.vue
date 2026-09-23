@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAcceptanceStore } from '@/stores/acceptance'
+import { useOnboardingStore } from '@/stores/onboarding'
+import router from '@/router'
 import DevToolsDock from '@/components/devtools/DevToolsDock.vue'
 
 const acc = useAcceptanceStore()
+const ob = useOnboardingStore()
 
 onMounted(() => {
+  acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
   // hash 路由：参数在 # 后，如 #/workspace?state=empty&skin=proto
   const hash = window.location.hash
   const qi = hash.indexOf('?')
@@ -19,6 +23,9 @@ onMounted(() => {
   const entry = q.get('entry')
   if (entry === 'pending') acc.setEntryStatus('pending')
   if (entry === 'approved') acc.setEntryStatus('approved')
+  if (acc.entryStatus === 'pending' && !['/workspace', '/settings'].includes(router.currentRoute.value.path) && !router.currentRoute.value.path.startsWith('/onboarding/')) {
+    router.replace('/workspace')
+  }
 })
 </script>
 

@@ -176,7 +176,7 @@ function onRemove() {
   padding: 0 10px;
   margin-bottom: 10px;
   border: 1px solid var(--border-light);
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: var(--bg-muted);
   color: var(--text-secondary);
   font-size: 12px;

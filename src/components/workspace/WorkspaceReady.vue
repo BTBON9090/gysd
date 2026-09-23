@@ -92,11 +92,11 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
           {{ pendingEntry ? '完成服务商入驻后，即可开通店铺、上架服务。' : '今天是入驻首日，先开通店铺，生意就开张了。' }}
         </p>
       </div>
-      <ElButton v-if="pendingEntry" type="primary" round @click="router.push('/onboarding')">
+      <ElButton v-if="pendingEntry" type="primary" @click="router.push('/workspace')">
         去入驻
         <ArrowRight :size="15" style="margin-left: 6px" />
       </ElButton>
-      <ElButton v-else type="primary" round @click="router.push('/shop/info')">
+      <ElButton v-else type="primary" @click="router.push('/shop/info')">
         去开通店铺
         <ArrowRight :size="15" style="margin-left: 6px" />
       </ElButton>
@@ -183,7 +183,7 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
           <span class="quick-icon">
             <component :is="q.icon" :size="16" stroke-width="1.8" />
           </span>
-          <ElTag :type="Number(q.count) > 0 ? 'primary' : 'info'" effect="light" round size="small">
+          <ElTag :type="Number(q.count) > 0 ? 'primary' : 'info'" effect="light" size="small">
             {{ q.count }} {{ q.unit }}
           </ElTag>
         </div>
@@ -351,7 +351,7 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
   padding: 0 8px;
   display: inline-flex;
   align-items: center;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: var(--brand-soft);
   color: var(--brand);
   font-size: 12px;
@@ -385,7 +385,7 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
   font-weight: 600;
   background: #fff;
   border: 1px solid rgba(22, 163, 74, 0.18);
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   padding: 0 7px;
   font-size: 11.5px;
   line-height: 18px;

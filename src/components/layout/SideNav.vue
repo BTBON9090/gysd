@@ -2,30 +2,20 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMenu, ElMenuItem, ElSubMenu } from 'element-plus'
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
 import { navMenus } from '@/composables/useNavMenus'
+import { useAcceptanceStore } from '@/stores/acceptance'
 
 const route = useRoute()
+const acc = useAcceptanceStore()
 const collapsed = defineModel<boolean>('collapsed', { default: false })
-const activePath = computed(() => route.path)
-const rootItems = navMenus
+const activePath = computed(() => route.path.startsWith('/onboarding') ? '/workspace' : route.path)
+const rootItems = computed(() => acc.entryStatus === 'pending'
+  ? navMenus.filter(item => item.key === 'workspace' || item.key === 'settings').map(item => item.key === 'settings' ? { ...item, children: undefined } : item)
+  : navMenus)
 </script>
 
 <template>
   <aside class="sidenav" :class="{ collapsed }">
-    <div class="sidenav-head">
-      <span v-if="!collapsed" class="section-label">工作台</span>
-      <button
-        class="collapse-btn"
-        type="button"
-        :aria-label="collapsed ? '展开侧栏' : '收起侧栏'"
-        @click="collapsed = !collapsed"
-      >
-        <PanelLeftClose v-if="!collapsed" :size="16" />
-        <PanelLeftOpen v-else :size="16" />
-      </button>
-    </div>
-
     <ElMenu
       class="nav-menu"
       :default-active="activePath"
@@ -86,46 +76,12 @@ const rootItems = navMenus
   width: var(--sidebar-w-collapsed);
 }
 
-.sidenav-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 8px 6px 10px;
-  min-height: 44px;
-}
-/* 收起后只留折叠按钮，与下方图标对齐 */
-.sidenav.collapsed .sidenav-head {
-  justify-content: center;
-  padding: 12px 0 6px;
-}
-.section-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-placeholder);
-  letter-spacing: 0.04em;
-}
-.collapse-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--r-xs);
-  background: transparent;
-  color: var(--text-placeholder);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: background var(--t-fast), color var(--t-fast);
-}
-.collapse-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
 .nav-menu {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 4px 6px;
+  padding: 12px 8px 4px;
+  border-right: 0;
 }
 
 /* 菜单项：去重描边，仅浅底选中 */
@@ -189,13 +145,17 @@ const rootItems = navMenus
 .sidenav.collapsed .nav-menu {
   width: 100% !important;
   max-width: 100%;
-  padding-left: 0;
-  padding-right: 0;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 .sidenav.collapsed .nav-menu :deep(.el-menu-item),
 .sidenav.collapsed .nav-menu :deep(.el-sub-menu__title) {
   padding: 0 !important;
   justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  margin-left: auto;
+  margin-right: auto;
 }
 /* 普通项折叠时包在 tooltip trigger 里，EP 默认左右 20px padding 把图标推向右侧 */
 .sidenav.collapsed .nav-menu :deep(.el-menu-tooltip__trigger),

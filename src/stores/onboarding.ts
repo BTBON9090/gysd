@@ -368,7 +368,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     const d = draft.value
     d.licenseUploaded = true
     d.entityName = d.entityName || '万联易达航空物流地面综合服务（郑州）有限公司'
-    d.creditCode = d.creditCode || '91310000MA1FL8X21B'
+    d.creditCode = d.creditCode || '91310000MA1FL8X21C'
     d.licenseNo = d.creditCode
     d.legalPerson = d.legalPerson || '周启明'
     d.licenseLegalPerson = d.licenseLegalPerson || '周启明'
@@ -449,7 +449,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
   function fillDemoAll() {
     if (!d_hasEntity()) {
       draft.value.entityName = draft.value.entityName || '万联易达航空物流地面综合服务（郑州）有限公司'
-      draft.value.creditCode = draft.value.creditCode || '91310000MA1FL8X21B'
+      draft.value.creditCode = draft.value.creditCode || '91310000MA1FL8X21C'
       draft.value.certType = draft.value.certType || 'business_license'
     }
     entityVerified.value = true

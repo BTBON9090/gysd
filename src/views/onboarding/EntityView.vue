@@ -60,7 +60,6 @@ const certOptions = computed(() => {
 
 const isPersonal = computed(() => ob.draft.entityType === 'personal')
 const nameLabel = computed(() => (isPersonal.value ? '姓名' : '企业名称'))
-const nameLabelShort = computed(() => (isPersonal.value ? '姓名' : '名称'))
 const codeLabel = computed(() => (isPersonal.value ? '身份证号' : '统一社会信用代码'))
 const codePlaceholder = computed(() => isPersonal.value ? '18 位身份证号' : ob.draft.entityType === 'individual' ? '15 位或 18 位证件号码' : '18 位统一社会信用代码')
 
@@ -80,7 +79,7 @@ function fillDemo() {
     ob.draft.certType = 'individual_license'
   } else {
     ob.draft.entityName = '万联易达航空物流地面综合服务（郑州）有限公司'
-    ob.draft.creditCode = '91310000MA1FL8X21B'
+    ob.draft.creditCode = '91310000MA1FL8X21C'
     ob.draft.certType = 'business_license'
   }
   ob.persist()
@@ -233,13 +232,6 @@ function next() {
         </p>
       </div>
 
-      <div class="preview">
-        <p class="field-label">下一步预览</p>
-        <p class="preview-text">
-          证件类型（{{ ob.certLabel }}）· {{ nameLabelShort }}（{{ ob.draft.entityName || '待填写' }}）
-          · 识别码（{{ ob.draft.creditCode || '待填写' }}）
-        </p>
-      </div>
     </section>
   </OnboardingShell>
 </template>
@@ -283,7 +275,7 @@ function next() {
   height: 32px;
   padding: 0 14px;
   border: 1px solid rgba(59, 99, 211, 0.28);
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: var(--brand-soft);
   color: var(--brand);
   font-size: 12.5px;

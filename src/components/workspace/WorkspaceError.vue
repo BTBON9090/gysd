@@ -67,7 +67,7 @@ p {
   height: 42px;
   padding: 0 22px;
   border: none;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: var(--brand-gradient);
   color: #fff;
   font-size: 14px;

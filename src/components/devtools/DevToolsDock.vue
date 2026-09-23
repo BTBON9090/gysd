@@ -92,13 +92,18 @@ function panelGo(path: string) {
   acc.panelOpen = false
   window.location.hash = `#${path}`
 }
+function goCurrentApplication() {
+  const ob = useOnboardingStore()
+  const path = ob.status === 'reviewing' || ob.status === 'rejected' || ob.status === 'approved'
+    ? '/onboarding/progress'
+    : ob.entityVerified ? `/onboarding/step/${Math.max(1, ob.maxStep)}` : '/onboarding/entity'
+  panelGo(path)
+}
 
 function setEntry(s: EntryStatus) {
   acc.setEntryStatus(s)
-  if (s === 'approved') {
-    acc.panelOpen = false
-    window.location.hash = '#/workspace'
-  }
+  acc.panelOpen = false
+  window.location.hash = '#/workspace'
 }
 
 function fillAllDemo() {
@@ -192,15 +197,13 @@ function fillAndGo() {
               size="small"
               style="width: 100%; margin-top: 8px"
               type="primary"
-              round
-              @click="panelGo('/onboarding')"
+              @click="goCurrentApplication"
             >
-              进入入驻流程
+              查看当前申请
             </ElButton>
             <ElButton
               size="small"
               style="width: 100%; margin-top: 8px"
-              round
               @click="panelGo('/workspace')"
             >
               {{ acc.entryStatus === 'pending' ? '跳到工作台（未入驻视角）' : '跳到工作台（已入驻）' }}
@@ -297,7 +300,7 @@ export default { components: { WorkspaceProto } }
   height: 32px;
   padding: 0 12px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: #fff;
   font-size: 12.5px;
   font-weight: 600;
@@ -544,7 +547,7 @@ export default { components: { WorkspaceProto } }
   flex-shrink: 0;
   height: 18px;
   padding: 0 6px;
-  border-radius: var(--r-pill);
+  border-radius: 5px;
   font-size: 10.5px;
   font-weight: 700;
   display: grid;
@@ -600,7 +603,7 @@ export default { components: { WorkspaceProto } }
   font-size: 12px;
   font-weight: 600;
   padding: 5px 12px;
-  border-radius: var(--r-pill);
+  border-radius: 7px;
   box-shadow: var(--shadow-md);
   pointer-events: none;
 }
@@ -638,7 +641,7 @@ export default { components: { WorkspaceProto } }
   font-size: 11.5px;
   font-weight: 700;
   padding: 3px 8px;
-  border-radius: var(--r-pill);
+  border-radius: 5px;
 }
 .compare-frame {
   width: 200%;

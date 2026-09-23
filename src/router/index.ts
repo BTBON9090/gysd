@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import { navMenus } from '@/composables/useNavMenus'
+import { useAcceptanceStore } from '@/stores/acceptance'
 
 const placeholder = () => import('@/views/PlaceholderView.vue')
 
@@ -17,6 +18,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/WorkspaceView.vue'),
         meta: { title: '工作台' },
       },
+      {
+        path: 'onboarding',
+        component: () => import('@/views/onboarding/OnboardingLayout.vue'),
+        children: [
+          { path: '', redirect: '/workspace' },
+          { path: 'entity', name: 'onboarding-entity', component: () => import('@/views/onboarding/EntityView.vue'), meta: { title: '经营主体' } },
+          { path: 'step/:n', name: 'onboarding-step', component: () => import('@/views/onboarding/StepView.vue'), meta: { title: '供应商入驻' } },
+          { path: 'progress', name: 'onboarding-progress', component: () => import('@/views/onboarding/ProgressView.vue'), meta: { title: '入驻进度查询' } },
+        ],
+      },
       ...navMenus
         .filter((m) => m.key !== 'workspace')
         .map((m) => ({
@@ -27,23 +38,19 @@ const routes: RouteRecordRaw[] = [
         })),
     ],
   },
-  /* 入驻流程：独立轻壳，不挂业务侧栏 */
-  {
-    path: '/onboarding',
-    component: () => import('@/views/onboarding/OnboardingLayout.vue'),
-    children: [
-      { path: '', name: 'onboarding-type', component: () => import('@/views/onboarding/TypeSelectView.vue'), meta: { title: '供应商入驻' } },
-      { path: 'entity', name: 'onboarding-entity', component: () => import('@/views/onboarding/EntityView.vue'), meta: { title: '经营主体' } },
-      { path: 'step/:n', name: 'onboarding-step', component: () => import('@/views/onboarding/StepView.vue'), meta: { title: '供应商入驻' } },
-      { path: 'progress', name: 'onboarding-progress', component: () => import('@/views/onboarding/ProgressView.vue'), meta: { title: '入驻进度查询' } },
-    ],
-  },
 ]
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
   scrollBehavior: () => ({ top: 0 }),
+})
+
+router.beforeEach((to) => {
+  const acc = useAcceptanceStore()
+  if (acc.entryStatus === 'pending' && !['/workspace', '/settings'].includes(to.path) && !to.path.startsWith('/onboarding/')) {
+    return '/workspace'
+  }
 })
 
 router.afterEach((to) => {

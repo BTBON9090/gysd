@@ -62,7 +62,7 @@ p {
   height: 40px;
   align-items: center;
   padding: 0 20px;
-  border-radius: var(--r-pill);
+  border-radius: 8px;
   background: var(--brand);
   color: #fff;
   font-weight: 600;

@@ -6,6 +6,7 @@ import WorkspaceSkeleton from '@/components/workspace/WorkspaceSkeleton.vue'
 import WorkspaceEmpty from '@/components/workspace/WorkspaceEmpty.vue'
 import WorkspaceError from '@/components/workspace/WorkspaceError.vue'
 import WorkspaceProto from '@/components/workspace/WorkspaceProto.vue'
+import TypeSelectView from '@/views/onboarding/TypeSelectView.vue'
 
 defineProps<{ pageTitle?: string }>()
 
@@ -15,8 +16,9 @@ const skin = computed(() => (acc.isPrototypeSkin ? 'proto' : 'live'))
 
 <template>
   <div class="workspace" :class="[`skin-${skin}`, `state-${acc.dataState}`]">
+    <TypeSelectView v-if="acc.entryStatus === 'pending'" />
     <!-- 原型参考版：灰阶回退，便于版本对比 -->
-    <WorkspaceProto v-if="acc.isPrototypeSkin" />
+    <WorkspaceProto v-else-if="acc.isPrototypeSkin" />
     <template v-else>
       <WorkspaceSkeleton v-if="acc.dataState === 'loading'" />
       <WorkspaceEmpty v-else-if="acc.dataState === 'empty'" />
