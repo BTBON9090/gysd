@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Store, Building2, ShieldCheck, CircleAlert, Wand2 } from 'lucide-vue-next'
-import { ElButton, ElInput, ElMessage, ElOption, ElSelect } from 'element-plus'
+import { User, Store, Building2, ShieldCheck, CircleAlert, ScanLine } from 'lucide-vue-next'
+import { ElInput, ElMessage, ElOption, ElSelect } from 'element-plus'
 import {
   useOnboardingStore,
   type EntityType,
@@ -113,14 +113,14 @@ function next() {
 
     <section class="entity-card">
       <div class="gate-head">
-        <div>
+        <div class="card-head-text">
           <h2 class="field-label">类型 <em>*</em></h2>
           <p class="gate-hint">选择主体后核验证件与识别信息，校验通过才可进入填写。</p>
         </div>
-        <ElButton size="small" @click="fillDemo">
-          <Wand2 :size="14" style="margin-right: 4px" />
+        <button class="card-demo" type="button" @click="fillDemo">
+          <ScanLine :size="13" />
           演示填入
-        </ElButton>
+        </button>
       </div>
 
       <div class="entity-grid">
@@ -228,6 +228,7 @@ function next() {
   border: 1px solid var(--border-light);
   border-radius: var(--r-xl);
   padding: 22px 22px 20px;
+  box-shadow: var(--shadow-sm);
 }
 .gate-head {
   display: flex;
@@ -235,6 +236,28 @@ function next() {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+}
+.card-demo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid rgba(59, 99, 211, 0.28);
+  border-radius: var(--r-pill);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), transform var(--t-fast);
+}
+.card-demo:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  transform: translateY(-1px);
 }
 .field-label {
   margin: 0 0 10px;
@@ -268,10 +291,12 @@ function next() {
   background: #fff;
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
 }
 .entity-option:hover {
-  border-color: var(--border-strong);
+  border-color: var(--brand);
+  transform: translateY(-1px);
 }
 .entity-option.active {
   border-color: var(--brand);
@@ -281,7 +306,7 @@ function next() {
 .eo-icon {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   display: grid;
   place-items: center;
   background: var(--bg-chip);
@@ -368,15 +393,4 @@ function next() {
   color: var(--text-secondary);
 }
 
-@media (max-width: 720px) {
-  .entity-grid {
-    grid-template-columns: 1fr;
-  }
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .field.span-2 {
-    grid-column: span 1;
-  }
-}
 </style>

@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import TopBar from './TopBar.vue'
 import SideNav from './SideNav.vue'
-import DevToolsDock from '@/components/devtools/DevToolsDock.vue'
 import { useAcceptanceStore } from '@/stores/acceptance'
 
 const route = useRoute()
@@ -25,7 +24,6 @@ const pageTitle = computed(() => (route.meta.title as string) || '工作台')
         </router-view>
       </main>
     </div>
-    <DevToolsDock />
   </div>
 </template>
 
@@ -47,7 +45,7 @@ const pageTitle = computed(() => (route.meta.title as string) || '工作台')
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   scroll-behavior: smooth;
 }
 

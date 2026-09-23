@@ -10,9 +10,12 @@ import {
   CheckCheck,
   Plus,
   Trash2,
+  Wand2,
 } from 'lucide-vue-next'
 import { useAcceptanceStore, DESIGN_VERSIONS, type PageDataState, type EntryStatus } from '@/stores/acceptance'
-import { ElButton, ElSwitch } from 'element-plus'
+import { useOnboardingStore } from '@/stores/onboarding'
+import DragHandle from '@/components/devtools/DragHandle.vue'
+import { ElButton, ElMessage, ElSwitch } from 'element-plus'
 
 const acc = useAcceptanceStore()
 const draft = ref('')
@@ -54,10 +57,33 @@ function panelGo(path: string) {
   acc.panelOpen = false
   window.location.hash = `#${path}`
 }
+
+function setEntry(s: EntryStatus) {
+  acc.setEntryStatus(s)
+  if (s === 'approved') {
+    acc.panelOpen = false
+    window.location.hash = '#/workspace'
+  }
+}
+
+function fillAllDemo() {
+  const ob = useOnboardingStore()
+  ob.fillDemoAll()
+  ElMessage.success('演示数据已填入，可继续下一步')
+}
+
+function fillAndGo() {
+  const ob = useOnboardingStore()
+  ob.fillDemoAll()
+  acc.panelOpen = false
+  window.location.hash = '#/onboarding/step/5'
+}
 </script>
 
 <template>
   <div class="dock" :class="{ open: acc.panelOpen }">
+    <DragHandle v-if="!acc.panelOpen" @open="acc.panelOpen = true" />
+    <button v-else class="dock-close" type="button" @click="acc.panelOpen = false">收起</button>
     <transition name="panel">
       <div v-if="acc.panelOpen" class="panel" role="dialog" aria-label="验收工具">
         <header class="panel-head">
@@ -121,7 +147,7 @@ function panelGo(path: string) {
                 type="button"
                 role="tab"
                 :aria-selected="acc.entryStatus === s.value"
-                @click="acc.setEntryStatus(s.value)"
+                @click="setEntry(s.value)"
               >
                 {{ s.label }}
               </button>
@@ -131,10 +157,30 @@ function panelGo(path: string) {
               size="small"
               style="width: 100%; margin-top: 8px"
               type="primary"
+              round
               @click="panelGo('/onboarding')"
             >
               进入入驻流程
             </ElButton>
+            <ElButton
+              size="small"
+              style="width: 100%; margin-top: 8px"
+              round
+              @click="panelGo('/workspace')"
+            >
+              {{ acc.entryStatus === 'pending' ? '跳到工作台（未入驻视角）' : '跳到工作台（已入驻）' }}
+            </ElButton>
+          </section>
+
+          <section class="sec">
+            <h3><Wand2 :size="13" /> 演示填表</h3>
+            <ElButton size="small" style="width: 100%" type="primary" round @click="fillAllDemo">
+              一键填满入驻表单
+            </ElButton>
+            <ElButton size="small" style="width: 100%; margin-top: 8px" round @click="fillAndGo">
+              填满并跳到确认页
+            </ElButton>
+            <p class="demo-hint">自动填入演示数据，可跳过手工录入；每张表单卡片右上角也有「演示填入」。</p>
           </section>
 
           <section class="sec">
@@ -188,19 +234,6 @@ function panelGo(path: string) {
       </div>
     </transition>
 
-    <button
-      class="fab"
-      type="button"
-      :aria-expanded="acc.panelOpen"
-      aria-label="打开验收工具"
-      @click="acc.panelOpen = !acc.panelOpen"
-    >
-      <Wrench v-if="!acc.panelOpen" :size="14" />
-      <X v-else :size="14" />
-      <span>{{ acc.panelOpen ? '收起' : '验收' }}</span>
-      <span v-if="issueCount && !acc.panelOpen" class="fab-badge">{{ issueCount }}</span>
-    </button>
-
     <template v-if="acc.compareMode">
       <div class="compare-banner">分屏对比 · 左 V0.9 原型 / 右 V1.0 当前</div>
       <div class="compare-left" aria-hidden="true">
@@ -227,22 +260,16 @@ export default { components: { WorkspaceProto } }
   z-index: 80;
 }
 
-.fab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 14px 0 11px;
+.dock-close {
+  height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--r-pill);
   background: #fff;
-  color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: var(--shadow-md);
-  transition: background var(--t-fast), border-color var(--t-fast);
 }
 .fab:hover {
   background: var(--bg-hover);
@@ -415,6 +442,12 @@ export default { components: { WorkspaceProto } }
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.demo-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-placeholder);
 }
 .switch-row > span:first-child {
   flex: 1;

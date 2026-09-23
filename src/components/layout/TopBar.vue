@@ -198,11 +198,4 @@ const isPending = computed(() => acc.entryStatus === 'pending')
   color: var(--text-placeholder);
 }
 
-@media (max-width: 720px) {
-  .user-meta,
-  .brand-text small,
-  .entry-status {
-    display: none;
-  }
-}
 </style>

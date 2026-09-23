@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Handshake, Factory, ShoppingBag, Truck, Boxes, ClipboardCheck, ArrowRight } from 'lucide-vue-next'
-import { ElButton, ElTag } from 'element-plus'
+import { ElTag } from 'element-plus'
 import { useOnboardingStore, SUPPLIER_TYPES } from '@/stores/onboarding'
 import OnboardingShell from '@/components/onboarding/OnboardingShell.vue'
 
 const router = useRouter()
 const ob = useOnboardingStore()
-const selected = ref(ob.draft.supplierType)
 
 const iconMap = {
   service: Handshake,
@@ -20,8 +18,7 @@ const iconMap = {
 } as const
 
 function start() {
-  if (selected.value !== 'service') return
-  ob.draft.supplierType = selected.value
+  ob.draft.supplierType = 'service'
   ob.persist()
   router.push('/onboarding/entity')
 }
@@ -41,27 +38,25 @@ function start() {
           v-for="t in SUPPLIER_TYPES"
           :key="t.id"
           class="type-card"
-          :class="{ active: selected === t.id, disabled: !t.enabled }"
+          :class="{ disabled: !t.enabled }"
           type="button"
           :disabled="!t.enabled"
-          @click="selected = t.id"
+          @click="t.enabled && start()"
         >
           <span class="type-icon">
             <component :is="iconMap[t.id]" :size="20" stroke-width="1.7" />
           </span>
           <strong>{{ t.label }}</strong>
           <small>{{ t.desc }}</small>
-          <ElTag v-if="t.enabled" type="primary" size="small" effect="light" round>可入驻</ElTag>
-          <ElTag v-else type="info" size="small" effect="plain" round>敬请期待</ElTag>
+          <span class="type-foot">
+            <ElTag v-if="t.enabled" type="primary" size="small" effect="light" round>可入驻</ElTag>
+            <ElTag v-else type="info" size="small" effect="plain" round>敬请期待</ElTag>
+            <span v-if="t.enabled" class="type-cta">
+              开始入驻
+              <ArrowRight :size="14" />
+            </span>
+          </span>
         </button>
-      </div>
-
-      <div class="type-actions">
-        <ElButton type="primary" size="large" round :disabled="selected !== 'service'" @click="start">
-          开始入驻 · 服务商
-          <ArrowRight :size="16" style="margin-left: 6px" />
-        </ElButton>
-        <p class="hint">下一步选择经营主体类型（个人 / 个体工商户 / 企业）</p>
       </div>
     </div>
   </OnboardingShell>
@@ -106,34 +101,33 @@ function start() {
   gap: 8px;
   padding: 18px 16px 16px;
   border: 1px solid var(--border-light);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-xl);
   background: var(--bg-card);
   text-align: left;
   cursor: pointer;
-  transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast), transform var(--t-fast);
 }
 .type-card:hover:not(:disabled) {
-  border-color: var(--border-strong);
-}
-.type-card.active {
   border-color: var(--brand);
-  background: var(--brand-soft);
-  box-shadow: 0 0 0 1px var(--brand);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
-.type-card.disabled {
+.type-card:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
 }
 .type-icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--r-md);
   display: grid;
   place-items: center;
   background: var(--c-blue-bg);
   color: var(--c-blue);
 }
-.type-card.active .type-icon {
+.type-card:hover:not(:disabled) .type-icon {
   background: var(--brand);
   color: #fff;
 }
@@ -148,28 +142,30 @@ function start() {
   line-height: 1.5;
   min-height: 36px;
 }
-
-.type-actions {
-  margin-top: 28px;
+.type-foot {
+  width: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
 }
-.hint {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--text-placeholder);
+.type-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-brand);
+  transition: background var(--t-fast);
+}
+.type-card:hover:not(:disabled) .type-cta {
+  background: var(--brand-hover);
 }
 
-@media (max-width: 800px) {
-  .type-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-@media (max-width: 520px) {
-  .type-grid {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

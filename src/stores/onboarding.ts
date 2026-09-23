@@ -84,6 +84,11 @@ export interface OnboardingDraft {
   agreePrivacy: boolean
   signName: string
   signDate: string
+  /* 协议文件（两类） */
+  coopUploaded: boolean
+  coopFileName: string
+  splitUploaded: boolean
+  splitFileName: string
 }
 
 function emptyDraft(): OnboardingDraft {
@@ -142,6 +147,10 @@ function emptyDraft(): OnboardingDraft {
     agreePrivacy: false,
     signName: '',
     signDate: '',
+    coopUploaded: false,
+    coopFileName: '',
+    splitUploaded: false,
+    splitFileName: '',
   }
 }
 
@@ -304,6 +313,88 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     persist()
   }
 
+  function fillDemoInfo() {
+    const d = draft.value
+    d.park = d.park || '上海临港新片区智能制造产业园'
+    d.serviceName = d.serviceName || '临港企服'
+    d.industry = d.industry || '信息技术与软件服务'
+    d.mobile = d.mobile || '13800008000'
+    d.contactName = d.contactName || '周启明'
+    d.contactTitle = d.contactTitle || '市场负责人'
+    d.email = d.email || 'service@example.com'
+    persist()
+  }
+
+  function fillDemoProducts() {
+    const d = draft.value
+    if (!d.serviceCategories.length) d.serviceCategories = ['IT 外包', '管理咨询']
+    if (!d.serviceCities.length) d.serviceCities = ['上海', '苏州']
+    if (!d.skills.length) d.skills = ['RPA 开发', '企业注册']
+    d.caseDesc =
+      d.caseDesc ||
+      '为临港智能制造园区 30+ 家企业提供 IT 运维与 RPA 流程自动化，平均节省人力 40%；负责年度财税顾问与高新技术企业申报。'
+    d.caseCount = d.caseCount || 12
+    d.canInvoice = true
+    d.extraCerts = d.extraCerts || 'certs.zip'
+    persist()
+  }
+
+  function fillDemoAgreement() {
+    const d = draft.value
+    d.agreePlatform = true
+    d.agreeProvider = true
+    d.agreePrivacy = true
+    d.signName = d.signName || d.legalPerson || d.contactName || '周启明'
+    d.signDate = d.signDate || new Date().toISOString().slice(0, 10)
+    d.coopUploaded = true
+    d.coopFileName = d.coopFileName || '服务商入驻合作协议-已签.pdf'
+    d.splitUploaded = true
+    d.splitFileName = d.splitFileName || '支付分账协议-已签.pdf'
+    persist()
+  }
+
+  function fillDemoAgent() {
+    const d = draft.value
+    d.agentName = d.agentName || '周启明'
+    d.agentMobile = d.agentMobile || '13800008000'
+    d.agentRelation = d.agentRelation || '法定代表人'
+    persist()
+  }
+
+  function fillDemoAll() {
+    if (!d_hasEntity()) {
+      draft.value.entityName = draft.value.entityName || '万联易达航空物流地面综合服务（郑州）有限公司'
+      draft.value.creditCode = draft.value.creditCode || '91310000MA1FL8X21B'
+      draft.value.certType = draft.value.certType || 'business_license'
+    }
+    fillDemoInfo()
+    fillDemoLicense()
+    fillDemoId()
+    fillDemoBank()
+    fillDemoAgent()
+    fillDemoProducts()
+    fillDemoAgreement()
+    markStep(5)
+    persist()
+  }
+
+  function d_hasEntity() {
+    return Boolean(draft.value.entityName && draft.value.creditCode)
+  }
+
+  function fillDemoStep(n: number) {
+    if (n === 1) fillDemoInfo()
+    if (n === 2) {
+      fillDemoLicense()
+      fillDemoId()
+      fillDemoBank()
+      fillDemoAgent()
+    }
+    if (n === 3) fillDemoProducts()
+    if (n === 4) fillDemoAgreement()
+    if (n === 5) fillDemoAll()
+  }
+
   function validateStep(step: number): string[] {
     const d = draft.value
     const errs: string[] = []
@@ -342,6 +433,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       if (!d.agreePlatform) errs.push('请阅读并同意平台服务协议')
       if (!d.agreeProvider) errs.push('请阅读并同意服务商入驻协议')
       if (!d.agreePrivacy) errs.push('请阅读并同意数据保密承诺')
+      if (!d.coopUploaded) errs.push('请上传《服务商入驻合作协议》')
+      if (!d.splitUploaded) errs.push('请上传《支付分账协议》')
       if (!d.signName.trim()) errs.push('请填写电子签章姓名')
       if (!d.signDate) errs.push('请选择签署日期')
     }
@@ -376,6 +469,12 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     fillDemoLicense,
     fillDemoId,
     fillDemoBank,
+    fillDemoInfo,
+    fillDemoProducts,
+    fillDemoAgreement,
+    fillDemoAgent,
+    fillDemoAll,
+    fillDemoStep,
     validateStep,
     markStep,
   }

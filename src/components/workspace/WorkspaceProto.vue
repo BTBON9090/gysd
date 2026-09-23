@@ -230,10 +230,4 @@ const chain = [
   font-size: 12px;
   color: #9ca3af;
 }
-@media (max-width: 1100px) {
-  .p-metrics,
-  .p-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
 </style>

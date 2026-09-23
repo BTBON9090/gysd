@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAcceptanceStore } from '@/stores/acceptance'
+import DevToolsDock from '@/components/devtools/DevToolsDock.vue'
 
 const acc = useAcceptanceStore()
 
@@ -23,4 +24,5 @@ onMounted(() => {
 
 <template>
   <router-view />
+  <DevToolsDock />
 </template>

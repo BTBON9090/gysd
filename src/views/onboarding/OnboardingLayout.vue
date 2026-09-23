@@ -1,24 +1,15 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { onMounted } from 'vue'
 import { useAcceptanceStore } from '@/stores/acceptance'
 
 defineProps<{ pageTitle?: string }>()
 
-const route = useRoute()
 const acc = useAcceptanceStore()
 
+// 仅首次进入入驻流程时置为待提交；验收工具切到已入驻后不回拉
 onMounted(() => {
-  acc.setEntryStatus('pending')
+  if (acc.entryStatus === 'approved') acc.setEntryStatus('pending')
 })
-
-watch(
-  () => route.path,
-  (p) => {
-    if (p.startsWith('/onboarding')) acc.setEntryStatus('pending')
-  },
-  { immediate: true },
-)
 </script>
 
 <template>

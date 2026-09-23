@@ -110,8 +110,8 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
             <component :is="m.icon" :size="15" stroke-width="1.8" />
           </span>
         </div>
-        <div class="metric-value">{{ m.value }}</div>
-        <div class="metric-sub">{{ m.sub }}</div>
+        <div class="metric-value" :class="{ empty: pendingEntry }">{{ pendingEntry ? '—' : m.value }}</div>
+        <div class="metric-sub">{{ pendingEntry ? '入驻后展示' : m.sub }}</div>
       </ElCard>
     </section>
 
@@ -122,7 +122,11 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
         </span>
         <h2>短信通知</h2>
       </div>
-      <div class="sms">
+      <div v-if="pendingEntry" class="empty-line">
+        <span class="empty-dot" />
+        暂无短信 · 入驻审核结果将发送至此
+      </div>
+      <div v-else class="sms">
         <div class="sms-meta">
           <span class="sms-to">发送至 138****8000</span>
           <span class="sms-ok">已送达</span>
@@ -233,6 +237,24 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
   font-size: 13.5px;
 }
 
+.metric-value.empty {
+  color: var(--text-placeholder);
+  font-weight: 600;
+}
+.empty-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 4px;
+  font-size: 13px;
+  color: var(--text-placeholder);
+}
+.empty-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
 /* 指标卡：理财感但克制 */
 .metrics {
   display: grid;
@@ -552,27 +574,4 @@ const pendingEntry = computed(() => acc.entryStatus === 'pending')
   line-height: 1.5;
 }
 
-@media (max-width: 1100px) {
-  .metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
-  .quick-grid {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 720px) {
-  .ws {
-    padding: 14px 12px 32px;
-  }
-  .ws-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .metrics {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

@@ -6,13 +6,12 @@ import {
   UserCheck,
   BadgeCheck,
   ScanLine,
-  IdCard,
-  Landmark,
-  Upload,
   CircleAlert,
   Handshake,
   FileSignature,
   ClipboardList,
+  Eye,
+  Download,
 } from 'lucide-vue-next'
 import {
   ElButton,
@@ -27,6 +26,8 @@ import {
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useAcceptanceStore } from '@/stores/acceptance'
 import OnboardingShell from '@/components/onboarding/OnboardingShell.vue'
+import UploadCard from '@/components/onboarding/UploadCard.vue'
+import FilePreview from '@/components/onboarding/FilePreview.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,6 +37,17 @@ const d = ob.draft
 
 const step = computed(() => Math.min(5, Math.max(1, Number(route.params.n) || 1)))
 const errors = ref<string[]>([])
+const preview = ref({ open: false, title: '', fileName: '', kind: 'image' as 'image' | 'pdf' | 'text', src: '' })
+
+function openPreview(title: string, fileName: string, kind: 'image' | 'pdf' | 'text' = 'image', src = '') {
+  preview.value = { open: true, title, fileName, kind, src }
+}
+
+function demoFill(n: number) {
+  ob.fillDemoStep(n)
+  ElMessage.success(n === 5 ? '演示数据已填满，请核对后提交' : `第 ${n} 步演示数据已填入`)
+  errors.value = []
+}
 
 watch(
   step,
@@ -115,7 +127,7 @@ const meta = computed(() => {
     },
     2: {
       title: '资质与证件',
-      subtitle: '上传证照并核对识别结果；点击标题可展开，标红项需补全。',
+      subtitle: '按证件分三段上传，识别结果可手动修改。',
       icon: BadgeCheck,
     },
     3: {
@@ -148,12 +160,20 @@ const meta = computed(() => {
     @next="next"
     @prev="prev"
   >
-    <div v-if="errors.length" class="err-banner">
+    <div v-if="errors.length" class="err-banner" role="alert">
       <CircleAlert :size="16" />
       <ul>
         <li v-for="e in errors" :key="e">{{ e }}</li>
       </ul>
     </div>
+
+    <FilePreview
+      v-model="preview.open"
+      :title="preview.title"
+      :file-name="preview.fileName"
+      :kind="preview.kind"
+      :src="preview.src"
+    />
 
     <!-- ===== Step 1 入驻信息 ===== -->
     <div v-if="step === 1" class="step-layout">
@@ -161,10 +181,14 @@ const meta = computed(() => {
         <div class="card">
           <div class="card-head">
             <span class="card-ic tone-blue"><Building :size="16" /></span>
-            <div>
+            <div class="card-head-text">
               <h2>基础信息</h2>
-              <p>企业信息已填写，请完善服务商信息与联系人信息。</p>
+              <p>完善服务商信息与联系人，便于园区审核与后续联络。</p>
             </div>
+            <button class="card-demo" type="button" @click="demoFill(1)">
+              <ScanLine :size="13" />
+              演示填入
+            </button>
           </div>
 
           <div class="form-grid">
@@ -247,38 +271,43 @@ const meta = computed(() => {
         <div class="card">
           <div class="card-head">
             <span class="card-ic tone-amber"><BadgeCheck :size="16" /></span>
-            <div>
+            <div class="card-head-text">
               <h2>资质与证件</h2>
-              <p>请上传证件并填写信息，点击标题可展开查看。</p>
+              <p>按证件分三段上传，识别结果可手动修改。</p>
             </div>
+            <button class="card-demo" type="button" @click="demoFill(2)">
+              <ScanLine :size="13" />
+              演示填入
+            </button>
           </div>
 
-          <!-- 营业执照 -->
-          <details class="acc" open>
-            <summary>
-              <span>营业执照</span>
-              <ElTag :type="d.licenseUploaded ? 'success' : 'warning'" size="small" round>
-                {{ d.licenseUploaded ? '已完善' : '待完善' }}
+          <!-- 1 营业执照 -->
+          <section class="doc-block">
+            <header class="doc-head">
+              <div class="doc-title">
+                <strong>营业执照</strong>
+                <p>上传原件或扫描件，支持一键读取</p>
+              </div>
+              <ElTag :type="d.licenseUploaded ? 'success' : 'info'" size="small" round effect="plain">
+                {{ d.licenseUploaded ? '已上传' : '待上传' }}
               </ElTag>
-            </summary>
-            <div class="acc-body">
-              <div class="upload-row">
-                <ElButton type="primary" size="small" @click="ob.fillDemoLicense()">
-                  <ScanLine :size="14" style="margin-right: 4px" />
-                  读取证件信息
-                </ElButton>
+            </header>
+            <UploadCard
+              v-model="d.licenseUploaded"
+              title="点击或拖拽上传营业执照"
+              hint="JPG / PNG / PDF"
+              file-name="license-front.png"
+              ocr-label="读取证件信息"
+              @ocr="ob.fillDemoLicense()"
+              @upload="ob.fillDemoLicense()"
+              @preview="(u?: string, n?: string) => openPreview('营业执照', n || 'license-front.png', 'image', u || '')"
+            />
+            <div class="fill-box">
+              <div class="fill-box-head">
+                <strong>识别信息</strong>
+                <span>可手动修改</span>
               </div>
-              <div class="upload-zone" :class="{ done: d.licenseUploaded }" @click="ob.fillDemoLicense()">
-                <Upload :size="22" />
-                <strong>{{ d.licenseUploaded ? 'license-front.png' : '点击或拖拽上传' }}</strong>
-                <small>仅支持图片 JPG/PNG 或 PDF，单文件不超过 100MB · 请上传营业执照原件或扫描件</small>
-              </div>
-              <div class="fill-box">
-                <div class="fill-box-head">
-                  <strong>填写信息</strong>
-                  <span>请确认信息是否正确，可直接修改。</span>
-                </div>
-                <div class="form-grid">
+              <div class="form-grid">
                   <div class="field">
                     <label>企业名称 <em>*</em></label>
                     <ElInput v-model="d.entityName" disabled />
@@ -326,112 +355,118 @@ const meta = computed(() => {
                   </div>
                 </div>
               </div>
-            </div>
-          </details>
+          </section>
 
-          <!-- 法人身份证 -->
-          <details class="acc" open>
-            <summary>
-              <span>法人身份证</span>
-              <ElTag :type="d.idFront && d.idBack ? 'success' : 'warning'" size="small" round>
-                {{ d.idFront && d.idBack ? '已完善' : '待完善' }}
+          <!-- 2 法人身份证 -->
+          <section class="doc-block">
+            <header class="doc-head">
+              <div class="doc-title">
+                <strong>法人身份证</strong>
+                <p>分人像面 / 国徽面上传，防止交叉</p>
+              </div>
+              <ElTag :type="d.idFront && d.idBack ? 'success' : 'info'" size="small" round effect="plain">
+                {{ d.idFront && d.idBack ? '已上传' : '待上传' }}
               </ElTag>
-            </summary>
-            <div class="acc-body">
-              <div class="upload-row">
-                <ElButton type="primary" size="small" @click="ob.fillDemoId()">
-                  <ScanLine :size="14" style="margin-right: 4px" />
-                  读取证件信息
-                </ElButton>
+            </header>
+            <div class="id-pair">
+              <UploadCard
+                v-model="d.idFront"
+                title="人像面"
+                hint="带照片一面"
+                file-name="id-portrait.png"
+                face="portrait"
+                compact
+                ocr-label="读取证件信息"
+                @ocr="ob.fillDemoId()"
+                @upload="ob.fillDemoId()"
+                @preview="(u?: string, n?: string) => openPreview('身份证 · 人像面', n || 'id-portrait.png', 'image', u || '')"
+              />
+              <UploadCard
+                v-model="d.idBack"
+                title="国徽面"
+                hint="带国徽一面"
+                file-name="id-emblem.png"
+                face="emblem"
+                compact
+                ocr-label="读取证件信息"
+                @ocr="ob.fillDemoId()"
+                @upload="ob.fillDemoId()"
+                @preview="(u?: string, n?: string) => openPreview('身份证 · 国徽面', n || 'id-emblem.png', 'image', u || '')"
+              />
+            </div>
+            <div class="fill-box">
+              <div class="fill-box-head">
+                <strong>识别信息</strong>
+                <span>可手动修改</span>
               </div>
-              <div class="upload-pair">
-                <div class="upload-zone sm" :class="{ done: d.idFront }" @click="ob.fillDemoId()">
-                  <Upload :size="18" />
-                  <strong>法人身份证正面</strong>
-                  <small>{{ d.idFront ? 'id-front.png' : '点击或拖拽上传 · 人像面' }}</small>
+              <div class="form-grid">
+                <div class="field">
+                  <label>法定代表人 <em>*</em></label>
+                  <ElInput v-model="d.legalPerson" placeholder="与证件一致" @change="ob.persist" />
                 </div>
-                <div class="upload-zone sm" :class="{ done: d.idBack }" @click="ob.fillDemoId()">
-                  <Upload :size="18" />
-                  <strong>法人身份证反面</strong>
-                  <small>{{ d.idBack ? 'id-back.png' : '点击或拖拽上传 · 国徽面' }}</small>
+                <div class="field">
+                  <label>证件号码 <em>*</em></label>
+                  <ElInput v-model="d.idNo" maxlength="18" placeholder="18 位身份证号" @change="ob.persist" />
                 </div>
-              </div>
-              <div class="fill-box">
-                <div class="fill-box-head">
-                  <strong>填写信息</strong>
-                  <span>上传正反面后自动读取，不一致时将提示确认。</span>
+                <div class="field">
+                  <label>性别</label>
+                  <ElInput v-model="d.idGender" placeholder="选填" @change="ob.persist" />
                 </div>
-                <div class="form-grid">
-                  <div class="field">
-                    <label>法定代表人 <em>*</em></label>
-                    <ElInput v-model="d.legalPerson" placeholder="请填写" @change="ob.persist" />
+                <div class="field">
+                  <label>民族</label>
+                  <ElInput v-model="d.idEthnic" placeholder="选填" @change="ob.persist" />
+                </div>
+                <div class="field">
+                  <label>出生日期</label>
+                  <ElInput v-model="d.idBirth" placeholder="YYYY/MM/DD" @change="ob.persist" />
+                </div>
+                <div class="field">
+                  <label>签发机关</label>
+                  <ElInput v-model="d.idAuthority" placeholder="选填" @change="ob.persist" />
+                </div>
+                <div class="field span-2">
+                  <label>有效期</label>
+                  <div class="range-row">
+                    <ElInput v-model="d.idValidFrom" placeholder="起" @change="ob.persist" />
+                    <span>至</span>
+                    <ElInput v-model="d.idValidTo" placeholder="止" @change="ob.persist" />
                   </div>
-                  <div class="field">
-                    <label>法人证件号码 <em>*</em></label>
-                    <ElInput v-model="d.idNo" placeholder="请填写" @change="ob.persist" />
-                  </div>
-                  <div class="field">
-                    <label>性别</label>
-                    <ElSelect v-model="d.idGender" clearable placeholder="请选择（选填）" style="width: 100%" @change="ob.persist">
-                      <ElOption label="男" value="男" />
-                      <ElOption label="女" value="女" />
-                    </ElSelect>
-                  </div>
-                  <div class="field">
-                    <label>民族</label>
-                    <ElInput v-model="d.idEthnic" placeholder="选填" @change="ob.persist" />
-                  </div>
-                  <div class="field">
-                    <label>出生日期</label>
-                    <ElInput v-model="d.idBirth" placeholder="YYYY/MM/DD" @change="ob.persist" />
-                  </div>
-                  <div class="field">
-                    <label>签发机关</label>
-                    <ElInput v-model="d.idAuthority" placeholder="选填" @change="ob.persist" />
-                  </div>
-                  <div class="field span-2">
-                    <label>有效期限 <em>*</em></label>
-                    <div class="range-row">
-                      <ElInput v-model="d.idValidFrom" placeholder="起" @change="ob.persist" />
-                      <span>至</span>
-                      <ElInput v-model="d.idValidTo" placeholder="止" @change="ob.persist" />
-                    </div>
-                  </div>
-                  <div class="field span-2">
-                    <label>住址</label>
-                    <ElInput v-model="d.idAddress" placeholder="选填" @change="ob.persist" />
-                  </div>
+                </div>
+                <div class="field span-2">
+                  <label>住址</label>
+                  <ElInput v-model="d.idAddress" placeholder="选填" @change="ob.persist" />
                 </div>
               </div>
             </div>
-          </details>
+          </section>
 
-          <!-- 账户信息 -->
-          <details class="acc" open>
-            <summary>
-              <span>账户信息</span>
-              <ElTag :type="d.bankUploaded ? 'success' : 'warning'" size="small" round>
-                {{ d.bankUploaded ? '已完善' : '待完善' }}
+          <!-- 3 账户信息 -->
+          <section class="doc-block">
+            <header class="doc-head">
+              <div class="doc-title">
+                <strong>账户信息</strong>
+                <p>开户许可证或基本存款账户信息，任选其一</p>
+              </div>
+              <ElTag :type="d.bankUploaded ? 'success' : 'info'" size="small" round effect="plain">
+                {{ d.bankUploaded ? '已上传' : '待上传' }}
               </ElTag>
-            </summary>
-            <div class="acc-body">
-              <div class="upload-row">
-                <ElButton type="primary" size="small" @click="ob.fillDemoBank()">
-                  <Landmark :size="14" style="margin-right: 4px" />
-                  读取账户信息
-                </ElButton>
+            </header>
+            <UploadCard
+              v-model="d.bankUploaded"
+              title="点击或拖拽上传开户许可证 / 基本户"
+              hint="JPG / PNG / PDF"
+              file-name="bank-license.png"
+              ocr-label="读取证件信息"
+              @ocr="ob.fillDemoBank()"
+              @upload="ob.fillDemoBank()"
+              @preview="(u?: string, n?: string) => openPreview('开户许可 / 基本户', n || 'bank-license.png', 'image', u || '')"
+            />
+            <div class="fill-box">
+              <div class="fill-box-head">
+                <strong>识别信息</strong>
+                <span>可手动修改</span>
               </div>
-              <div class="upload-zone" :class="{ done: d.bankUploaded }" @click="ob.fillDemoBank()">
-                <Upload :size="22" />
-                <strong>{{ d.bankUploaded ? 'bank-license.png' : '点击或拖拽上传' }}</strong>
-                <small>开户许可证或基本存款账户信息，任选其一</small>
-              </div>
-              <div class="fill-box">
-                <div class="fill-box-head">
-                  <strong>填写信息</strong>
-                  <span>请确认信息是否正确，可直接修改。</span>
-                </div>
-                <div class="form-grid">
+              <div class="form-grid">
                   <div class="field">
                     <label>账户名称 <em>*</em></label>
                     <ElInput v-model="d.accountName" placeholder="与企业名称一致的户名" @change="ob.persist" />
@@ -465,10 +500,9 @@ const meta = computed(() => {
                       <ElOption label="委托代理人" value="委托代理人" />
                     </ElSelect>
                   </div>
-                </div>
               </div>
             </div>
-          </details>
+          </section>
         </div>
       </section>
 
@@ -490,11 +524,15 @@ const meta = computed(() => {
       <section class="main-col">
         <div class="card">
           <div class="card-head">
-            <span class="card-ic tone-green"><Handshake :size="16" /></span>
-            <div>
-              <h2>商户基本信息</h2>
+            <span class="card-ic tone-blue"><Handshake :size="16" /></span>
+            <div class="card-head-text">
+              <h2>产品服务</h2>
               <p>定义服务范围与能力标签，支撑后续服务上架。</p>
             </div>
+            <button class="card-demo" type="button" @click="demoFill(3)">
+              <ScanLine :size="13" />
+              演示填入
+            </button>
           </div>
 
           <div class="form-grid">
@@ -584,19 +622,25 @@ const meta = computed(() => {
             </div>
             <div class="field">
               <label>是否可开专票</label>
-              <div class="seg-inline">
-                <button type="button" :class="{ on: d.canInvoice }" @click="d.canInvoice = true; ob.persist()">可以</button>
-                <button type="button" :class="{ on: !d.canInvoice }" @click="d.canInvoice = false; ob.persist()">仅普票</button>
+              <div class="switch-line">
+                <ElSwitch v-model="d.canInvoice" @change="ob.persist()" />
+                <span class="switch-text">{{ d.canInvoice ? '可开专票' : '仅普票' }}</span>
               </div>
             </div>
 
             <div class="field span-2">
               <label>补充资质附件</label>
-              <div class="upload-zone" @click="d.extraCerts = 'certs.zip'; ob.persist()">
-                <IdCard :size="20" />
-                <strong>{{ d.extraCerts || '点击上传行业资质 / 荣誉证书' }}</strong>
-                <small>选填，有助于加快审核</small>
-              </div>
+              <UploadCard
+                :model-value="!!d.extraCerts"
+                title="点击上传行业资质 / 荣誉证书"
+                hint="选填，有助于加快审核"
+                :file-name="d.extraCerts || 'certs.zip'"
+                :show-ocr="false"
+                ocr-label="演示填入"
+                @update:model-value="(v: boolean) => { d.extraCerts = v ? 'certs.zip' : ''; ob.persist() }"
+                @ocr="demoFill(3)"
+                @preview="openPreview('补充资质', d.extraCerts || 'certs.zip', 'image')"
+              />
             </div>
           </div>
         </div>
@@ -617,10 +661,14 @@ const meta = computed(() => {
         <div class="card">
           <div class="card-head">
             <span class="card-ic tone-indigo"><FileSignature :size="16" /></span>
-            <div>
+            <div class="card-head-text">
               <h2>《服务商入驻合作协议》</h2>
               <p>请完整阅读以下协议，勾选同意并完成电子签章。</p>
             </div>
+            <button class="card-demo" type="button" @click="demoFill(4)">
+              <ScanLine :size="13" />
+              演示填入
+            </button>
           </div>
 
           <div class="agree-list">
@@ -645,6 +693,56 @@ const meta = computed(() => {
                 <small>承诺不泄露交易与企业经营数据</small>
               </span>
             </label>
+          </div>
+
+          <div class="agreement-block">
+            <h3 class="sec-title">《服务商入驻合作协议》</h3>
+            <div class="agr-actions">
+              <ElButton size="small" round @click="openPreview('服务商入驻合作协议 · 模板', '服务商入驻合作协议-模板.pdf', 'text')">
+                <Eye :size="13" style="margin-right: 4px" />
+                预览模板
+              </ElButton>
+              <ElButton size="small" round>
+                <Download :size="13" style="margin-right: 4px" />
+                下载模板
+              </ElButton>
+            </div>
+            <UploadCard
+              v-model="d.coopUploaded"
+              :file-name="d.coopFileName || '服务商入驻合作协议-已签.pdf'"
+              title="点击上传已签署协议"
+              hint="下载模板 → 盖章签字 → 上传扫描件或 PDF"
+              :show-ocr="false"
+              ocr-label="演示填入"
+              @ocr="demoFill(4)"
+              @upload="() => { d.coopFileName = '服务商入驻合作协议-已签.pdf'; ob.persist() }"
+              @preview="openPreview('服务商入驻合作协议', d.coopFileName || '服务商入驻合作协议-已签.pdf', 'pdf')"
+            />
+          </div>
+
+          <div class="agreement-block">
+            <h3 class="sec-title">《支付分账协议》</h3>
+            <div class="agr-actions">
+              <ElButton size="small" round @click="openPreview('支付分账协议 · 模板', '支付分账协议-模板.pdf', 'text')">
+                <Eye :size="13" style="margin-right: 4px" />
+                预览模板
+              </ElButton>
+              <ElButton size="small" round>
+                <Download :size="13" style="margin-right: 4px" />
+                下载模板
+              </ElButton>
+            </div>
+            <UploadCard
+              v-model="d.splitUploaded"
+              :file-name="d.splitFileName || '支付分账协议-已签.pdf'"
+              title="点击上传已签署协议"
+              hint="下载模板 → 盖章签字 → 上传扫描件或 PDF"
+              :show-ocr="false"
+              ocr-label="演示填入"
+              @ocr="demoFill(4)"
+              @upload="() => { d.splitFileName = '支付分账协议-已签.pdf'; ob.persist() }"
+              @preview="openPreview('支付分账协议', d.splitFileName || '支付分账协议-已签.pdf', 'pdf')"
+            />
           </div>
 
           <div class="fill-box">
@@ -688,10 +786,14 @@ const meta = computed(() => {
         <div class="card">
           <div class="card-head">
             <span class="card-ic tone-blue"><ClipboardList :size="16" /></span>
-            <div>
+            <div class="card-head-text">
               <h2>确认填报信息</h2>
-              <p>提交后进入园区审核，可在顶栏查看进度。</p>
+              <p>请核对全部内容，提交后进入园区审核。</p>
             </div>
+            <button class="card-demo" type="button" @click="demoFill(5)">
+              <ScanLine :size="13" />
+              一键填满
+            </button>
           </div>
 
           <div class="entity-read summary-entity">
@@ -730,49 +832,77 @@ const meta = computed(() => {
 
           <h3 class="sec-title">资质文件</h3>
           <ul class="file-list">
-            <li>
+            <li class="file-row" role="button" tabindex="0" @click="openPreview('营业执照', 'license-front.png', 'image')">
               <span class="file-ic">营</span>
               <div class="file-meta">
                 <strong>营业执照</strong>
-                <small>license.png · 534KB</small>
+                <small>license-front.png · 534KB</small>
               </div>
               <span class="file-valid">有效期至 {{ d.validTo || '长期' }}</span>
               <ElTag :type="d.licenseUploaded ? 'success' : 'warning'" size="small" round>
                 {{ d.licenseUploaded ? '已上传' : '待上传' }}
               </ElTag>
+              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li>
+            <li class="file-row" role="button" tabindex="0" @click="openPreview('身份证 · 人像面', 'id-portrait.png', 'image')">
               <span class="file-ic">证</span>
               <div class="file-meta">
-                <strong>法人身份证正面</strong>
-                <small>id-front.png · 534KB</small>
+                <strong>法人身份证人像面</strong>
+                <small>id-portrait.png · 534KB</small>
               </div>
               <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
               <ElTag :type="d.idFront ? 'success' : 'warning'" size="small" round>
                 {{ d.idFront ? '已上传' : '待上传' }}
               </ElTag>
+              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li>
+            <li class="file-row" role="button" tabindex="0" @click="openPreview('身份证 · 国徽面', 'id-emblem.png', 'image')">
               <span class="file-ic">证</span>
               <div class="file-meta">
-                <strong>法人身份证反面</strong>
-                <small>id-back.png · 534KB</small>
+                <strong>法人身份证国徽面</strong>
+                <small>id-emblem.png · 534KB</small>
               </div>
               <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
               <ElTag :type="d.idBack ? 'success' : 'warning'" size="small" round>
                 {{ d.idBack ? '已上传' : '待上传' }}
               </ElTag>
+              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
-            <li>
+            <li class="file-row" role="button" tabindex="0" @click="openPreview('开户许可 / 基本户', 'bank-license.png', 'image')">
               <span class="file-ic">银</span>
               <div class="file-meta">
                 <strong>开户许可证 / 基本户</strong>
-                <small>bank.png · 210KB</small>
+                <small>bank-license.png · 210KB</small>
               </div>
               <span class="file-valid">账户 {{ maskAccount(d.bankAccount) }}</span>
               <ElTag :type="d.bankUploaded ? 'success' : 'warning'" size="small" round>
                 {{ d.bankUploaded ? '已上传' : '待上传' }}
               </ElTag>
+              <span class="file-peek"><Eye :size="14" /> 预览</span>
+            </li>
+            <li class="file-row" role="button" tabindex="0" @click="openPreview('服务商入驻合作协议', d.coopFileName || '服务商入驻合作协议-已签.pdf', 'pdf')">
+              <span class="file-ic">协</span>
+              <div class="file-meta">
+                <strong>服务商入驻合作协议</strong>
+                <small>{{ d.coopFileName || '服务商入驻合作协议-已签.pdf' }}</small>
+              </div>
+              <span class="file-valid">—</span>
+              <ElTag :type="d.coopUploaded ? 'success' : 'warning'" size="small" round>
+                {{ d.coopUploaded ? '已上传' : '待上传' }}
+              </ElTag>
+              <span class="file-peek"><Eye :size="14" /> 预览</span>
+            </li>
+            <li class="file-row" role="button" tabindex="0" @click="openPreview('支付分账协议', d.splitFileName || '支付分账协议-已签.pdf', 'pdf')">
+              <span class="file-ic">协</span>
+              <div class="file-meta">
+                <strong>支付分账协议</strong>
+                <small>{{ d.splitFileName || '支付分账协议-已签.pdf' }}</small>
+              </div>
+              <span class="file-valid">—</span>
+              <ElTag :type="d.splitUploaded ? 'success' : 'warning'" size="small" round>
+                {{ d.splitUploaded ? '已上传' : '待上传' }}
+              </ElTag>
+              <span class="file-peek"><Eye :size="14" /> 预览</span>
             </li>
           </ul>
 
@@ -814,7 +944,7 @@ export default {}
 }
 .side-col {
   position: sticky;
-  top: 16px;
+  top: calc(56px + 56px + 16px); /* 顶栏 + 步骤条 + 间距，避免被步骤条遮住 */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -824,24 +954,53 @@ export default {}
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--r-xl);
-  padding: 20px;
+  padding: 22px 22px 20px;
+  box-shadow: none;
 }
 .card-head {
   display: flex;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 18px;
 }
+.card-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.card-demo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid rgba(59, 99, 211, 0.28);
+  border-radius: var(--r-pill);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), transform var(--t-fast);
+}
+.card-demo:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  transform: translateY(-1px);
+}
 .card-ic {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 .card-ic.tone-blue { background: var(--c-blue-bg); color: var(--c-blue); }
 .card-ic.tone-amber { background: var(--c-amber-bg); color: var(--c-amber); }
-.card-ic.tone-green { background: var(--c-green-bg); color: var(--c-green); }
+.card-ic.tone-green { background: var(--c-blue-bg); color: var(--c-blue); }
 .card-ic.tone-indigo { background: var(--c-indigo-bg); color: var(--c-indigo); }
 .card-head h2 {
   margin: 0;
@@ -855,37 +1014,64 @@ export default {}
   color: var(--text-secondary);
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 16px;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-.field.span-2 {
-  grid-column: span 2;
-}
 .field label {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: 0.01em;
 }
 .field label em {
   color: var(--status-danger);
   font-style: normal;
+  margin-left: 2px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 18px;
+}
+.form-grid + .section-label,
+.field + .section-label {
+  grid-column: 1 / -1;
+}
+.acc-body .fill-box {
+  margin-top: 4px;
+}
+.card .acc {
+  margin-bottom: 14px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 2px 0 4px;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast);
+}
+.field.span-2 {
+  grid-column: span 2;
 }
 .section-label {
-  margin-top: 4px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-light);
 }
 .section-label h3 {
   margin: 0;
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label h3::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--brand);
 }
 
 .entity-read {
@@ -926,9 +1112,10 @@ export default {}
 
 .tip-card {
   background: var(--status-warning-soft);
-  border: 1px solid rgba(217, 119, 6, 0.16);
-  border-radius: var(--r-lg);
-  padding: 14px;
+  border: 1px solid rgba(217, 119, 6, 0.18);
+  border-radius: var(--r-xl);
+  padding: 16px;
+  box-shadow: none;
 }
 .tip-card.muted {
   background: var(--bg-card);
@@ -955,10 +1142,16 @@ export default {}
 
 .acc {
   border: 1px solid var(--border-light);
-  border-radius: var(--r-lg);
-  margin-bottom: 12px;
+  border-radius: var(--r-md);
+  margin-bottom: 10px;
   overflow: hidden;
   background: #fff;
+}
+.acc:hover {
+  border-color: var(--border-strong);
+}
+.acc[open] {
+  border-color: var(--border-strong);
 }
 .acc summary {
   list-style: none;
@@ -986,6 +1179,28 @@ export default {}
 .acc-body {
   padding: 14px;
 }
+.acc-body .fill-box {
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border-lighter);
+  border-radius: 0;
+  padding: 14px 0 0;
+  margin-top: 4px;
+}
+.fill-box-head {
+  margin-bottom: 12px;
+}
+.fill-box-head strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.fill-box-head span {
+  font-size: 12px;
+  color: var(--text-placeholder);
+}
 .upload-row {
   display: flex;
   justify-content: flex-end;
@@ -994,8 +1209,8 @@ export default {}
 .upload-zone {
   border: 1px dashed var(--border-strong);
   border-radius: var(--r-md);
-  background: var(--bg-muted);
-  padding: 22px 16px;
+  background: var(--bg-card);
+  padding: 20px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1004,7 +1219,7 @@ export default {}
   cursor: pointer;
   color: var(--text-secondary);
   transition: border-color var(--t-fast), background var(--t-fast);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .upload-zone:hover {
   border-color: var(--brand);
@@ -1012,8 +1227,8 @@ export default {}
 }
 .upload-zone.done {
   border-style: solid;
-  border-color: rgba(22, 163, 74, 0.35);
-  background: var(--status-success-soft);
+  border-color: var(--border-light);
+  background: var(--bg-muted);
 }
 .upload-zone strong {
   font-size: 13.5px;
@@ -1036,11 +1251,89 @@ export default {}
   margin-bottom: 14px;
 }
 
+.doc-block {
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-lighter);
+}
+.doc-block:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.doc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.doc-title {
+  flex: 1;
+  min-width: 0;
+}
+.doc-title strong {
+  display: block;
+  font-size: 14.5px;
+  color: var(--text-primary);
+  padding-left: 10px;
+  border-left: 3px solid var(--brand);
+}
+.doc-title p {
+  margin: 4px 0 0;
+  padding-left: 13px;
+  font-size: 12px;
+  color: var(--text-placeholder);
+}
+.id-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+.id-pair .uc {
+  margin: 0 !important;
+  min-width: 0;
+  overflow: hidden;
+}
+.id-pair :deep(.uc-thumb),
+.id-pair :deep(.uc-face) {
+  width: 44px;
+  height: 30px;
+  flex-shrink: 0;
+}
+.id-pair :deep(.uc-row) {
+  min-width: 0;
+}
+.id-pair :deep(.uc-drop) {
+  min-width: 0;
+  overflow: hidden;
+}
+.id-pair :deep(.uc-text strong) {
+  max-width: 100%;
+}
 .fill-box {
-  background: var(--status-success-soft);
-  border: 1px solid rgba(22, 163, 74, 0.16);
-  border-radius: var(--r-lg);
-  padding: 14px;
+  margin-top: 12px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+}
+.fill-box-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.fill-box-head strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.fill-box-head span {
+  font-size: 12px;
+  color: var(--text-placeholder);
 }
 .fill-box-head {
   margin-bottom: 12px;
@@ -1093,25 +1386,28 @@ export default {}
   font-weight: 600;
 }
 
-.seg-inline {
-  display: inline-flex;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-pill);
-  overflow: hidden;
-  height: 34px;
+.switch-line {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding-left: 4px;
 }
-.seg-inline button {
-  border: none;
-  background: #fff;
-  padding: 0 14px;
+.switch-line :deep(.el-switch) {
+  --el-switch-on-color: var(--brand);
+  width: auto !important;
+  min-width: 0 !important;
+}
+.switch-line :deep(.el-switch__core) {
+  width: 40px !important;
+}
+.switch-line :deep(.el-switch__label) {
+  display: none !important;
+}
+.switch-text {
+  margin-left: 10px;
   font-size: 13px;
   color: var(--text-secondary);
-  cursor: pointer;
-}
-.seg-inline button.on {
-  background: var(--brand);
-  color: #fff;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .agree-list {
@@ -1191,11 +1487,44 @@ export default {}
   padding: 10px 12px;
   border: 1px solid var(--border-light);
   border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
+}
+.file-list li:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: var(--shadow-xs);
+}
+.file-peek {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+.file-list li:hover .file-peek {
+  opacity: 1;
+}
+.agreement-block {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--border-light);
+}
+.agreement-block:last-of-type {
+  border-bottom: none;
+}
+.agr-actions {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
 }
 .file-ic {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   display: grid;
   place-items: center;
   background: var(--c-blue-bg);
@@ -1248,22 +1577,4 @@ export default {}
   font-size: 13px;
 }
 
-@media (max-width: 900px) {
-  .step-layout {
-    grid-template-columns: 1fr;
-  }
-  .side-col {
-    position: static;
-    order: -1;
-  }
-  .form-grid,
-  .summary-grid,
-  .summary-pair,
-  .upload-pair {
-    grid-template-columns: 1fr;
-  }
-  .field.span-2 {
-    grid-column: span 1;
-  }
-}
 </style>

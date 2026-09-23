@@ -128,6 +128,11 @@ html,
 body,
 #app {
   height: 100%;
+  min-width: 1100px;
+}
+
+body {
+  overflow-x: auto;
 }
 
 body {
@@ -193,9 +198,16 @@ button {
   --el-color-primary-light-8: #d5dcf6;
   --el-color-primary-light-9: #eef1fc;
   --el-color-primary-dark-2: #2f54b8;
+
+  /* 圆角三层：按钮胶囊 / 表单 10px / 卡片 16·12 */
+  --el-button-border-radius: 999px;
+  --el-border-radius-base: 10px;
+  --el-border-radius-small: 8px;
+  --el-input-border-radius: 10px;
+  --el-input-number-border-radius: 10px;
 }
+
 .el-button {
-  --el-button-border-radius: 8px;
   font-weight: 500;
 }
 .el-button--primary {
@@ -224,4 +236,69 @@ button {
 .el-menu {
   border-right: none !important;
   background: transparent !important;
+}
+
+/* ===== 表单 C 端化：白底 + 品牌 focus 光圈 ===== */
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 1px var(--border-strong) inset !important;
+  transition: box-shadow var(--t-fast) var(--ease-out), background var(--t-fast) !important;
+  min-height: 40px;
+  padding: 0 14px;
+}
+.el-textarea__inner {
+  padding: 10px 14px;
+}
+.el-input__wrapper:hover,
+.el-select__wrapper:hover,
+.el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--text-placeholder) inset !important;
+}
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focus,
+.el-textarea__inner:focus,
+.el-input__wrapper:focus-within,
+.el-select__wrapper:focus-within {
+  box-shadow:
+    0 0 0 3px var(--brand-soft-strong),
+    0 0 0 1.5px var(--brand) inset !important;
+  outline: none !important;
+}
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+  color: var(--text-placeholder);
+}
+.el-input.is-disabled .el-input__wrapper,
+.el-select__wrapper.is-disabled {
+  background: var(--bg-muted) !important;
+  box-shadow: 0 0 0 1px var(--border-lighter) inset !important;
+  cursor: not-allowed;
+}
+.el-select__dropdown {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+.el-select-dropdown__item {
+  border-radius: 8px;
+  margin: 4px 8px;
+  min-height: 34px;
+}
+.el-select-dropdown__item.is-hovering {
+  background: var(--brand-soft) !important;
+  color: var(--brand) !important;
+}
+.el-date-editor {
+  border-radius: 10px !important;
+}
+.el-checkbox__inner {
+  border-radius: 6px;
+}
+.el-message {
+  border-radius: 12px !important;
+}
+.el-message-box {
+  border-radius: 16px !important;
 }

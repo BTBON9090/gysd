@@ -112,8 +112,4 @@
   100% { background-position: -200% 0; }
 }
 
-@media (max-width: 1100px) {
-  .sk-metrics { grid-template-columns: repeat(2, 1fr); }
-  .sk-grid { grid-template-columns: 1fr; }
-}
 </style>

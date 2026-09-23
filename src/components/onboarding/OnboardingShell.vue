@@ -66,6 +66,10 @@ function goHome() {
   router.push('/onboarding')
 }
 
+function goWorkspace() {
+  router.push('/workspace')
+}
+
 function onPrev() {
   if (step.value > 1) {
     router.push(`/onboarding/step/${step.value - 1}`)
@@ -88,23 +92,23 @@ function onNext() {
   <div class="ob">
     <header class="ob-top">
       <div class="ob-top-left">
-        <button class="ghost-btn" type="button" @click="goHome">
-          <House :size="15" />
-          <span>返回入驻首页</span>
+        <button class="ob-brand" type="button" aria-label="万联易达供应商入驻" @click="goHome">
+          <span class="ob-brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="24" height="24">
+              <rect width="32" height="32" rx="8" fill="#3b63d3" />
+              <path d="M8 10h6.2v6.2H8zm9.8 0H24v6.2h-6.2zM8 16.8h6.2V23H8zm9.8 3.2H24V23h-6.2z" fill="#fff" />
+            </svg>
+          </span>
+          <span class="ob-brand-text">
+            <strong>万联易达集团</strong>
+            <small>供应商入驻</small>
+          </span>
         </button>
-        <button class="ghost-btn danger" type="button" @click="onDeleteDraft">
-          <Trash2 :size="15" />
-          <span>删除草稿</span>
-        </button>
-      </div>
-      <div class="ob-top-right">
         <span class="ob-status" :class="{ done: acc.entryStatus === 'approved' }">
           {{ acc.entryStatus === 'approved' ? '入驻：已通过' : '入驻：待提交' }}
         </span>
-        <ElButton size="small" @click="onSave">
-          <Save :size="14" style="margin-right: 4px" />
-          暂存草稿
-        </ElButton>
+      </div>
+      <div class="ob-top-right">
         <span class="ob-user">
           <span class="ob-avatar">新</span>
           <span class="ob-user-meta">
@@ -148,19 +152,34 @@ function onNext() {
 
     <footer v-if="showFooter" class="ob-footer">
       <div class="ob-footer-inner">
-        <ElButton class="prev-btn" :disabled="step <= 1 && route.path === '/onboarding/step/1'" @click="onPrev">
-          <ChevronLeft :size="15" style="margin-right: 4px" />
-          上一步
-        </ElButton>
-        <ElButton
-          type="primary"
-          class="next-btn"
-          :disabled="nextDisabled"
-          @click="onNext"
-        >
-          {{ step === 5 ? '提交入驻' : '下一步' }}
-          <ChevronRight :size="15" style="margin-left: 4px" />
-        </ElButton>
+        <div class="ob-footer-left">
+          <button class="ghost-btn" type="button" @click="goWorkspace">
+            返回工作台
+            <span class="ghost-sub">稍后再入驻</span>
+          </button>
+          <button class="ghost-btn" type="button" @click="goHome">
+            <House :size="14" />
+            <span>入驻首页</span>
+          </button>
+          <button class="ghost-btn danger" type="button" @click="onDeleteDraft">
+            <Trash2 :size="14" />
+            <span>删除草稿</span>
+          </button>
+          <ElButton size="default" round @click="onSave">
+            <Save :size="14" style="margin-right: 4px" />
+            暂存草稿
+          </ElButton>
+        </div>
+        <div class="ob-footer-right">
+          <ElButton class="prev-btn" round @click="onPrev">
+            <ChevronLeft :size="15" style="margin-right: 4px" />
+            上一步
+          </ElButton>
+          <ElButton type="primary" class="next-btn" round :disabled="nextDisabled" @click="onNext">
+            {{ step === 5 ? '提交入驻' : '下一步' }}
+            <ChevronRight :size="15" style="margin-left: 4px" />
+          </ElButton>
+        </div>
       </div>
     </footer>
   </div>
@@ -168,6 +187,7 @@ function onNext() {
 
 <style scoped>
 .ob {
+  min-width: 960px;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -175,6 +195,9 @@ function onNext() {
 }
 
 .ob-top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   height: 56px;
   flex-shrink: 0;
   display: flex;
@@ -182,16 +205,48 @@ function onNext() {
   justify-content: space-between;
   gap: 12px;
   padding: 0 20px;
-  background: var(--bg-topbar);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-light);
 }
-.ob-top-left,
-.ob-top-right {
+.ob-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  border-radius: var(--r-sm);
+  padding: 4px 8px 4px 4px;
+  margin-right: 4px;
+  transition: background var(--t-fast);
+  cursor: pointer;
+  border: none;
+  background: transparent;
 }
-.ghost-btn {
+.ob-brand:hover {
+  background: var(--bg-hover);
+}
+.ob-brand-logo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.ob-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  text-align: left;
+}
+.ob-brand-text strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+.ob-brand-text small {
+  font-size: 11px;
+  color: var(--text-placeholder);
+  letter-spacing: 0.06em;
+}
+.ob-dock-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -206,15 +261,16 @@ function onNext() {
   cursor: pointer;
   transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
-.ghost-btn:hover {
+.ob-dock-btn:hover {
   background: var(--bg-hover);
   border-color: var(--brand);
   color: var(--brand);
 }
-.ghost-btn.danger:hover {
-  border-color: var(--status-danger);
-  color: var(--status-danger);
-  background: var(--status-danger-soft);
+.ob-top-left,
+.ob-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .ob-status {
   height: 26px;
@@ -229,9 +285,9 @@ function onNext() {
   border: 1px solid rgba(59, 99, 211, 0.16);
 }
 .ob-status.done {
-  color: var(--status-success);
-  background: var(--status-success-soft);
-  border-color: rgba(22, 163, 74, 0.16);
+  color: var(--text-secondary);
+  background: var(--bg-chip);
+  border-color: var(--border-light);
 }
 .ob-user {
   display: flex;
@@ -265,7 +321,11 @@ function onNext() {
 }
 
 .ob-steps {
-  background: #fff;
+  position: sticky;
+  top: 56px;
+  z-index: 29;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-light);
   padding: 14px 24px;
 }
@@ -376,29 +436,62 @@ function onNext() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ob-footer-left,
+.ob-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.next-btn,
+.prev-btn {
+  min-width: 132px;
+  height: 40px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 600;
 }
 .next-btn {
-  min-width: 140px;
+  min-width: 132px;
 }
 .prev-btn {
-  min-width: 110px;
+  min-width: 132px;
+}
+.ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: #fff;
+  color: var(--text-regular);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.ghost-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.ghost-sub {
+  font-size: 11px;
+  color: var(--text-placeholder);
+  font-weight: 400;
+}
+.ghost-btn:hover .ghost-sub {
+  color: var(--brand);
+}
+.ghost-btn.danger:hover {
+  border-color: var(--status-danger);
+  color: var(--status-danger);
+  background: var(--status-danger-soft);
 }
 
-@media (max-width: 720px) {
-  .ob-top {
-    flex-wrap: wrap;
-    height: auto;
-    padding: 10px 12px;
-  }
-  .ob-user-meta,
-  .ghost-btn span {
-    display: none;
-  }
-  .step-label {
-    display: none;
-  }
-  .step-item.process .step-label {
-    display: inline;
-  }
-}
 </style>
