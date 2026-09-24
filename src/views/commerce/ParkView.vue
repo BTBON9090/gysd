@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ElButton, ElMessage, ElMessageBox, ElTag } from 'element-plus'
-import { ArrowUpRight, Building2, Check, ClipboardList, ExternalLink, MapPin, MessageSquareText, Plus, Store } from 'lucide-vue-next'
+import { ArrowUpRight, Building2, Check, ClipboardList, ExternalLink, MapPin, MapPinned, MessageSquareText, Plus, Store } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useCommerceStore } from '@/stores/commerce'
 
@@ -25,8 +25,8 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
   <div class="biz-page park-page">
     <header class="biz-head park-head">
       <div class="park-heading">
-        <span class="park-heading-icon"><Building2 :size="25" :stroke-width="1.9" /></span>
-        <div><p class="biz-eyebrow">园区与服务 / 我的园区</p><h1>我的园区</h1><p>从已加入园区查看业务进展，也可申请加入其他园区。</p></div>
+        <span class="park-heading-icon"><MapPinned :size="25" :stroke-width="1.9" /></span>
+        <div><h1>我的园区</h1><p>从已加入园区查看业务进展，也可申请加入其他园区。</p></div>
       </div>
       <div class="park-overview"><span><b>{{ c.joinedParks.length }}</b> 已加入</span><i></i><span><b>{{ c.availableParks.length }}</b> 可申请</span></div>
     </header>
@@ -69,4 +69,6 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
 
 <style scoped>
 .park-page{min-width:800px}
+.park-card-top :deep(.el-tag){display:inline-flex;align-items:center;gap:4px;line-height:1;white-space:nowrap}
+.park-card-top :deep(.el-tag svg){flex:none}
 </style>

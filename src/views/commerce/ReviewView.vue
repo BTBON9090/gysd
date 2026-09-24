@@ -47,7 +47,7 @@ function submit() {
 
 <template>
   <div class="biz-page">
-    <header class="biz-head"><div><p class="biz-eyebrow">交易管理 / 评价中心</p><h1>评价中心</h1><p>按订单查看双方评价，完成订单后可评价客户或追加评价。</p></div></header>
+    <header class="biz-head"><div><h1>评价中心</h1><p>按订单查看双方评价，完成订单后可评价客户或追加评价。</p></div></header>
     <div v-if="!c.data.walletOpen" class="biz-empty"><h3>开通钱包后查看评价</h3><ElButton type="primary" @click="router.push('/wallet')">前往我的钱包</ElButton></div>
     <template v-else>
       <div class="review-summary"><span>客户评价综合评分</span><strong>{{ score }}</strong><span>{{ incoming.length }} 条客户评价</span><small>暂无评价时，对外展示默认 5.0 分</small></div>

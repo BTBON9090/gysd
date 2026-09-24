@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
-import { ElButton, ElCascader, ElDialog, ElInput, ElMessage, ElMessageBox } from 'element-plus'
+import { computed, reactive, ref, watch } from 'vue'
+import { ElButton, ElCascader, ElDialog, ElInput, ElMessage, ElMessageBox, ElPagination } from 'element-plus'
 import { BookOpen, ImagePlus, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
 import { CATEGORY_TREE, clone, useCommerceStore, type Case } from '@/stores/commerce'
 import { saveDemoImage } from '@/utils/demoMedia'
@@ -10,6 +10,8 @@ const c = useCommerceStore()
 const filter = reactive({ category: '', keyword: '' })
 const applied = reactive({ category: '', keyword: '' })
 const visible = ref(false)
+const page = ref(1)
+const pageSize = 8
 const uploading = ref(false)
 const form = reactive<Case>({ id: '', category: '', title: '', intro: '', cover: '', createdAt: '' })
 const errors = reactive({ category: '', title: '', intro: '', cover: '' })
@@ -17,9 +19,11 @@ const rows = computed(() => c.data.cases.filter(item =>
   (!applied.category || item.category.startsWith(applied.category)) &&
   (!applied.keyword || `${item.title}${item.intro}`.toLowerCase().includes(applied.keyword.trim().toLowerCase()))
 ))
+const pageRows = computed(() => rows.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+watch(() => rows.value.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / pageSize))) })
 const hasFilter = computed(() => !!applied.category || !!applied.keyword)
 const isEditing = computed(() => c.data.cases.some(item => item.id === form.id))
-function apply() { Object.assign(applied, filter) }
+function apply() { Object.assign(applied, filter); page.value = 1 }
 function reset() { Object.assign(filter, { category: '', keyword: '' }); apply() }
 function open(item?: Case) {
   Object.assign(form, item ? clone(item) : { id: crypto.randomUUID(), category: '', title: '', intro: '', cover: '', createdAt: new Date().toISOString() })
@@ -50,8 +54,9 @@ async function file(event: Event) {
 async function remove(item: Case) {
   const links = c.data.services.filter(service => service.caseIds.includes(item.id)).length
   try {
-    await ElMessageBox.confirm(`确认删除「${item.title}」？${links ? `该案例已关联 ${links} 项服务，删除后将从服务中移除。` : ''}`, '删除案例', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
+    await ElMessageBox.confirm(`确认删除「${item.title.slice(0, 24)}${item.title.length > 24 ? '…' : ''}」？${links ? `该案例已关联 ${links} 项服务，删除后将从服务中移除。` : '删除后无法恢复。'}`, '删除案例', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
     c.deleteCase(item.id)
+    if (page.value > 1 && pageRows.value.length === 0) page.value--
     ElMessage.success('案例已删除')
   } catch { /* cancelled */ }
 }
@@ -59,12 +64,13 @@ async function remove(item: Case) {
 
 <template>
   <div class="biz-page cases-page">
-    <header class="biz-head cases-head"><div class="cases-heading"><span class="cases-heading-icon"><BookOpen :size="24" /></span><div><p class="biz-eyebrow">店铺管理 / 案例管理</p><h1>案例管理</h1><p>用真实交付案例说明服务能力，发布服务时可直接引用。</p></div></div><ElButton type="primary" @click="open()"><Plus :size="15" /> 创建案例</ElButton></header>
+    <header class="biz-head cases-head"><div class="cases-heading"><span class="cases-heading-icon"><BookOpen :size="24" /></span><div><h1>案例管理</h1><p>用真实交付案例说明服务能力，发布服务时可直接引用。</p></div></div><ElButton type="primary" @click="open()"><Plus :size="15" /> 创建案例</ElButton></header>
 
     <section class="cases-content"><div class="cases-section-head"><div><h2>案例库 <span>{{ c.data.cases.length }}</span></h2><p>按分类与关键词查找；点击封面可查看大图。</p></div></div>
-      <div class="cases-toolbar"><ElCascader :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" /><ElInput v-model="filter.keyword" clearable placeholder="搜索案例标题或介绍" @keyup.enter="apply"><template #prefix><Search :size="15" /></template></ElInput><ElButton type="primary" @click="apply">查询</ElButton><ElButton @click="reset">重置</ElButton></div>
+      <div class="cases-toolbar"><div class="cases-filters"><ElCascader :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" /><ElInput v-model="filter.keyword" clearable placeholder="搜索案例标题或介绍" @keyup.enter="apply"><template #prefix><Search :size="15" /></template></ElInput></div><div class="cases-filter-actions"><ElButton type="primary" @click="apply">查询</ElButton><ElButton @click="reset">重置</ElButton></div></div>
       <div v-if="!rows.length" class="biz-empty"><h3>{{ hasFilter ? '无符合筛选条件的案例' : '暂无案例' }}</h3><p>{{ hasFilter ? '试试其他分类或关键词。' : '创建案例，展示已完成的服务经验。' }}</p><ElButton v-if="hasFilter" @click="reset">清除筛选</ElButton><ElButton v-else type="primary" @click="open()">创建案例</ElButton></div>
-      <div v-else class="case-list"><article v-for="item in rows" :key="item.id" class="case-row"><div class="case-cover"><DemoImage :source="item.cover" empty-text="案例封面" /></div><div class="case-main"><p class="case-category">{{ item.category }}</p><h3>{{ item.title }}</h3><p class="case-intro">{{ item.intro }}</p><div class="case-meta"><span>创建于 {{ item.createdAt.slice(0, 10) }}</span><span>关联 {{ c.data.services.filter(service => service.caseIds.includes(item.id)).length }} 项服务</span></div></div><div class="case-actions"><ElButton text type="primary" @click="open(item)"><Pencil :size="14" /> 编辑</ElButton><ElButton text type="danger" @click="remove(item)"><Trash2 :size="14" /> 删除</ElButton></div></article></div>
+      <div v-else class="case-list"><article v-for="item in pageRows" :key="item.id" class="case-row"><div class="case-cover"><DemoImage :source="item.cover" empty-text="案例封面" /></div><div class="case-main"><h3>{{ item.title }}</h3><p class="case-intro">{{ item.intro }}</p><p class="case-category">{{ item.category }}</p><div class="case-meta"><span>创建于 {{ item.createdAt.slice(0, 10) }}</span><span>关联 {{ c.data.services.filter(service => service.caseIds.includes(item.id)).length }} 项服务</span></div></div><div class="case-actions"><ElButton text type="primary" @click="open(item)"><Pencil :size="14" /> 编辑</ElButton><ElButton text type="danger" @click="remove(item)"><Trash2 :size="14" /> 删除</ElButton></div></article></div>
+      <div v-if="rows.length > pageSize" class="case-pagination"><span>共 {{ rows.length }} 条案例</span><ElPagination v-model:current-page="page" :page-size="pageSize" :total="rows.length" layout="prev, pager, next" background /></div>
     </section>
 
     <ElDialog v-model="visible" :title="isEditing ? '编辑案例' : '创建案例'" width="690px" append-to-body><div class="case-form"><div class="case-form-main"><label class="biz-field" :class="{ error: errors.category }"><span>服务分类 <b class="required">*</b></span><ElCascader :model-value="form.category ? form.category.split(' / ') : []" :options="CATEGORY_TREE" clearable filterable placeholder="选择末级分类" @change="form.category = Array.isArray($event) ? $event.join(' / ') : ''; errors.category = ''" /><small v-if="errors.category">{{ errors.category }}</small></label><label class="biz-field" :class="{ error: errors.title }"><span>案例标题 <b class="required">*</b></span><ElInput v-model="form.title" maxlength="60" show-word-limit placeholder="概括案例内容" @input="errors.title = ''" /><small v-if="errors.title">{{ errors.title }}</small></label><label class="biz-field" :class="{ error: errors.intro }"><span>案例介绍 <b class="required">*</b></span><ElInput v-model="form.intro" type="textarea" :rows="5" maxlength="500" show-word-limit placeholder="介绍客户需求、解决方案与交付成果" @input="errors.intro = ''" /><small v-if="errors.intro">{{ errors.intro }}</small></label></div><div class="case-form-cover"><span>案例封面 <b class="required">*</b></span><div class="case-cover-preview"><DemoImage :source="form.cover" empty-text="案例封面" /></div><label class="case-upload"><ImagePlus :size="15" /> {{ form.cover ? '更换封面' : '上传封面' }}<input type="file" accept="image/*" @change="file" /></label><small>JPG、PNG、WEBP 等图片，≤10MB。点击图片可放大查看。</small><small v-if="errors.cover" class="case-error">{{ errors.cover }}</small></div></div><template #footer><ElButton @click="visible = false">取消</ElButton><ElButton type="primary" :disabled="uploading" @click="save">保存案例</ElButton></template></ElDialog>
@@ -78,4 +84,13 @@ async function remove(item: Case) {
 <style scoped>
 .case-upload{position:relative;overflow:hidden}.case-upload input{display:block;position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
 .cases-page{min-width:800px}
+.cases-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
+.cases-filters{display:grid;grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:12px;min-width:0}
+.cases-toolbar .cases-filters :deep(.el-cascader),.cases-toolbar .cases-filters :deep(.el-input){width:100%;min-width:0}
+.cases-filter-actions{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.cases-filter-actions :deep(.el-button){margin:0}
+.case-main h3{font-size:16px;font-weight:700;margin-bottom:5px}
+.case-category{font-size:11px;font-weight:400;color:#8793a5;margin:6px 0 0}
+.case-actions :deep(.el-button>span){display:inline-flex;align-items:center;gap:4px}
+.case-pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 2px 0;color:#77869b;font-size:12px}
 </style>

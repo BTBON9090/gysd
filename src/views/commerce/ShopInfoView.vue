@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { ElButton, ElDialog, ElInput, ElMessage } from 'element-plus'
-import { Eye, ImagePlus, Images, Pencil, Store, Trash2, UsersRound } from 'lucide-vue-next'
+import { BadgeCheck, Eye, FileText, ImagePlus, Pencil, Store, Trash2 } from 'lucide-vue-next'
 import { clone, useCommerceStore, type Shop } from '@/stores/commerce'
 import { saveDemoImage } from '@/utils/demoMedia'
 import DemoImage from '@/components/commerce/DemoImage.vue'
@@ -19,8 +19,8 @@ const previewVisible = ref(false)
 const uploading = ref(false)
 const errors = reactive({ name: '', intro: '' })
 const galleries = [
-  { key: 'introImages' as const, title: '店铺简介图片', hint: '展示店铺环境、服务场景或代表性内容', icon: Images },
-  { key: 'teamImages' as const, title: '团队介绍图片', hint: '展示团队形象与专业能力', icon: UsersRound },
+  { key: 'introImages' as const, title: '店铺简介图片', hint: '展示店铺环境、服务场景或代表性内容' },
+  { key: 'teamImages' as const, title: '团队介绍图片', hint: '展示团队形象与专业能力' },
 ]
 
 async function addFiles(event: Event, kind: 'logo' | 'introImages' | 'teamImages') {
@@ -57,19 +57,19 @@ function cancelEdit() { Object.assign(form, visibleShop(c.data.shop)); editing.v
 <template>
   <div class="biz-page shop-page">
     <header class="biz-head shop-head">
-      <div class="shop-heading"><span class="shop-heading-icon"><Store :size="24" /></span><div><p class="biz-eyebrow">店铺管理 / 店铺资料</p><h1>店铺资料</h1><p>完善店铺形象，资料将用于园区客户端的服务详情。</p></div></div>
+      <div class="shop-heading"><span class="shop-heading-icon"><Store :size="24" /></span><div><h1>店铺资料</h1><p>完善店铺形象，资料将用于园区客户端的服务详情。</p></div></div>
       <div class="biz-actions"><template v-if="editing"><ElButton @click="previewVisible = true"><Eye :size="15" /> 预览效果</ElButton><ElButton v-if="c.data.shop.savedAt" @click="cancelEdit">取消编辑</ElButton><ElButton type="primary" :disabled="uploading" @click="save">保存资料</ElButton></template><ElButton v-else type="primary" @click="edit"><Pencil :size="15" /> 编辑资料</ElButton></div>
     </header>
 
     <template v-if="editing">
-      <section class="shop-edit-section"><div class="shop-section-head"><span class="shop-section-icon"><Store :size="18" /></span><div><h2>店铺识别</h2><p>名称和 Logo 会出现在服务详情的店铺信息中。</p></div></div>
-        <div class="shop-identity-form"><div class="logo-field"><span class="shop-label">店铺 Logo <small>选填 · 图片 ≤5MB</small></span><div class="logo-preview"><DemoImage :source="form.logo" empty-text="上传 Logo" /></div><div class="logo-ops"><label class="upload-button"><ImagePlus :size="15" /> {{ form.logo ? '更换图片' : '上传图片' }}<input type="file" accept="image/*" @change="addFiles($event, 'logo')" /></label><button v-if="form.logo" type="button" class="text-action" @click="form.logo = ''">移除</button></div></div><label class="biz-field shop-name" :class="{ error: errors.name }"><span>店铺名称 <b class="required">*</b></span><ElInput v-model="form.name" maxlength="60" show-word-limit placeholder="填写店铺名称" @input="errors.name = ''" /><small v-if="errors.name">{{ errors.name }}</small></label></div>
+      <section class="shop-edit-section"><div class="shop-section-head"><span class="shop-section-icon"><BadgeCheck :size="18" /></span><div><h2>店铺识别</h2><p>名称和 Logo 会出现在服务详情的店铺信息中。</p></div></div>
+        <div class="shop-identity-form"><div class="logo-field"><span class="shop-label">店铺 Logo <small>选填 · 图片 ≤5MB</small></span><label class="logo-upload-tile"><div class="logo-preview"><DemoImage :source="form.logo" empty-text="上传 Logo" /></div><span class="logo-upload-caption"><ImagePlus :size="15" />{{ form.logo ? '更换图片' : '上传图片' }}</span><input type="file" accept="image/*" @change="addFiles($event, 'logo')" /></label><button v-if="form.logo" type="button" class="text-action" @click="form.logo = ''">移除 Logo</button></div><label class="biz-field shop-name" :class="{ error: errors.name }"><span>店铺名称 <b class="required">*</b></span><ElInput v-model="form.name" maxlength="60" show-word-limit placeholder="填写店铺名称" @input="errors.name = ''" /><small v-if="errors.name">{{ errors.name }}</small></label></div>
       </section>
 
-      <section class="shop-edit-section"><div class="shop-section-head"><span class="shop-section-icon"><Images :size="18" /></span><div><h2>店铺介绍</h2><p>写清楚服务方向与团队优势，方便客户快速了解。</p></div></div><label class="biz-field" :class="{ error: errors.intro }"><span>介绍内容 <b class="required">*</b></span><ElInput v-model="form.intro" type="textarea" :rows="5" maxlength="500" show-word-limit placeholder="介绍店铺服务内容和擅长领域" @input="errors.intro = ''" /><small v-if="errors.intro">{{ errors.intro }}</small></label></section>
+      <section class="shop-edit-section"><div class="shop-section-head"><span class="shop-section-icon"><FileText :size="18" /></span><div><h2>店铺介绍</h2><p>写清楚服务方向与团队优势，方便客户快速了解。</p></div></div><label class="biz-field" :class="{ error: errors.intro }"><span>介绍内容 <b class="required">*</b></span><ElInput v-model="form.intro" type="textarea" :rows="5" maxlength="500" show-word-limit placeholder="介绍店铺服务内容和擅长领域" @input="errors.intro = ''" /><small v-if="errors.intro">{{ errors.intro }}</small></label></section>
 
       <section class="shop-edit-section"><div class="shop-section-head"><span class="shop-section-icon"><ImagePlus :size="18" /></span><div><h2>展示图片</h2><p>图片会按上传顺序展示。点击缩略图可放大查看。</p></div></div>
-        <div v-for="group in galleries" :key="group.key" class="shop-gallery-group"><div class="gallery-heading"><component :is="group.icon" :size="17" /><div><h3>{{ group.title }}</h3><p>{{ group.hint }}</p></div><span>{{ form[group.key].length }} / 6</span></div><div class="gallery-grid"><div v-for="(source, index) in form[group.key]" :key="source" class="gallery-tile"><DemoImage :source="source" :sources="form[group.key]" :empty-text="`图片 ${index + 1}`" /><button type="button" class="remove-photo" title="移除图片" @click="form[group.key].splice(index, 1)"><Trash2 :size="14" /></button></div><label v-if="form[group.key].length < 6" class="gallery-add"><ImagePlus :size="22" /><b>添加图片</b><span>单张 ≤10MB</span><input type="file" accept="image/*" multiple @change="addFiles($event, group.key)" /></label></div></div>
+        <div v-for="group in galleries" :key="group.key" class="shop-gallery-group"><div class="gallery-heading"><div><h3>{{ group.title }}</h3><p>{{ group.hint }}</p></div><span>{{ form[group.key].length }} / 6</span></div><div class="gallery-grid"><div v-for="(source, index) in form[group.key]" :key="source" class="gallery-tile"><DemoImage :source="source" :sources="form[group.key]" :empty-text="`图片 ${index + 1}`" /><button type="button" class="remove-photo" title="移除图片" @click="form[group.key].splice(index, 1)"><Trash2 :size="14" /></button></div><label v-if="form[group.key].length < 6" class="gallery-add"><ImagePlus :size="22" /><b>添加图片</b><span>单张 ≤10MB</span><input type="file" accept="image/*" multiple @change="addFiles($event, group.key)" /></label></div></div>
       </section>
       <div class="shop-bottom-actions"><ElButton @click="previewVisible = true"><Eye :size="15" /> 预览效果</ElButton><ElButton v-if="c.data.shop.savedAt" @click="cancelEdit">取消编辑</ElButton><ElButton type="primary" :disabled="uploading" @click="save">保存资料</ElButton></div>
     </template>
@@ -86,4 +86,10 @@ function cancelEdit() { Object.assign(form, visibleShop(c.data.shop)); editing.v
 <style scoped>
 .upload-button,.gallery-add{position:relative;overflow:hidden}.upload-button input,.gallery-add input{display:block;position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
 .shop-page{min-width:800px}
+.logo-upload-tile{position:relative;display:flex;flex-direction:column;width:126px;height:128px;overflow:hidden;border:1px dashed #bbcbea;border-radius:10px;background:#f7f9ff;cursor:pointer;transition:border-color .15s,background .15s}
+.logo-upload-tile:hover{border-color:#5c7ed5;background:#f0f5ff}
+.logo-upload-tile input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.logo-upload-tile .logo-preview{width:100%;height:96px;border:0;border-radius:0;pointer-events:none}
+.logo-upload-caption{display:flex;align-items:center;justify-content:center;gap:5px;flex:1;color:#3156bb;font-size:12px;font-weight:650}
+.logo-field .text-action{display:block;margin-top:7px;padding:2px 0}
 </style>

@@ -311,8 +311,34 @@ button {
   border-radius: 6px;
 }
 .el-message {
-  border-radius: 12px !important;
+  min-width: 260px;
+  padding: 13px 17px !important;
+  border: 1px solid #d9e3f1 !important;
+  border-left: 4px solid #3a60c4 !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  box-shadow: 0 8px 24px rgba(34, 53, 89, .1) !important;
+  color: #243752 !important;
+  align-items: center;
+  gap: 9px;
 }
+.el-message--success{border-left-color:#138a72 !important}
+.el-message--warning{border-left-color:#c18020 !important}
+.el-message--error{border-left-color:#cb4a43 !important}
+.el-message .el-message__icon{font-size:18px;margin:0;flex:none}
+.el-message .el-message__content{font-size:13px;font-weight:650;line-height:1.5;color:#243752 !important}
 .el-message-box {
-  border-radius: 16px !important;
+  width:min(440px,calc(100vw - 40px));
+  padding:24px !important;
+  border:1px solid #dce4f0 !important;
+  border-radius:12px !important;
+  box-shadow:0 14px 40px rgba(27,43,74,.13) !important;
 }
+.el-message-box__header{padding:0 0 12px !important}
+.el-message-box__title{font-size:18px !important;font-weight:750 !important;color:#1f2d46 !important}
+.el-message-box__content{display:flex;align-items:flex-start;gap:12px;padding:5px 0 18px !important;color:#52627a;font-size:14px;line-height:1.7;overflow-wrap:anywhere}
+.el-message-box__status{position:static !important;transform:none !important;flex:none;margin:3px 0 0 !important;font-size:21px !important}
+.el-message-box__message{min-width:0;padding:0 !important;margin:0 !important;line-height:1.7}
+.el-message-box__message p{margin:0;overflow-wrap:anywhere}
+.el-message-box__btns{display:flex;justify-content:flex-end;gap:8px;padding:4px 0 0 !important}
+.el-message-box__btns .el-button{min-width:72px;margin:0 !important;border-radius:8px !important;font-weight:650}
