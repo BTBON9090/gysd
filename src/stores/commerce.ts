@@ -6,7 +6,7 @@ export type ListingStatus = 'reviewing' | 'rejected' | 'on_sale' | 'offline'
 export type OrderStatus = 'pending_payment' | 'pending_contract' | 'in_service' | 'pending_acceptance' | 'completed' | 'cancelled'
 export type RefundStatus = 'pending' | 'client_confirm' | 'refunded' | 'rejected' | 'cancelled'
 export interface Park { id: string; name: string; address: string; joinedAt?: string }
-export interface Shop { name: string; intro: string; logo: string; introImages: string[]; teamImages: string[] }
+export interface Shop { name: string; intro: string; logo: string; introImages: string[]; teamImages: string[]; savedAt?: string }
 export interface Case { id: string; category: string; title: string; intro: string; cover: string; createdAt: string }
 export interface Spec { name: string; point: string; price: number; unit: string; startDays: number; dayType: string; deliveryDays: number; standard: string }
 export interface Service { id: string; category: string; name: string; intro: string; cover: string; regions: string[]; media: string[]; detail: string; guarantee: string; images: string[]; caseIds: string[]; faqs: { question: string; answer: string }[]; taxRate: number; specs: Spec[]; listings: Record<string, { status: ListingStatus; forced?: boolean; reason?: string; at: string }>; updatedAt: string; published: boolean }
@@ -95,7 +95,7 @@ export const useCommerceStore = defineStore('commerce', () => {
   const customerInvoiced = (orderId: string) => data.value.invoices.some(inv => inv.kind === 'customer' && inv.status === 'issued' && inv.orderIds.includes(orderId))
   const invoiceable = (o: Order) => Math.max(0, o.paid - o.refunded - data.value.invoices.filter(i => i.kind === 'customer' && i.status === 'issued' && i.orderIds.includes(o.id)).reduce((n, i) => n + (i.amounts?.[o.id] ?? i.amount / i.orderIds.length), 0))
   function joinPark(parkId: string) { const park = availableParks.value.find(p => p.id === parkId); if (!park) return false; data.value.parks.push({ ...park, joinedAt: now() }); return true }
-  function saveShop(shop: Shop) { data.value.shop = clone(shop) }
+  function saveShop(shop: Shop) { data.value.shop = { ...clone(shop), savedAt: now() } }
   function saveCase(item: Case) { const at = data.value.cases.findIndex(x => x.id === item.id); if (at < 0) data.value.cases.unshift(clone(item)); else data.value.cases[at] = clone(item) }
   function deleteCase(caseId: string) { data.value.cases = data.value.cases.filter(x => x.id !== caseId); data.value.services.forEach(s => s.caseIds = s.caseIds.filter(x => x !== caseId)) }
   function saveService(service: Service, parkIds?: string[]) {
