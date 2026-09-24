@@ -1,42 +1,271 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
-import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElInputNumber, ElMessage, ElOption, ElSelect } from 'element-plus'
+import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElInputNumber, ElMessage, ElMessageBox, ElOption, ElSelect } from 'element-plus'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Eye, HeartHandshake, ImagePlus, Plus, Save, Trash2 } from 'lucide-vue-next'
 import ServicePreview from '@/components/service/ServicePreview.vue'
+import DemoImage from '@/components/commerce/DemoImage.vue'
+import DemoMedia from '@/components/commerce/DemoMedia.vue'
+import { saveDemoImage, saveDemoVideo } from '@/utils/demoMedia'
 import { CATEGORY_TREE, REGION_OPTIONS, clone, emptyService, useCommerceStore, type Case, type Service } from '@/stores/commerce'
-const c=useCommerceStore(),router=useRouter(),route=useRoute();const existing=c.data.services.find(x=>x.id===route.params.id);const form=reactive<Service>(existing?clone(existing):emptyService());const step=ref(1);const chosenParks=ref<string[]>([]);const saved=ref(JSON.stringify(form));const allowLeave=ref(false);const errors=reactive<Record<string,string>>({});const caseOpen=ref(false);const previewOpen=ref(false);const inlineCase=reactive<Case>({id:'',category:'',title:'',intro:'',cover:'',createdAt:''});const dirty=computed(()=>saved.value!==JSON.stringify(form));const headings=['基础信息','服务详情','定价与交付','提交预览'];const linkedCases=computed(()=>c.data.cases.filter(x=>form.caseIds.includes(x.id)))
-onBeforeRouteLeave(()=>{if(allowLeave.value||!dirty.value)return true;return window.confirm('离开将丢失未保存内容，确认离开？')})
-watch(()=>form.category,()=>{ /* 类目配置为只读演示值，订单按下单时快照保存 */ })
-function addFiles(event:Event,key:'cover'|'media'|'images',limit:number,max:number){const input=event.target as HTMLInputElement;const files=Array.from(input.files||[]);const valid=files.filter(f=>{const image=['image/jpeg','image/png','image/webp'].includes(f.type);const video=key==='media'&&f.type==='video/mp4';return (key==='images'?['image/jpeg','image/png'].includes(f.type):image||video)&&f.size<=(video?50:key==='media'?10:limit)*1024*1024});if(valid.length!==files.length)ElMessage.error('文件格式或大小不符合要求');if(key==='cover'){if(valid[0]){form.cover=valid[0].name;errors.cover=''}}else{const next=[...form[key],...valid.map(x=>x.name)];if(next.length>max)ElMessage.warning(`最多上传 ${max} 个文件`);form[key]=next.slice(0,max)}input.value=''}
-function validate(n:number){
-  Object.keys(errors).forEach(key=>delete errors[key])
-  if(n===1){
-    if(form.category.split(' / ').length!==3)errors.category='请选择末级服务分类'
-    if(!form.name.trim()||form.name.length>60)errors.name='请填写 1–60 字服务名称'
-    if(!form.intro.trim()||form.intro.length>500)errors.intro='请填写 1–500 字服务简介'
-    if(!form.cover)errors.cover='请上传服务封面'
+
+const c = useCommerceStore()
+const router = useRouter()
+const route = useRoute()
+const existing = c.data.services.find(item => item.id === route.params.id)
+const form = reactive<Service>(existing ? clone(existing) : emptyService())
+const step = ref(1)
+const furthestStep = ref(existing ? 4 : 1)
+const completedSteps = ref<number[]>([])
+const scrollArea = ref<HTMLElement | null>(null)
+const chosenParks = ref<string[]>([])
+const saved = ref(JSON.stringify(form))
+const hasSavedDraft = ref(Boolean(existing))
+const allowLeave = ref(false)
+const uploading = ref(false)
+const errors = reactive<Record<string, string>>({})
+const caseOpen = ref(false)
+const previewOpen = ref(false)
+const inlineCase = reactive<Case>({ id: '', category: '', title: '', intro: '', cover: '', createdAt: '' })
+const headings = ['基础信息', '服务详情', '定价与交付', '提交预览']
+const dirty = computed(() => saved.value !== JSON.stringify(form))
+const linkedCases = computed(() => c.data.cases.filter(item => form.caseIds.includes(item.id)))
+const options = computed(() => c.joinedParks.filter(park => !['on_sale', 'reviewing'].includes(form.listings[park.id]?.status || 'draft')))
+const imageSources = computed(() => form.images.filter(source => /^(local-image:|data:image\/|blob:|https?:\/)/.test(source)))
+const coverSource = computed(() => /^(local-image:|data:image\/|blob:|https?:\/)/.test(form.cover) ? form.cover : '')
+const mediaImageSources = computed(() => form.media.filter(source => !source.startsWith('local-video:') && /^(local-image:|data:image\/|blob:|https?:\/)/.test(source)))
+
+onBeforeRouteLeave(async () => {
+  if (allowLeave.value || !dirty.value) return true
+  try {
+    await ElMessageBox.confirm('当前有未保存的服务资料。离开后这些修改将丢失。', '离开发布服务？', { confirmButtonText: '离开', cancelButtonText: '继续编辑', type: 'warning' })
+    return true
+  } catch { return false }
+})
+
+function clearErrors() { Object.keys(errors).forEach(key => delete errors[key]) }
+function validate(target: number) {
+  clearErrors()
+  if (target === 1) {
+    if (form.category.split(' / ').length !== 3) errors.category = '请选择末级服务分类'
+    if (!form.name.trim() || form.name.length > 60) errors.name = '请填写 1–60 字服务名称'
+    if (!form.intro.trim() || form.intro.length > 500) errors.intro = '请填写 1–500 字服务简介'
+    if (!coverSource.value) errors.cover = '请上传服务封面'
   }
-  if(n===2){
-    if(!form.detail.trim())errors.detail='请填写服务详情'
-    if(!form.guarantee.trim())errors.guarantee='请填写服务保障说明'
-    if(form.faqs.some(x=>!x.question.trim()||!x.answer.trim()))errors.faq='请完整填写每组常见问题'
+  if (target === 2) {
+    if (!form.detail.trim()) errors.detail = '请填写服务详情'
+    if (!form.guarantee.trim()) errors.guarantee = '请填写服务保障说明'
+    if (form.faqs.some(faq => !faq.question.trim() || !faq.answer.trim())) errors.faq = '请完整填写每组常见问题'
   }
-  if(n===3&&(!form.specs.length||form.specs.length>3||form.specs.some(x=>!x.name.trim()||!x.point.trim()||x.price<=0||!x.unit||x.startDays<0||x.deliveryDays<1||x.deliveryDays>9999||!x.standard.trim())))errors.spec='请完整填写 1–3 个规格，价格须大于 0，交付周期为 1–9999 天'
-  if(n===4&&!chosenParks.value.length)errors.parks='请至少选择一个可提交的园区'
-  return Object.keys(errors).length===0
+  if (target === 3 && (!form.specs.length || form.specs.length > 3 || form.specs.some(spec => !spec.name.trim() || !spec.point.trim() || spec.price <= 0 || !spec.unit || spec.startDays < 0 || spec.deliveryDays < 1 || spec.deliveryDays > 9999 || !spec.standard.trim()))) errors.spec = '请完整填写 1–3 个规格；价格须大于 0，交付周期为 1–9999 天'
+  if (target === 4 && !chosenParks.value.length) errors.parks = '请至少选择一个可提交的园区'
+  return Object.keys(errors).length === 0
 }
-function next(){if(validate(step.value))step.value=Math.min(4,step.value+1)}function saveDraft(){c.saveService(form);saved.value=JSON.stringify(form);ElMessage.success('草稿已保存')}function submit(){for(let i=1;i<=4;i++)if(!validate(i)){step.value=i;return}c.saveService(form,chosenParks.value);saved.value=JSON.stringify(form);allowLeave.value=true;router.push('/service/submitted')}
-function exit(){router.push('/service')}
-function openCase(){Object.assign(inlineCase,{id:crypto.randomUUID(),category:form.category,title:'',intro:'',cover:'',createdAt:new Date().toISOString()});caseOpen.value=true}
-function saveInlineCase(){if(!inlineCase.category||!inlineCase.title.trim()||!inlineCase.intro.trim()||!inlineCase.cover){ElMessage.error('请完整填写案例分类、标题、介绍与封面');return}c.saveCase(inlineCase);if(form.caseIds.length<6)form.caseIds.push(inlineCase.id);caseOpen.value=false;ElMessage.success('案例已创建并关联')}
-function caseFile(e:Event){const f=(e.target as HTMLInputElement).files?.[0];if(!f)return;if(!f.type.startsWith('image/')||f.size>10*1024*1024){ElMessage.error('封面仅支持 ≤10MB 图片');return}inlineCase.cover=f.name}
-const options=computed(()=>c.joinedParks.filter(p=>!['on_sale','reviewing'].includes(form.listings[p.id]?.status||'draft')))
+function scrollTop() { nextTick(() => scrollArea.value?.scrollTo({ top: 0, behavior: 'smooth' })) }
+function goStep(target: number) {
+  if (uploading.value || target === step.value) return
+  if (target > furthestStep.value) {
+    for (let current = step.value; current < target; current++) {
+      if (!validate(current)) { step.value = current; scrollTop(); return }
+      if (!completedSteps.value.includes(current)) completedSteps.value.push(current)
+    }
+    furthestStep.value = Math.max(furthestStep.value, target)
+  }
+  clearErrors()
+  step.value = target
+  scrollTop()
+}
+function next() {
+  if (!validate(step.value)) return
+  if (!completedSteps.value.includes(step.value)) completedSteps.value.push(step.value)
+  furthestStep.value = Math.max(furthestStep.value, step.value + 1)
+  step.value = Math.min(4, step.value + 1)
+  clearErrors()
+  scrollTop()
+}
+function saveDraft() {
+  if (uploading.value) return
+  c.saveService(form)
+  saved.value = JSON.stringify(form)
+  hasSavedDraft.value = true
+  ElMessage.success('草稿已保存')
+}
+function submit() {
+  if (uploading.value) return
+  for (let current = 1; current <= 4; current++) {
+    if (!validate(current)) { step.value = current; scrollTop(); return }
+  }
+  c.saveService(form, chosenParks.value)
+  saved.value = JSON.stringify(form)
+  allowLeave.value = true
+  router.push('/service/submitted')
+}
+function exit() { router.push('/service') }
+
+async function addFiles(event: Event, key: 'cover' | 'media' | 'images') {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files || [])
+  input.value = ''
+  if (!files.length) return
+  const maxCount = key === 'cover' ? 1 : key === 'media' ? 8 : 20
+  const remaining = key === 'cover' ? 1 : Math.max(0, maxCount - form[key].length)
+  if (!remaining) { ElMessage.warning(`最多上传 ${maxCount} 个文件`); return }
+  const valid = files.filter(file => {
+    const isVideo = key === 'media' && file.type === 'video/mp4'
+    const imageTypes = key === 'images' ? ['image/jpeg', 'image/png'] : ['image/jpeg', 'image/png', 'image/webp']
+    const validType = isVideo || imageTypes.includes(file.type)
+    const maxMb = isVideo ? 50 : key === 'images' ? 5 : 10
+    return validType && file.size <= maxMb * 1024 * 1024
+  })
+  if (valid.length !== files.length) ElMessage.error('部分文件格式或大小不符合要求，已跳过')
+  if (valid.length > remaining) ElMessage.warning(`最多上传 ${maxCount} 个文件，超出部分未添加`)
+  if (!valid.length) return
+  uploading.value = true
+  try {
+    const sources = await Promise.all(valid.slice(0, remaining).map(file => file.type === 'video/mp4' ? saveDemoVideo(file) : saveDemoImage(file)))
+    if (key === 'cover') { form.cover = sources[0]; delete errors.cover }
+    else form[key].push(...sources)
+  } catch { ElMessage.error('文件保存失败，请重试') }
+  finally { uploading.value = false }
+}
+function moveFaq(index: number, direction: -1 | 1) {
+  const nextIndex = index + direction
+  if (nextIndex < 0 || nextIndex >= form.faqs.length) return
+  const [faq] = form.faqs.splice(index, 1)
+  form.faqs.splice(nextIndex, 0, faq)
+}
+function openCase() {
+  Object.assign(inlineCase, { id: crypto.randomUUID(), category: form.category, title: '', intro: '', cover: '', createdAt: new Date().toISOString() })
+  caseOpen.value = true
+}
+function saveInlineCase() {
+  if (inlineCase.category.split(' / ').length !== 3 || !inlineCase.title.trim() || !inlineCase.intro.trim() || !inlineCase.cover) { ElMessage.error('请完整填写案例分类、标题、介绍与封面'); return }
+  c.saveCase(inlineCase)
+  if (form.caseIds.length < 6) form.caseIds.push(inlineCase.id)
+  caseOpen.value = false
+  ElMessage.success('案例已保存并关联')
+}
+async function caseFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) { ElMessage.error('案例封面需为不超过 10MB 的 JPG、PNG 或 WEBP 图片'); return }
+  uploading.value = true
+  try { inlineCase.cover = await saveDemoImage(file) }
+  catch { ElMessage.error('案例封面保存失败，请重试') }
+  finally { uploading.value = false }
+}
 </script>
-<template><div class="biz-page editor"><header class="biz-head"><div><h1>{{existing?'编辑服务':'发布服务'}}</h1><p>按步骤完成服务资料，并选择目标园区提交审核。</p></div><div class="biz-actions"><ElButton @click="exit">返回列表</ElButton><ElButton @click="saveDraft">保存草稿</ElButton></div></header><div class="biz-stepper"><span v-for="(h,i) in headings" :key="h" class="biz-step" :class="{active:step===i+1}">{{i+1}} {{h}}</span></div>
-<section v-if="step===1" class="biz-section"><h2>基础信息</h2><div class="biz-grid"><label class="biz-field">服务分类 <b class="required">*</b><ElCascader :model-value="form.category?form.category.split(' / '):[]" :options="CATEGORY_TREE" filterable clearable placeholder="选择末级分类" @change="form.category=Array.isArray($event)?$event.join(' / '):''"/><small v-if="errors.category" class="field-error" role="alert">{{errors.category}}</small></label><label class="biz-field">服务名称 <b class="required">*</b><ElInput v-model="form.name" maxlength="60" show-word-limit placeholder="填写服务名称"/><small v-if="errors.name" class="field-error" role="alert">{{errors.name}}</small></label><label class="biz-field full">服务简介 <b class="required">*</b><ElInput v-model="form.intro" type="textarea" :rows="3" maxlength="500" show-word-limit/><small v-if="errors.intro" class="field-error" role="alert">{{errors.intro}}</small></label><label class="biz-field">服务封面 <b class="required">*</b><input type="file" accept="image/*" @change="addFiles($event,'cover',10,1)"/><small>{{form.cover||'JPG、PNG、WEBP · ≤10MB'}}</small><small v-if="errors.cover" class="field-error" role="alert">{{errors.cover}}</small></label><label class="biz-field">详情媒体 <small>最多 8 个</small><input type="file" multiple accept="image/*,video/mp4" @change="addFiles($event,'media',50,8)"/><small>{{form.media.join('、')||'图片 ≤10MB；MP4 ≤50MB'}}</small></label><label class="biz-field full">服务区域 <small>选填；未选择表示不限区域</small><ElCascader :model-value="form.regions.map(x=>x.split(' / '))" :options="REGION_OPTIONS" :props="{multiple:true,emitPath:true}" clearable filterable collapse-tags :max-collapse-tags="8" collapse-tags-tooltip placeholder="搜索并选择省 / 市，可多选" @change="form.regions=Array.isArray($event)?($event as string[][]).map(x=>x.join(' / ')):[]"/></label></div></section>
-<section v-if="step===2" class="biz-section"><h2>服务详情</h2><div class="biz-grid"><label class="biz-field full">服务详情 <b class="required">*</b><ElInput v-model="form.detail" type="textarea" :rows="5" maxlength="5000" show-word-limit/><small v-if="errors.detail" class="field-error" role="alert">{{errors.detail}}</small></label><label class="biz-field full">服务保障说明 <b class="required">*</b><ElInput v-model="form.guarantee" type="textarea" :rows="3" maxlength="2000" show-word-limit/><small v-if="errors.guarantee" class="field-error" role="alert">{{errors.guarantee}}</small></label><label class="biz-field">服务图片 <small>最多 20 张，单张 ≤5MB</small><input type="file" accept="image/*" multiple @change="addFiles($event,'images',5,20)"/><small>{{form.images.join('、')}}</small></label></div><div class="biz-divider"/><h2>关联案例 <small class="biz-muted">最多 6 个</small></h2><div class="biz-inline"><ElSelect v-model="form.caseIds" multiple :multiple-limit="6" collapse-tags :max-collapse-tags="3" placeholder="选择店铺案例" style="width:340px"><ElOption v-for="x in c.data.cases" :key="x.id" :label="x.title" :value="x.id"/></ElSelect><ElButton @click="openCase">新建案例</ElButton></div><p v-if="linkedCases.length" class="biz-muted">已关联：{{linkedCases.map(x=>x.title).join('、')}}</p><div class="biz-divider"/><div class="biz-inline"><h2 style="margin:0">常见问题</h2><ElButton :disabled="form.faqs.length>=10" @click="form.faqs.push({question:'',answer:''})">添加问题</ElButton></div><div v-for="(faq,i) in form.faqs" :key="i" class="faq-row"><ElInput v-model="faq.question" maxlength="30" placeholder="问题（≤30 字）"/><ElInput v-model="faq.answer" maxlength="200" placeholder="回答（≤200 字）"/><ElButton @click="form.faqs.splice(i,1)">删除</ElButton></div><p v-if="errors.faq" class="field-error" role="alert">{{errors.faq}}</p></section>
-<section v-if="step===3" class="biz-section"><h2>定价与交付</h2><div class="biz-grid"><div class="biz-field">平台分账比例 <ElInput model-value="10%（演示配置）" disabled/></div><div class="biz-field">售后期 <ElInput model-value="7 个自然日（演示配置）" disabled/></div><label class="biz-field">发票税率 <ElSelect v-model="form.taxRate"><ElOption v-for="n in [0,1,6,9,13]" :key="n" :label="`${n}%`" :value="n"/></ElSelect></label></div><p class="biz-note">平台按服务所属末级类目的配置收取平台费；售后期自验收完成起算。售后期结束且无未解决售后时进入结算。以上比例与天数是演示配置。</p><div class="biz-divider"/><div class="biz-inline"><h2 style="margin:0">服务规格</h2><ElButton :disabled="form.specs.length>=3" @click="form.specs.push({name:'',point:'',price:0,unit:'项',startDays:0,dayType:'自然日',deliveryDays:1,standard:''})">添加规格</ElButton><span class="biz-muted">一次性付款 · 一次性验收</span></div><p v-if="errors.spec" class="field-error" role="alert">{{errors.spec}}</p><section v-for="(s,i) in form.specs" :key="i" class="spec-block"><div class="biz-inline"><strong>规格 {{i+1}}</strong><ElButton v-if="form.specs.length>1" text type="danger" @click="form.specs.splice(i,1)">删除</ElButton></div><div class="biz-grid"><label class="biz-field">规格名称 <ElInput v-model="s.name" maxlength="30"/></label><label class="biz-field">卖点 <ElInput v-model="s.point" maxlength="100"/></label><label class="biz-field">价格（元） <ElInputNumber v-model="s.price" :min="0" :precision="2" :step="100"/></label><label class="biz-field">计价单位 <ElSelect v-model="s.unit"><ElOption v-for="x in ['项','次','件']" :key="x" :label="x" :value="x"/></ElSelect></label><label class="biz-field">支付后开始时间 <span class="biz-inline"><ElInputNumber v-model="s.startDays" :min="0"/><ElSelect v-model="s.dayType" style="width:120px"><ElOption label="自然日" value="自然日"/><ElOption label="工作日" value="工作日"/></ElSelect></span></label><label class="biz-field">交付周期（天） <ElInputNumber v-model="s.deliveryDays" :min="1" :max="9999"/></label><label class="biz-field full">交付标准 <ElInput v-model="s.standard" type="textarea" maxlength="500" show-word-limit/></label></div></section></section>
-<section v-if="step===4" class="biz-section"><h2>选择提交园区 <b class="required">*</b></h2><ElCheckboxGroup v-model="chosenParks" class="park-select"><ElCheckbox v-for="p in options" :key="p.id" :value="p.id" :label="p.name"/></ElCheckboxGroup><p v-if="errors.parks" class="field-error" role="alert">{{errors.parks}}</p><p v-if="!options.length" class="biz-muted">暂无可提交园区。已上架或审核中的园区不能重复提交。</p><div class="biz-divider"/><div class="biz-inline"><h2 style="margin:0">服务预览</h2><ElButton @click="previewOpen=true">预览详情页</ElButton></div><div class="preview"><ServicePreview :service="form"/></div></section>
-<div class="biz-footer"><ElButton :disabled="step===1" @click="step--">上一步</ElButton><ElButton v-if="step<4" type="primary" @click="next">下一步</ElButton><ElButton v-else type="primary" @click="submit">提交审核</ElButton></div>
-<ElDialog v-model="previewOpen" title="客户端服务详情预览" width="760px"><ServicePreview :service="form"/></ElDialog><ElDialog v-model="caseOpen" title="新建案例并关联" width="550px"><div class="biz-grid"><label class="biz-field full">案例分类<ElCascader :model-value="inlineCase.category?inlineCase.category.split(' / '):[]" :options="CATEGORY_TREE" filterable clearable @change="inlineCase.category=Array.isArray($event)?$event.join(' / '):''"/></label><label class="biz-field full">标题<ElInput v-model="inlineCase.title" maxlength="60"/></label><label class="biz-field full">介绍<ElInput v-model="inlineCase.intro" type="textarea" maxlength="500"/></label><label class="biz-field full">封面<input type="file" accept="image/*" @change="caseFile"/><small>{{inlineCase.cover}}</small></label></div><template #footer><ElButton @click="caseOpen=false">取消</ElButton><ElButton type="primary" @click="saveInlineCase">保存并关联</ElButton></template></ElDialog></div></template>
-<style scoped>.editor{max-width:1040px}.spec-block{border-top:1px solid #e6ebf3;margin-top:18px;padding:18px 0}.spec-block .biz-grid{margin-top:15px}.faq-row{display:flex;gap:8px;margin:10px 0}.park-select{display:grid;gap:8px}.preview{border:1px solid #e1e8f2;border-radius:10px;padding:24px;background:#fff}.preview h3{font-size:21px;margin:8px 0}.preview p{line-height:1.7}.field-error{display:block;color:#bd3f3b;font-size:12px;font-weight:600;margin-top:5px;line-height:1.45}</style>
+
+<template>
+  <div class="biz-page editor-page">
+    <div class="editor-top">
+      <div class="editor-top-inner">
+        <div class="editor-heading"><span class="editor-heading-icon"><HeartHandshake :size="22" /></span><div><h1>{{ existing ? '编辑服务' : '发布服务' }}</h1><p>完善服务资料后，选择园区提交审核。</p></div><span class="editor-save-state">{{ dirty ? '有未保存更改' : hasSavedDraft ? '草稿已保存' : '尚未保存' }}</span></div>
+        <nav class="editor-steps" aria-label="发布服务步骤"><button v-for="(heading,index) in headings" :key="heading" type="button" class="editor-step" :class="{ active: step === index + 1, done: completedSteps.includes(index + 1) }" :aria-current="step === index + 1 ? 'step' : undefined" @click="goStep(index + 1)"><span class="editor-step-dot"><Check v-if="completedSteps.includes(index + 1)" :size="15" /><template v-else>{{ index + 1 }}</template></span><span>{{ heading }}</span><i v-if="index < headings.length - 1" /></button></nav>
+      </div>
+    </div>
+
+    <div ref="scrollArea" class="editor-scroll"><div class="editor-content">
+      <template v-if="step === 1">
+        <div class="editor-stage-head"><span>01 / 04</span><h2>基础信息</h2><p>先定义服务的名称与分类，再添加客户浏览时首先看到的素材。</p></div>
+        <section class="editor-group"><div class="editor-group-head"><h3>服务档案</h3><p>名称、分类与简介决定服务如何被找到和理解。</p></div><div class="editor-grid"><label class="biz-field">服务分类 <b class="required">*</b><ElCascader :model-value="form.category ? form.category.split(' / ') : []" :options="CATEGORY_TREE" filterable clearable placeholder="选择末级分类" @change="form.category = Array.isArray($event) ? $event.join(' / ') : ''" /><small v-if="errors.category" class="field-error">{{ errors.category }}</small></label><label class="biz-field">服务名称 <b class="required">*</b><ElInput v-model="form.name" maxlength="60" show-word-limit placeholder="填写服务名称" /><small v-if="errors.name" class="field-error">{{ errors.name }}</small></label><label class="biz-field full">服务简介 <b class="required">*</b><ElInput v-model="form.intro" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="概述适用客户、服务内容与主要价值" /><small v-if="errors.intro" class="field-error">{{ errors.intro }}</small></label></div></section>
+        <section class="editor-group"><div class="editor-group-head"><h3>展示素材</h3><p>封面用于服务列表；详情媒体可展示交付场景或服务过程。</p></div><div class="editor-media-columns"><div class="editor-upload-block"><div class="upload-heading"><strong>服务封面 <b class="required">*</b></strong><small>JPG、PNG、WEBP · ≤10MB</small></div><label class="editor-cover-upload"><DemoImage :source="coverSource" empty-text="上传服务封面" /><span><ImagePlus :size="15" />{{ coverSource ? '更换封面' : '点击上传封面' }}</span><input type="file" accept="image/jpeg,image/png,image/webp" @change="addFiles($event,'cover')" /></label><small v-if="errors.cover" class="field-error">{{ errors.cover }}</small></div><div class="editor-upload-block"><div class="upload-heading"><strong>详情媒体</strong><small>最多 8 个 · 图片 ≤10MB / MP4 ≤50MB</small></div><div class="editor-media-grid"><div v-for="(source,index) in form.media" :key="`${source}-${index}`" class="editor-media-tile"><DemoMedia :source="source" :sources="mediaImageSources" /><button type="button" class="media-remove" title="移除文件" @click="form.media.splice(index,1)"><Trash2 :size="14" /></button></div><label v-if="form.media.length < 8" class="editor-add-tile"><ImagePlus :size="20" /><span>添加媒体</span><input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4" @change="addFiles($event,'media')" /></label></div></div></div></section>
+        <section class="editor-group"><div class="editor-group-head"><h3>服务区域</h3><p>未选择时表示不限制区域。</p></div><ElCascader class="regions-field" :model-value="form.regions.map(value => value.split(' / '))" :options="REGION_OPTIONS" :props="{ multiple: true, emitPath: true }" clearable filterable collapse-tags :max-collapse-tags="8" collapse-tags-tooltip placeholder="搜索并选择省 / 市，可多选" @change="form.regions = Array.isArray($event) ? ($event as string[][]).map(value => value.join(' / ')) : []" /></section>
+      </template>
+
+      <template v-else-if="step === 2">
+        <div class="editor-stage-head"><span>02 / 04</span><h2>服务详情</h2><p>描述交付内容与保障，再用图片、案例和常见问题补充证据。</p></div>
+        <section class="editor-group"><div class="editor-group-head"><h3>内容与保障</h3><p>写清服务范围、交付方式及客户可获得的保障。</p></div><div class="editor-grid"><label class="biz-field full">服务详情 <b class="required">*</b><ElInput v-model="form.detail" type="textarea" :rows="5" maxlength="5000" show-word-limit placeholder="说明服务内容、流程和交付成果" /><small v-if="errors.detail" class="field-error">{{ errors.detail }}</small></label><label class="biz-field full">服务保障说明 <b class="required">*</b><ElInput v-model="form.guarantee" type="textarea" :rows="3" maxlength="2000" show-word-limit placeholder="说明履约、售后与支持方式" /><small v-if="errors.guarantee" class="field-error">{{ errors.guarantee }}</small></label></div></section>
+        <section class="editor-group"><div class="editor-group-head"><h3>服务图片</h3><p>最多 20 张，单张 ≤5MB；上传后可点击缩略图放大查看。</p></div><div class="editor-gallery"><div v-for="(source,index) in form.images" :key="`${source}-${index}`" class="editor-media-tile"><DemoImage :source="source" :sources="imageSources" /><button type="button" class="media-remove" title="移除图片" @click="form.images.splice(index,1)"><Trash2 :size="14" /></button></div><label v-if="form.images.length < 20" class="editor-add-tile"><ImagePlus :size="20" /><span>添加图片</span><input type="file" multiple accept="image/jpeg,image/png" @change="addFiles($event,'images')" /></label></div><small class="editor-count">{{ form.images.length }} / 20 张</small></section>
+        <section class="editor-group"><div class="editor-group-head"><h3>关联案例</h3><p>从店铺案例库选择，最多关联 6 个；也可在这里新建。</p></div><div class="case-selection"><ElSelect v-model="form.caseIds" multiple :multiple-limit="6" collapse-tags :max-collapse-tags="3" placeholder="选择店铺案例"><ElOption v-for="item in c.data.cases" :key="item.id" :label="item.title" :value="item.id" /></ElSelect><ElButton @click="openCase"><Plus :size="14" />新建案例</ElButton></div><div v-if="linkedCases.length" class="linked-cases"><span v-for="item in linkedCases" :key="item.id" :title="item.title">{{ item.title }}</span></div></section>
+        <section class="editor-group"><div class="editor-group-head faq-head"><div><h3>常见问题</h3><p>按客户阅读顺序排列，最多 10 组；问题与回答需成对填写。</p></div><ElButton :disabled="form.faqs.length >= 10" @click="form.faqs.push({ question: '', answer: '' })"><Plus :size="14" />添加问题</ElButton></div><div v-if="!form.faqs.length" class="editor-empty-note">暂无常见问题。可添加客户在下单前最关心的问题。</div><div v-for="(faq,index) in form.faqs" :key="index" class="faq-card"><div class="faq-card-head"><strong>{{ String(index + 1).padStart(2, '0') }}</strong><span>问题 {{ index + 1 }}</span><div class="faq-card-actions"><button type="button" :disabled="index === 0" title="上移" @click="moveFaq(index,-1)"><ArrowUp :size="15" /></button><button type="button" :disabled="index === form.faqs.length - 1" title="下移" @click="moveFaq(index,1)"><ArrowDown :size="15" /></button><button type="button" title="删除问题" @click="form.faqs.splice(index,1)"><Trash2 :size="15" /></button></div></div><div class="editor-grid"><label class="biz-field">问题 <ElInput v-model="faq.question" maxlength="30" show-word-limit placeholder="输入客户可能提出的问题" /></label><label class="biz-field">回答 <ElInput v-model="faq.answer" maxlength="200" show-word-limit placeholder="给出明确、简短的回答" /></label></div></div><p v-if="errors.faq" class="field-error">{{ errors.faq }}</p></section>
+      </template>
+
+      <template v-else-if="step === 3">
+        <div class="editor-stage-head"><span>03 / 04</span><h2>定价与交付</h2><p>设置客户可选择的规格，确认平台规则和交付承诺。</p></div>
+        <section class="editor-group"><div class="editor-group-head"><h3>平台规则与发票</h3><p>比例和售后期由运营配置，提交前请核对。</p></div><div class="editor-grid"><div class="biz-field">平台分账比例 <ElInput model-value="10%（演示配置）" disabled /></div><div class="biz-field">售后期 <ElInput model-value="7 个自然日（演示配置）" disabled /></div><label class="biz-field">发票税率 <ElSelect v-model="form.taxRate"><ElOption v-for="rate in [0,1,6,9,13]" :key="rate" :label="`${rate}%`" :value="rate" /></ElSelect></label></div><p class="editor-rule-note">平台按服务所属末级类目的配置收取平台费；售后期自验收完成起算。售后期结束且无未解决售后时进入结算。以上比例和天数为演示配置。</p></section>
+        <section class="editor-group"><div class="editor-group-head spec-head"><div><h3>服务规格</h3><p>1–3 个规格 · 一次性付款 · 一次性验收</p></div><ElButton :disabled="form.specs.length >= 3" @click="form.specs.push({ name: '', point: '', price: 0, unit: '项', startDays: 0, dayType: '自然日', deliveryDays: 1, standard: '' })"><Plus :size="14" />添加规格</ElButton></div><p v-if="errors.spec" class="field-error">{{ errors.spec }}</p><article v-for="(spec,index) in form.specs" :key="index" class="spec-card"><div class="spec-card-head"><span>规格 {{ String(index + 1).padStart(2, '0') }}</span><ElButton v-if="form.specs.length > 1" text type="danger" @click="form.specs.splice(index,1)"><Trash2 :size="14" />删除</ElButton></div><div class="editor-grid"><label class="biz-field">规格名称 <b class="required">*</b><ElInput v-model="spec.name" maxlength="30" placeholder="如标准版" /></label><label class="biz-field">卖点 <b class="required">*</b><ElInput v-model="spec.point" maxlength="100" placeholder="概括该规格的主要价值" /></label><label class="biz-field">价格（元） <b class="required">*</b><ElInputNumber v-model="spec.price" :min="0" :precision="2" :step="100" /></label><label class="biz-field">计价单位 <b class="required">*</b><ElSelect v-model="spec.unit"><ElOption v-for="unit in ['项','次','件']" :key="unit" :label="unit" :value="unit" /></ElSelect></label><label class="biz-field">支付后开始时间 <b class="required">*</b><span class="spec-days"><ElInputNumber v-model="spec.startDays" :min="0" /><ElSelect v-model="spec.dayType"><ElOption label="自然日" value="自然日" /><ElOption label="工作日" value="工作日" /></ElSelect></span></label><label class="biz-field">交付周期（天） <b class="required">*</b><ElInputNumber v-model="spec.deliveryDays" :min="1" :max="9999" /></label><label class="biz-field full">交付标准 <b class="required">*</b><ElInput v-model="spec.standard" type="textarea" :rows="2" maxlength="500" show-word-limit placeholder="明确验收时应交付的内容" /></label></div></article></section>
+      </template>
+
+      <template v-else>
+        <div class="editor-stage-head"><span>04 / 04</span><h2>提交预览</h2><p>确认服务展示内容与目标园区，提交后各园区分别进入审核。</p></div>
+        <section class="editor-group"><div class="editor-group-head"><h3>选择提交园区 <b class="required">*</b></h3><p>已上架或审核中的园区暂不可重复提交。</p></div><ElCheckboxGroup v-model="chosenParks" class="park-select"><ElCheckbox v-for="park in options" :key="park.id" :value="park.id">{{ park.name }}</ElCheckbox></ElCheckboxGroup><p v-if="errors.parks" class="field-error">{{ errors.parks }}</p><p v-if="!options.length" class="editor-empty-note">暂无可提交园区。请查看当前园区上架状态。</p></section>
+        <section class="editor-group"><div class="editor-group-head preview-head"><div><h3>电脑端展示预览</h3><p>检查封面、规格、详情、案例和常见问题的呈现。</p></div><ElButton @click="previewOpen = true"><Eye :size="15" />展开预览</ElButton></div><div class="editor-preview"><ServicePreview :service="form" /></div></section>
+      </template>
+    </div></div>
+
+    <footer class="editor-footer"><div class="editor-footer-inner"><div class="editor-footer-left"><button type="button" class="editor-link" @click="exit"><ArrowLeft :size="15" />返回服务管理</button><button type="button" class="editor-link save-link" :disabled="uploading" @click="saveDraft"><Save :size="15" />保存草稿</button></div><div class="editor-footer-right"><ElButton v-if="step > 1" @click="goStep(step - 1)"><ArrowLeft :size="15" />上一步</ElButton><ElButton v-if="step < 4" type="primary" :disabled="uploading" @click="next">下一步<ArrowRight :size="15" /></ElButton><ElButton v-else type="primary" :disabled="uploading" @click="submit">提交审核<ArrowRight :size="15" /></ElButton></div></div></footer>
+
+    <ElDialog v-model="previewOpen" title="客户端服务详情预览" width="min(920px, calc(100vw - 80px))" append-to-body><ServicePreview :service="form" /></ElDialog>
+    <ElDialog v-model="caseOpen" title="新建案例并关联" width="620px" append-to-body><div class="editor-grid"><label class="biz-field full">案例分类 <b class="required">*</b><ElCascader :model-value="inlineCase.category ? inlineCase.category.split(' / ') : []" :options="CATEGORY_TREE" filterable clearable placeholder="选择末级分类" @change="inlineCase.category = Array.isArray($event) ? $event.join(' / ') : ''" /></label><label class="biz-field full">标题 <b class="required">*</b><ElInput v-model="inlineCase.title" maxlength="60" show-word-limit /></label><label class="biz-field full">介绍 <b class="required">*</b><ElInput v-model="inlineCase.intro" type="textarea" :rows="3" maxlength="500" show-word-limit /></label><div class="biz-field full">封面 <b class="required">*</b><div class="case-cover-field"><div class="case-cover-image"><DemoImage :source="inlineCase.cover" empty-text="上传案例封面" /></div><label class="case-cover-upload"><ImagePlus :size="15" />{{ inlineCase.cover ? '更换封面' : '上传封面' }}<input type="file" accept="image/jpeg,image/png,image/webp" @change="caseFile" /></label></div></div></div><template #footer><ElButton @click="caseOpen = false">取消</ElButton><ElButton type="primary" :disabled="uploading" @click="saveInlineCase">保存并关联</ElButton></template></ElDialog>
+  </div>
+</template>
+
+<style scoped>
+.editor-page{display:flex;flex-direction:column;width:100%;max-width:none;min-width:800px;height:100%;min-height:0;margin:0;padding:0;overflow:hidden;color:#20304a;background:#fff}
+.editor-top{flex:none;border-bottom:1px solid #e4eaf3;background:#fff}
+.editor-top-inner{max-width:1130px;margin:auto;padding:16px 30px 0}
+.editor-heading{display:flex;align-items:center;gap:13px;margin-bottom:17px}
+.editor-heading-icon{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:9px;background:#eaf0ff;color:#3659c2}
+.editor-heading h1{margin:0 0 3px;font-size:22px;line-height:1.3}
+.editor-heading p{margin:0;color:#738198;font-size:12px}
+.editor-save-state{margin-left:auto;color:#8492a5;font-size:12px;white-space:nowrap}
+.editor-steps{display:flex;align-items:center;margin:0;padding:0 0 14px}
+.editor-step{display:flex;align-items:center;flex:1;min-width:0;gap:8px;padding:0;border:0;background:transparent;color:#75849a;font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
+.editor-step:last-child{flex:none}
+.editor-step-dot{display:grid;place-items:center;flex:none;width:25px;height:25px;border-radius:50%;background:#edf1f8;color:#63738c;font-size:12px;font-weight:700}
+.editor-step.active{color:#264ab2;font-weight:700}.editor-step.active .editor-step-dot{background:#3559bf;color:#fff;box-shadow:0 0 0 4px #edf2ff}
+.editor-step.done{color:#1f8d85;font-weight:650}.editor-step.done .editor-step-dot{background:#16958c;color:#fff}
+.editor-step i{display:block;flex:1;height:1px;min-width:12px;margin:0 10px;background:#cbd9ee}
+.editor-step.done i{background:#84ccc5}
+.editor-step:hover:not(.active){color:#3157b9}
+.editor-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.editor-content{max-width:1070px;margin:0 auto;padding:24px 30px 60px}
+.editor-stage-head{margin-bottom:25px}
+.editor-stage-head>span{display:inline-block;margin-bottom:6px;color:#4766bf;font-size:11px;font-weight:750;letter-spacing:.08em}
+.editor-stage-head h2{margin:0 0 5px;font-size:23px;color:#1c2d48}
+.editor-stage-head p{margin:0;color:#6b7b91;font-size:13px}
+.editor-group{padding:22px 0 25px;border-top:1px solid #e5ebf3}
+.editor-group:first-of-type{border-top:0;padding-top:0}
+.editor-group-head{margin-bottom:17px;padding-left:12px;border-left:3px solid #2cafa5}
+.editor-group-head h3{margin:0 0 3px;font-size:16px;color:#22334c}
+.editor-group-head h3 .required{font-size:13px}
+.editor-group-head p{margin:0;color:#8190a4;font-size:12px;line-height:1.5}
+.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 20px}
+.editor-grid .full{grid-column:1/-1}
+.editor-grid :deep(.el-input),.editor-grid :deep(.el-select),.editor-grid :deep(.el-cascader),.editor-grid :deep(.el-input-number){width:100%;min-width:0}
+.editor-grid :deep(.el-select__wrapper){flex:1;min-width:0}
+.editor-media-columns{display:grid;grid-template-columns:190px minmax(0,1fr);gap:28px}
+.upload-heading{display:grid;gap:4px;margin-bottom:10px}.upload-heading strong{font-size:13px;color:#34445c}.upload-heading small{font-size:11px;color:#8492a6}
+.editor-cover-upload{position:relative;display:block;width:170px;height:165px;overflow:hidden;border:1px dashed #c7d5eb;border-radius:10px;background:#f5f8fd;cursor:pointer}
+.editor-cover-upload :deep(.demo-image){height:128px;pointer-events:none}.editor-cover-upload>span{display:flex;align-items:center;justify-content:center;gap:5px;height:37px;color:#3159c0;font-size:12px;font-weight:650}
+.editor-cover-upload input,.editor-add-tile input,.case-cover-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.editor-cover-upload:hover,.editor-add-tile:hover{border-color:#6687d4;background:#f1f5ff}
+.editor-media-grid,.editor-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.editor-media-tile,.editor-add-tile{position:relative;height:112px;min-width:0;overflow:hidden;border:1px solid #dfe7f1;border-radius:9px;background:#f5f8fd}
+.editor-add-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border-style:dashed;color:#4566bc;font-size:12px;font-weight:650;cursor:pointer}
+.media-remove{position:absolute;top:5px;right:5px;display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:6px;background:#fff;color:#b6423a;cursor:pointer}
+.regions-field{width:100%}.editor-page :deep(.el-cascader){max-width:100%}
+.editor-count{display:block;margin-top:7px;color:#8492a5;font-size:11px}
+.case-selection{display:flex;align-items:center;gap:10px}.case-selection :deep(.el-select){flex:1;min-width:0;max-width:500px}
+.linked-cases{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.linked-cases span{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;border-radius:6px;background:#eef3ff;color:#3458b9;font-size:11px}
+.faq-head,.spec-head,.preview-head{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.faq-head>div,.spec-head>div,.preview-head>div{min-width:0}.faq-head :deep(.el-button),.spec-head :deep(.el-button),.preview-head :deep(.el-button){flex:none}
+.editor-empty-note{padding:20px;border:1px dashed #dbe4f1;border-radius:9px;background:#fbfcff;color:#8290a4;font-size:12px}
+.faq-card{padding:14px 16px;margin-top:10px;border:1px solid #e0e7f1;border-radius:9px;background:#fbfcff}
+.faq-card-head{display:flex;align-items:center;gap:8px;margin-bottom:13px}.faq-card-head strong{color:#3b60bf;font-size:13px}.faq-card-head span{color:#53647d;font-size:12px;font-weight:650}
+.faq-card-actions{display:flex;gap:3px;margin-left:auto}.faq-card-actions button{display:grid;place-items:center;width:27px;height:27px;border:0;border-radius:6px;background:transparent;color:#61718a;cursor:pointer}.faq-card-actions button:hover:not(:disabled){background:#eaf0ff;color:#3358bd}.faq-card-actions button:last-child:hover{background:#fff0ef;color:#b9433a}.faq-card-actions button:disabled{opacity:.35;cursor:default}
+.editor-rule-note{margin:18px 0 0;padding:12px 14px;border-radius:8px;background:#f2f6ff;color:#546986;font-size:12px;line-height:1.7}
+.spec-card{margin-top:14px;padding:17px 18px;border:1px solid #dfe7f1;border-radius:10px;background:#fbfcff}
+.spec-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;color:#3458b9;font-size:14px;font-weight:700}
+.spec-days{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px}
+.park-select{display:grid;gap:9px}.park-select :deep(.el-checkbox){margin:0;padding:12px 14px;border:1px solid #e1e8f2;border-radius:8px;background:#fff}.park-select :deep(.el-checkbox.is-checked){border-color:#b6c9ef;background:#f6f9ff}
+.editor-preview{padding:20px;border:1px solid #e1e8f2;border-radius:10px;background:#fff}
+.editor-footer{flex:none;border-top:1px solid #e4eaf3;background:#fff}.editor-footer-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1130px;min-height:65px;margin:auto;padding:10px 30px}
+.editor-footer-left,.editor-footer-right{display:flex;align-items:center;gap:8px}.editor-footer-right :deep(.el-button){margin:0;min-width:92px;height:38px;display:inline-flex;align-items:center;gap:4px;border-radius:8px}.editor-footer-right :deep(.el-button>span){display:inline-flex;align-items:center;gap:4px}
+.editor-link{display:inline-flex;align-items:center;gap:5px;padding:8px 9px;border:0;border-radius:7px;background:transparent;color:#63728a;font:inherit;font-size:12px;cursor:pointer}.editor-link:hover{background:#f1f4f9;color:#233651}.editor-link.save-link{color:#3358ba;font-weight:650}.editor-link:disabled{opacity:.5;cursor:default}
+.field-error{display:block;margin-top:5px;color:#bd3f3b;font-size:12px;font-weight:600;line-height:1.45}
+.case-cover-field{display:flex;align-items:center;gap:13px}.case-cover-image{width:120px;height:90px;overflow:hidden;border:1px solid #e0e7f1;border-radius:8px}.case-cover-upload{position:relative;display:inline-flex;align-items:center;gap:5px;overflow:hidden;padding:8px 10px;border:1px solid #cad7ef;border-radius:8px;color:#3158bd;font-size:12px;cursor:pointer}
+</style>

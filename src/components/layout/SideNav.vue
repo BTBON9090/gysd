@@ -8,7 +8,12 @@ import { useAcceptanceStore } from '@/stores/acceptance'
 const route = useRoute()
 const acc = useAcceptanceStore()
 const collapsed = defineModel<boolean>('collapsed', { default: false })
-const activePath = computed(() => route.path.startsWith('/onboarding') ? '/workspace' : route.path)
+const activePath = computed(() => {
+  if (route.path.startsWith('/onboarding')) return '/workspace'
+  if (route.path.startsWith('/service/')) return '/service'
+  if (route.path.startsWith('/order/')) return '/order'
+  return route.path
+})
 const rootItems = computed(() => acc.entryStatus === 'pending'
   ? navMenus.filter(item => item.key === 'workspace' || item.key === 'settings').map(item => item.key === 'settings' ? { ...item, children: item.children?.filter(child => child.key === 'settings-profile') } : item)
   : navMenus)

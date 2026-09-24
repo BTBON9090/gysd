@@ -2,20 +2,26 @@
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElSelect, ElTag } from 'element-plus'
-import { HeartHandshake, Plus, Search } from 'lucide-vue-next'
+import { ArrowDownToLine, ArrowUpToLine, Eye, HeartHandshake, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
 import ServicePreview from '@/components/service/ServicePreview.vue'
 import DemoImage from '@/components/commerce/DemoImage.vue'
 import { CATEGORY_TREE, money, serviceStatus, STATUS_LABEL, useCommerceStore, type Service } from '@/stores/commerce'
 const c=useCommerceStore(),router=useRouter(),route=useRoute();const filter=reactive({park:String(route.query.park||''),category:'',name:''});const applied=reactive({...filter});const tab=ref('all');const page=ref(1);const selected=ref<string[]>([]);const action=ref<'publish'|'offline'>('publish');const dialog=ref(false);const target=ref<Service|null>(null);const detail=ref<Service|null>(null)
 const tabs=[['all','全部'],['draft','草稿'],['reviewing','审核中'],['rejected','已驳回'],['on_sale','已上架'],['offline','已下架']]
 const coverSource=(source:string)=>/^(local-image:|data:image\/|blob:|https?:\/)/.test(source)?source:''
+const aggregateStatus=(service:Service)=>serviceStatus(service,undefined,c.joinedParks.map(park=>park.id))
+const aggregateLabel=(service:Service)=>aggregateStatus(service)==='draft'?'草稿':aggregateStatus(service)==='on_sale'?'在售':STATUS_LABEL[aggregateStatus(service) as keyof typeof STATUS_LABEL]
+const aggregateTone=(service:Service)=>aggregateStatus(service)==='on_sale'?'success':aggregateStatus(service)==='rejected'?'danger':aggregateStatus(service)==='reviewing'?'warning':'info'
+const sales=(service:Service)=>c.data.orders.filter(order=>order.serviceId===service.id&&order.paid>0&&order.status!=='cancelled').length
 const filtered=computed(()=>c.data.services.filter(s=>(!applied.category||s.category.startsWith(applied.category))&&(!applied.name||s.name.includes(applied.name))).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)))
 function matches(s:Service,t:string){if(!applied.park)return t==='all'||serviceStatus(s,undefined,c.joinedParks.map(p=>p.id))===t;const own=s.listings[applied.park];if(t==='draft')return !own;if(!own)return false;return t==='all'||own.status===t}
 const tabRows=computed(()=>filtered.value.filter(s=>matches(s,tab.value)));const rows=computed(()=>tabRows.value.slice((page.value-1)*20,page.value*20));const count=(t:string)=>filtered.value.filter(s=>matches(s,t)).length
 function setTab(t:string){tab.value=t;page.value=1}function query(){Object.assign(applied,filter);page.value=1}function reset(){Object.assign(filter,{park:'',category:'',name:''});tab.value='all';query()}
 function create(){if(!c.data.walletOpen){ElMessage.warning('发布服务前请先开通钱包');router.push('/wallet');return}router.push('/service/new')}
+function continueDraft(s:Service){router.push(`/service/edit/${s.id}`)}
 function eligible(s:Service,mode:'publish'|'offline'){return c.joinedParks.filter(p=>mode==='publish'? !['on_sale','reviewing'].includes(s.listings[p.id]?.status||'draft'):s.listings[p.id]?.status==='on_sale')}
-function operate(s:Service,mode:'publish'|'offline'){target.value=s;action.value=mode;selected.value=[];dialog.value=true}
+function readyToPublish(s:Service){return s.category.split(' / ').length===3&&Boolean(s.name.trim()&&s.intro.trim()&&coverSource(s.cover)&&s.detail.trim()&&s.guarantee.trim())&&s.specs.length>0&&s.specs.every(spec=>spec.name.trim()&&spec.point.trim()&&spec.price>0&&spec.unit&&spec.standard.trim())}
+function operate(s:Service,mode:'publish'|'offline'){if(mode==='publish'&&!readyToPublish(s)){ElMessage.warning('请先补全服务资料，再提交上架审核');router.push(`/service/edit/${s.id}`);return}target.value=s;action.value=mode;selected.value=[];dialog.value=true}
 async function submit(){if(!target.value||!selected.value.length)return;if(action.value==='offline'){try{await ElMessageBox.confirm(`确认将「${target.value.name}」从以下 ${selected.value.length} 个园区下架？下架后该园区不再展示此服务。`,'确认下架',{confirmButtonText:'确认下架',cancelButtonText:'取消',type:'warning'})}catch{return}}c.changeListing(target.value.id,selected.value,action.value==='publish'?'reviewing':'offline');dialog.value=false;ElMessage.success(action.value==='publish'?'已提交园区审核':'服务已下架')}
 async function edit(s:Service){if(Object.values(s.listings).some(x=>['on_sale','reviewing'].includes(x.status))){try{await ElMessageBox.confirm('编辑将使已上架或审核中的园区自动下架，保存后需要重新提交审核。','编辑服务',{confirmButtonText:'继续编辑',cancelButtonText:'取消',type:'warning'});c.changeListing(s.id,Object.entries(s.listings).filter(([,x])=>['on_sale','reviewing'].includes(x.status)).map(([id])=>id),'offline')}catch{return}}router.push(`/service/edit/${s.id}`)}
 async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){ElMessage.warning('该服务已有订单，不能删除');return}try{await ElMessageBox.confirm(`确认删除「${s.name||'未命名服务'}」？`,'删除服务',{confirmButtonText:'删除',cancelButtonText:'取消',type:'warning'});c.deleteService(s.id);ElMessage.success('服务已删除')}catch{/* cancelled */}}
@@ -31,13 +37,30 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
       <div class="service-filters"><div class="service-filter-fields"><ElSelect v-model="filter.park" clearable placeholder="全部已加入园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :label="p.name" :value="p.id"/></ElSelect><ElCascader :model-value="filter.category?filter.category.split(' / '):[]" :options="CATEGORY_TREE" :props="{checkStrictly:true}" clearable filterable placeholder="全部分类" @change="filter.category=Array.isArray($event)?$event.join(' / '):''"/><ElInput v-model="filter.name" clearable placeholder="搜索服务名称" @keyup.enter="query"><template #prefix><Search :size="15" /></template></ElInput></div><div class="service-filter-actions"><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div></div>
       <div class="biz-tabs service-tabs"><button v-for="[key,label] in tabs" :key="key" class="biz-tab" :class="{active:tab===key}" @click="setTab(key)">{{label}} <span>{{count(key)}}</span></button></div>
       <div v-if="!rows.length" class="biz-empty"><h3>{{c.data.services.length?'暂无匹配的服务':'暂无服务，发布第一个服务吧'}}</h3><p>{{c.data.services.length?'请调整筛选条件或清空筛选。':'提交后按园区审核。'}}</p><ElButton v-if="c.data.services.length" @click="reset">清空筛选</ElButton><ElButton v-else type="primary" @click="create">发布服务</ElButton></div>
-      <div v-else class="service-list"><article v-for="s in rows" :key="s.id" class="service-card"><div class="service-card-top"><div class="service-cover"><DemoImage :source="coverSource(s.cover)" empty-text="服务封面" /></div><div class="service-copy"><div class="service-title-line"><h3>{{s.name||'未命名草稿'}}</h3><ElTag :type="serviceStatus(s,undefined,c.joinedParks.map(p=>p.id))==='on_sale'?'success':serviceStatus(s,undefined,c.joinedParks.map(p=>p.id))==='rejected'?'danger':'info'">{{serviceStatus(s,undefined,c.joinedParks.map(p=>p.id))==='draft'?'草稿':STATUS_LABEL[serviceStatus(s,undefined,c.joinedParks.map(p=>p.id)) as keyof typeof STATUS_LABEL]}}</ElTag></div><p class="service-intro">{{s.intro||'尚未填写简介'}}</p><p class="service-category">{{s.category||'未选择分类'}}</p></div></div><div class="service-park-statuses"><span v-for="p in c.joinedParks" :key="p.id" class="park-status" :title="s.listings[p.id]?.reason?`${s.listings[p.id].reason} · ${s.listings[p.id].at.slice(0,19).replace('T',' ')}`:undefined"><b>{{p.name}}</b><span>{{s.listings[p.id]?STATUS_LABEL[s.listings[p.id].status]:'未发布'}}</span><em v-if="s.listings[p.id]?.forced">运营下架</em></span></div><div class="service-bottom"><span class="service-facts">规格 {{s.specs.length}} 项 <i></i> {{money(s.specs[0]?.price||0)}} 起 <i></i> 累计销量 {{c.data.orders.filter(o=>o.serviceId===s.id && o.paid>0 && o.status!=='cancelled').length}} <i></i> 更新于 {{s.updatedAt.slice(0,10)}}</span><div class="service-actions"><ElButton text @click="detail=s">详情</ElButton><ElButton text @click="edit(s)">编辑</ElButton><ElButton v-if="eligible(s,'publish').length" text type="primary" @click="operate(s,'publish')">上架</ElButton><ElButton v-if="eligible(s,'offline').length" text @click="operate(s,'offline')">下架</ElButton><ElButton text type="danger" @click="remove(s)">删除</ElButton></div></div></article></div>
+      <div v-else class="service-list">
+        <article v-for="s in rows" :key="s.id" class="service-card">
+          <div class="service-card-body">
+            <div class="service-cover"><DemoImage :source="coverSource(s.cover)" empty-text="无封面" /></div>
+            <div class="service-card-content">
+              <div class="service-identity"><h3 :title="s.name">{{s.name||'未命名草稿'}}</h3><ElTag :type="aggregateTone(s)" effect="light">{{aggregateLabel(s)}}</ElTag></div>
+              <p class="service-category" :title="s.category">{{s.category||'未选择分类'}}</p>
+              <div class="service-park-statuses">
+                <span v-for="p in c.joinedParks" :key="p.id" class="park-status" :class="`is-${s.listings[p.id]?.status||'draft'}`" :title="s.listings[p.id]?.reason?`${p.name} · ${s.listings[p.id].reason} · ${s.listings[p.id].at.slice(0,19).replace('T',' ')}`:p.name"><b>{{p.name}}</b><i>·</i><span>{{s.listings[p.id]?STATUS_LABEL[s.listings[p.id].status]:'未发布'}}</span><em v-if="s.listings[p.id]?.forced">运营下架</em></span>
+                <span v-if="!c.joinedParks.length" class="service-unpublished">尚未加入园区</span>
+              </div>
+              <div class="service-specs"><span v-for="(spec,index) in s.specs" :key="index" class="service-spec"><b>{{spec.name||`规格 ${index+1}`}}</b><strong>{{spec.price>0?`${money(spec.price)} / ${spec.unit}`:'价格待设置'}}</strong></span><span v-if="!s.specs.length" class="service-unpublished">尚未设置规格</span></div>
+              <div class="service-actions"><ElButton @click="detail=s"><Eye :size="14" />详情</ElButton><ElButton v-if="s.published" @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton v-if="!s.published" type="primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" type="primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" :type="eligible(s,'publish').length?'default':'warning'" plain @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
+            </div>
+            <div class="service-sales"><span>累计销量</span><strong>{{sales(s)}}</strong><small>更新 {{s.updatedAt.slice(0,10)}}</small></div>
+          </div>
+        </article>
+      </div>
       <div v-if="tabRows.length>20" class="biz-footer"><span>共 {{tabRows.length}} 项</span><div class="biz-actions"><ElButton :disabled="page<=1" @click="page--">上一页</ElButton><span>{{page}}</span><ElButton :disabled="page*20>=tabRows.length" @click="page++">下一页</ElButton></div></div>
     </section>
 <ElDialog v-model="dialog" :title="action==='publish'?`上架园区 · ${target?.name||''}`: `下架园区 · ${target?.name||''}`" width="560px"><p class="biz-muted">{{action==='publish'?'选择要上架的园区。已上架或审核中的园区不可重复提交。':'仅可下架已上架园区；审核中的园区不可下架。'}}</p><div class="biz-actions" style="margin:12px 0"><ElButton text @click="selected=target?eligible(target,action).map(p=>p.id):[]">全选可操作</ElButton><ElButton text @click="selected=[]">取消全选</ElButton></div><ElCheckboxGroup v-model="selected" class="park-options"><div v-for="p in c.joinedParks" :key="p.id" class="park-option"><ElCheckbox :value="p.id" :disabled="!target||!eligible(target,action).some(x=>x.id===p.id)">{{p.name}}</ElCheckbox><ElTag :type="target?.listings[p.id]?.status==='on_sale'?'success':target?.listings[p.id]?.status==='rejected'?'danger':'info'">{{target?.listings[p.id]?STATUS_LABEL[target.listings[p.id].status]:'未发布'}}</ElTag><small v-if="target?.listings[p.id]?.reason">{{target.listings[p.id].reason}} · {{target.listings[p.id].at.slice(0,19).replace('T',' ')}}</small></div></ElCheckboxGroup><template #footer><ElButton @click="dialog=false">取消</ElButton><ElButton type="primary" :disabled="!selected.length" @click="submit">{{action==='publish'?'提交上架审核':'下架所选'}}</ElButton></template></ElDialog>
 <ElDialog :model-value="Boolean(detail)" @update:model-value="detail=null" title="客户端服务详情预览" width="760px"><ServicePreview v-if="detail" :service="detail"/></ElDialog></div></template>
 <style scoped>
-.service-page{min-width:800px;max-width:1190px}
+.service-page{min-width:760px;max-width:1190px}
 .service-head{align-items:center;margin-bottom:29px}
 .service-heading{display:flex;align-items:center;gap:15px}
 .service-heading-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:11px;background:#eaf0ff;color:#3659c2}
@@ -46,7 +69,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-section-head h2{margin:0 0 3px;font-size:17px}
 .service-section-head h2 span{margin-left:6px;padding:3px 7px;border-radius:6px;background:#edf2ff;color:#3458bd;font-size:12px}
 .service-section-head p{margin:0;color:#7d899c;font-size:12px}
-.service-filters{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:14px}
+.service-filters{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px}
 .service-filter-fields{display:grid;grid-template-columns:minmax(140px,1fr) minmax(140px,1fr) minmax(150px,1.15fr);gap:10px;min-width:0}
 .service-filter-fields :deep(.el-select),.service-filter-fields :deep(.el-cascader),.service-filter-fields :deep(.el-input){width:100%;min-width:0}
 .service-filter-actions{display:flex;align-items:center;gap:8px;white-space:nowrap}
@@ -55,24 +78,33 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-tabs .biz-tab{flex:none;white-space:nowrap;padding:11px 13px}
 .service-tabs .biz-tab span{margin-left:2px;color:#8997aa;font-size:11px}
 .service-tabs .biz-tab.active span{color:#3153bd}
-.service-list{display:grid;gap:12px}
-.service-card{padding:18px 20px 12px;border:1px solid #dfe7f1;border-radius:11px;background:#fff}
-.service-card-top{display:flex;gap:16px;min-width:0}
-.service-cover{width:104px;height:78px;flex:none;overflow:hidden;border:1px solid #e3e9f2;border-radius:8px;background:#f3f6fa}
-.service-copy{min-width:0;flex:1}
-.service-title-line{display:flex;align-items:center;gap:10px;min-width:0}
-.service-title-line h3{margin:0;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1e2e47;font-size:17px;font-weight:700}
-.service-intro{margin:6px 0 0;color:#65758b;font-size:12px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.service-category{margin:6px 0 0;color:#8492a5;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.service-park-statuses{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 0 120px}
-.park-status{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:6px 9px;border-radius:7px;background:#f3f6fb;color:#52647e;font-size:11px}
-.park-status b{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.service-list{display:grid;gap:13px}
+.service-card{min-width:0;overflow:hidden;padding:17px 19px;border:1px solid #dfe7f1;border-radius:12px;background:#fff}
+.service-card-body{display:grid;grid-template-columns:98px minmax(0,1fr) 88px;gap:16px;min-width:0}
+.service-cover{width:98px;height:98px;overflow:hidden;border:1px solid #e3e9f2;border-radius:9px;background:#f7f9fd}
+.service-card-content{min-width:0}
+.service-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.service-identity h3{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;color:#1e2e47;font-size:17px;font-weight:720;line-height:1.45}
+.service-identity :deep(.el-tag){flex:none}
+.service-category{margin:7px 0 0;color:#8290a4;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.service-park-statuses{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-width:0}
+.park-status{display:inline-flex;align-items:center;gap:5px;max-width:min(260px,100%);min-width:0;padding:5px 8px;border:1px solid #dde6f4;border-radius:6px;background:#f6f9ff;color:#52647e;font-size:11px;line-height:1.3}
+.park-status b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.park-status i{flex:none;font-style:normal;color:#9aa8b9}
 .park-status>span{flex:none;color:#3157b3;font-weight:650}
 .park-status em{flex:none;color:#bb5647;font-style:normal}
-.service-bottom{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:15px;padding-top:10px;border-top:1px solid #edf1f6}
-.service-facts{display:flex;align-items:center;flex-wrap:wrap;gap:8px;color:#8492a5;font-size:11px}
-.service-facts i{width:2px;height:2px;border-radius:50%;background:#a0adbd}
-.service-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:2px}
-.service-actions :deep(.el-button){margin:0;padding:6px 8px}
+.park-status.is-on_sale{border-color:#bee9d9;background:#f1fbf7}.park-status.is-on_sale>span{color:#167c5f}
+.park-status.is-offline,.park-status.is-rejected{border-color:#f5d6c1;background:#fff8f4}.park-status.is-offline>span,.park-status.is-rejected>span{color:#ad6632}
+.service-unpublished{color:#8997a8;font-size:12px}
+.service-specs{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;min-width:0}
+.service-spec{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%;padding:5px 9px;border:1px solid #e5ebf5;border-radius:7px;background:#f8faff;font-size:12px}
+.service-spec b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5b73;font-weight:650}
+.service-spec strong{flex:none;color:#315ac4;font-weight:700}
+.service-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:15px}
+.service-actions :deep(.el-button){margin:0;min-height:32px;padding:6px 10px;border-radius:8px;font-size:12px}
+.service-actions :deep(.el-button>span){display:inline-flex;align-items:center;gap:4px}
+.service-sales{display:flex;align-items:flex-end;flex-direction:column;gap:3px;min-width:0;color:#8b99ac;font-size:11px;white-space:nowrap}
+.service-sales strong{color:#25354d;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
+.service-sales small{margin-top:auto;font-size:10px;color:#9aa7b8}
 .park-options{display:grid;gap:8px;margin-top:18px}.park-option{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px;padding:10px 0;border-bottom:1px solid #edf1f5}.park-option small{grid-column:1/-1;color:#ae5a4c;font-size:12px}
 </style>

@@ -342,3 +342,4 @@ button {
 .el-message-box__message p{margin:0;overflow-wrap:anywhere}
 .el-message-box__btns{display:flex;justify-content:flex-end;gap:8px;padding:4px 0 0 !important}
 .el-message-box__btns .el-button{min-width:72px;margin:0 !important;border-radius:8px !important;font-weight:650}
+.biz-field-tooltip{max-width:360px !important;max-height:min(50vh,320px);overflow:auto;white-space:normal !important;overflow-wrap:anywhere;line-height:1.6 !important}

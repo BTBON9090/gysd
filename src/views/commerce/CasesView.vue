@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { ElButton, ElCascader, ElDialog, ElInput, ElMessage, ElMessageBox, ElPagination } from 'element-plus'
+import { ElButton, ElCascader, ElDialog, ElInput, ElMessage, ElMessageBox, ElPagination, ElTooltip } from 'element-plus'
 import { BookOpen, ImagePlus, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
 import { CATEGORY_TREE, clone, useCommerceStore, type Case } from '@/stores/commerce'
 import { saveDemoImage } from '@/utils/demoMedia'
@@ -69,7 +69,7 @@ async function remove(item: Case) {
     <section class="cases-content"><div class="cases-section-head"><div><h2>案例库 <span>{{ c.data.cases.length }}</span></h2><p>按分类与关键词查找；点击封面可查看大图。</p></div></div>
       <div class="cases-toolbar"><div class="cases-filters"><ElCascader :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" /><ElInput v-model="filter.keyword" clearable placeholder="搜索案例标题或介绍" @keyup.enter="apply"><template #prefix><Search :size="15" /></template></ElInput></div><div class="cases-filter-actions"><ElButton type="primary" @click="apply">查询</ElButton><ElButton @click="reset">重置</ElButton></div></div>
       <div v-if="!rows.length" class="biz-empty"><h3>{{ hasFilter ? '无符合筛选条件的案例' : '暂无案例' }}</h3><p>{{ hasFilter ? '试试其他分类或关键词。' : '创建案例，展示已完成的服务经验。' }}</p><ElButton v-if="hasFilter" @click="reset">清除筛选</ElButton><ElButton v-else type="primary" @click="open()">创建案例</ElButton></div>
-      <div v-else class="case-list"><article v-for="item in pageRows" :key="item.id" class="case-row"><div class="case-cover"><DemoImage :source="item.cover" empty-text="案例封面" /></div><div class="case-main"><h3>{{ item.title }}</h3><p class="case-intro">{{ item.intro }}</p><p class="case-category">{{ item.category }}</p><div class="case-meta"><span>创建于 {{ item.createdAt.slice(0, 10) }}</span><span>关联 {{ c.data.services.filter(service => service.caseIds.includes(item.id)).length }} 项服务</span></div></div><div class="case-actions"><ElButton text type="primary" @click="open(item)"><Pencil :size="14" /> 编辑</ElButton><ElButton text type="danger" @click="remove(item)"><Trash2 :size="14" /> 删除</ElButton></div></article></div>
+      <div v-else class="case-list"><article v-for="item in pageRows" :key="item.id" class="case-row"><div class="case-cover"><DemoImage :source="item.cover" empty-text="案例封面" /></div><div class="case-main"><h3 :title="item.title">{{ item.title }}</h3><ElTooltip :content="item.intro" placement="top-start" popper-class="biz-field-tooltip" :show-after="250"><p class="case-intro">{{ item.intro }}</p></ElTooltip><p class="case-category" :title="item.category">{{ item.category }}</p><div class="case-meta"><span>创建于 {{ item.createdAt.slice(0, 10) }}</span><span>关联 {{ c.data.services.filter(service => service.caseIds.includes(item.id)).length }} 项服务</span></div></div><div class="case-actions"><ElButton text type="primary" @click="open(item)"><Pencil :size="14" /> 编辑</ElButton><ElButton text type="danger" @click="remove(item)"><Trash2 :size="14" /> 删除</ElButton></div></article></div>
       <div v-if="rows.length > pageSize" class="case-pagination"><span>共 {{ rows.length }} 条案例</span><ElPagination v-model:current-page="page" :page-size="pageSize" :total="rows.length" layout="prev, pager, next" background /></div>
     </section>
 
@@ -84,10 +84,10 @@ async function remove(item: Case) {
 <style scoped>
 .case-upload{position:relative;overflow:hidden}.case-upload input{display:block;position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
 .cases-page{min-width:800px}
-.cases-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:start}
+.cases-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
 .cases-filters{display:grid;grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:12px;min-width:0}
 .cases-toolbar .cases-filters :deep(.el-cascader),.cases-toolbar .cases-filters :deep(.el-input){width:100%;min-width:0}
-.cases-filter-actions{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.cases-filter-actions{display:flex;align-items:center;align-self:center;gap:8px;white-space:nowrap}
 .cases-filter-actions :deep(.el-button){margin:0}
 .case-main h3{font-size:16px;font-weight:700;margin-bottom:5px}
 .case-category{font-size:11px;font-weight:400;color:#8793a5;margin:6px 0 0}
