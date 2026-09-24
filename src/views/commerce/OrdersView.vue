@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElCascader, ElInput, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
+import { ElButton, ElCascader, ElDatePicker, ElInput, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
 import { ClipboardList, Search } from 'lucide-vue-next'
 import { CATEGORY_TREE, dateText, money, STATUS_LABEL, useCommerceStore, type Order, type OrderStatus } from '@/stores/commerce'
 
@@ -34,7 +34,7 @@ function pane(status: OrderStatus) { return status === 'pending_contract' ? 'con
 function detail(o: Order, focus = false) { router.push({ path: '/order/' + o.id, query: focus ? { tab: pane(o.status) } : {} }) }
 function primary(o: Order) {
   if (c.activeRefund(o.id)) return '处理退款'
-  if (o.status === 'pending_contract') return o.contractState === 'rejected' ? '重传合同' : '上传合同'
+  if (o.status === 'pending_contract') return o.contractState === 'waiting' ? '' : o.contractState === 'rejected' ? '重传合同' : '上传合同'
   if (o.status === 'in_service') return o.deliverables.length ? '重新提交' : '去履约'
   if (o.status === 'completed') return '去评价'
   return ''
@@ -59,7 +59,7 @@ function delivery(o: Order) {
           <ElCascader :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" />
           <ElInput v-model="filter.name" clearable placeholder="服务名称" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput>
           <ElInput v-model="filter.id" clearable placeholder="订单号" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput>
-          <label class="order-date"><span>下单时间</span><input v-model="filter.from" type="date" aria-label="开始日期"><b>至</b><input v-model="filter.to" type="date" aria-label="结束日期"></label>
+          <div class="order-date"><span>下单时间</span><ElDatePicker v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><b>至</b><ElDatePicker v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div>
           <div class="order-filter-actions"><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div>
         </div>
         <div class="biz-tabs order-tabs"><button v-for="[key, label] in tabs" :key="key" class="biz-tab" :class="{ active: tab === key }" @click="tab = key; page = 1">{{ label }} <span>{{ count(key) }}</span></button></div>
@@ -73,7 +73,7 @@ function delivery(o: Order) {
 
 <style scoped>
 .order-page{max-width:1360px;min-width:890px}.order-head{justify-content:flex-start;align-items:center}.order-head-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:11px;background:#eaf0ff;color:#3659c2}.order-head>div{flex:1}.order-total{color:#78869b;font-size:12px;white-space:nowrap}.order-total strong{color:#284ab0;font-size:19px;font-variant-numeric:tabular-nums}
-.order-filters{display:grid;grid-template-columns:minmax(155px,1.1fr) minmax(145px,1fr) minmax(135px,.9fr) minmax(130px,.85fr);gap:10px;align-items:center}.order-filters :deep(.el-select),.order-filters :deep(.el-cascader),.order-filters :deep(.el-input){width:100%;min-width:0}.order-date{grid-column:span 3;display:flex;align-items:center;gap:8px;min-width:0;color:#6b7a90;font-size:12px}.order-date span{white-space:nowrap}.order-date b{font-weight:400}.order-date input{width:150px;max-width:34%;height:32px;border:1px solid #d8e1ee;border-radius:7px;padding:0 7px;background:#fff;color:#34465c;font:inherit}.order-filter-actions{display:flex;gap:8px;justify-content:flex-end}.order-filter-actions :deep(.el-button){margin:0}.order-tabs{margin:10px 0 0;flex-wrap:nowrap;overflow-x:auto}.order-tabs .biz-tab{flex:none;padding:10px 13px;white-space:nowrap}.order-tabs .biz-tab span{font-size:11px;color:#8c99ac}.order-tabs .biz-tab.active span{color:#3153bd}
+.order-filters{display:grid;grid-template-columns:minmax(155px,1.1fr) minmax(145px,1fr) minmax(135px,.9fr) minmax(130px,.85fr);gap:10px;align-items:center}.order-filters :deep(.el-select),.order-filters :deep(.el-cascader),.order-filters :deep(.el-input){width:100%;min-width:0}.order-date{grid-column:span 3;display:flex;align-items:center;gap:8px;min-width:0;color:#6b7a90;font-size:12px}.order-date span{white-space:nowrap}.order-date b{font-weight:400}.order-date :deep(.el-date-editor){width:150px;max-width:35%;height:32px}.order-filter-actions{display:flex;gap:8px;justify-content:flex-end}.order-filter-actions :deep(.el-button){margin:0}.order-tabs{margin:10px 0 9px;flex-wrap:nowrap;overflow-x:auto;border-bottom:0}.order-tabs .biz-tab{flex:none;padding:10px 13px;white-space:nowrap}.order-tabs .biz-tab span{font-size:11px;color:#8c99ac}.order-tabs .biz-tab.active span{color:#3153bd}
 .order-table-wrap{overflow-x:auto;border:1px solid #e1e8f1;border-radius:11px;background:#fff}.order-table{width:100%;border-collapse:collapse;min-width:940px;text-align:left;font-size:12px}.order-table th{background:#f7f9fd;color:#6d7d94;font-weight:700;white-space:nowrap}.order-table th,.order-table td{padding:15px 13px;border-bottom:1px solid #ecf0f5;vertical-align:middle}.order-table tr:last-child td{border-bottom:0}.order-table tbody tr:hover{background:#fbfcff}.order-info{min-width:205px}.order-info strong{display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#21314a;font-size:13px}.order-info span,.order-info small,.order-amount small{display:block;margin-top:5px;color:#8895a7;font-size:11px}.order-park{min-width:150px;max-width:210px;line-height:1.5;color:#46566d}.order-delivery{min-width:166px;max-width:195px;color:#52637a;line-height:1.5}.order-amount{min-width:135px;white-space:nowrap}.order-amount strong{color:#233853;font-size:15px;font-variant-numeric:tabular-nums}.order-actions{display:flex;align-items:center;gap:4px;white-space:nowrap}.order-actions :deep(.el-button){margin:0}.order-pagination{display:flex;justify-content:space-between;align-items:center;padding-top:18px;color:#77869b;font-size:12px}
-@media(max-width:1130px){.order-filters{grid-template-columns:repeat(4,minmax(0,1fr))}.order-date{grid-column:span 3}.order-date input{width:130px}}
+@media(max-width:1130px){.order-filters{grid-template-columns:repeat(4,minmax(0,1fr))}.order-date{grid-column:span 3}.order-date :deep(.el-date-editor){width:130px}}
 </style>

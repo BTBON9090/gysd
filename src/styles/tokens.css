@@ -8,6 +8,7 @@
    ============================================================ */
 
 :root {
+  --biz-content-width: 1190px;
   /* ===== 品牌主色：高级蓝（略暖） ===== */
   --brand: #3b63d3;
   --brand-hover: #4a71de;
@@ -192,6 +193,7 @@ button {
 
 /* ===== Element Plus 覆盖：贴合令牌 ===== */
 :root {
+  --biz-content-width: 1190px;
   --el-color-primary: #3b63d3;
   --el-color-primary-light-3: #6b8ae0;
   --el-color-primary-light-5: #96aae9;

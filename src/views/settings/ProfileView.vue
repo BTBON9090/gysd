@@ -416,7 +416,7 @@ onUnmounted(stopCountdown)
 
 <style scoped>
 .profile-page {
-  max-width: 1040px;
+  max-width: var(--biz-content-width, 1190px);
   margin: 0 auto;
   padding: var(--sp-page-y) var(--sp-page-x) 28px;
 }
