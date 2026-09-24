@@ -67,6 +67,46 @@ function read(key: string, fallback: CommerceData): CommerceData {
   return fallback
 }
 export function emptyService(): Service { return { id: id(), category: '', name: '', intro: '', cover: '', regions: [], media: [], detail: '', guarantee: '', images: [], caseIds: [], faqs: [], taxRate: 6, specs: [{ name: '', point: '', price: 0, unit: '项', startDays: 0, dayType: '自然日', deliveryDays: 1, standard: '' }], listings: {}, updatedAt: now(), published: false } }
+function demoCover(title: string, color: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520"><rect width="800" height="520" fill="#f4f7fc"/><circle cx="667" cy="92" r="153" fill="${color}" opacity=".15"/><circle cx="723" cy="428" r="204" fill="${color}" opacity=".11"/><path d="M80 358h640M80 388h435" stroke="${color}" stroke-width="5" opacity=".19"/><rect x="80" y="83" width="58" height="8" rx="4" fill="${color}"/><text x="80" y="294" fill="#25344f" font-family="sans-serif" font-size="55" font-weight="700">${title}</text><text x="83" y="334" fill="${color}" font-family="sans-serif" font-size="21">WAN LIAN YI DA · DEMO</text></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+function demoData(base: CommerceData): CommerceData {
+  const first = base.parks[0]
+  const second = PARK_OPTIONS.find(park => park.id !== first.id && park.name !== first.name)!
+  const stamp = now()
+  const cases: Case[] = [
+    { id: 'demo-case-process', category: CATEGORIES[1].value, title: '园区企业审批流程自动化', intro: '为园区企业梳理审批节点，交付流程配置、培训与上线支持，缩短跨部门协作时间。', cover: demoCover('流程自动化', '#4c69c7'), createdAt: plusDays(stamp, -20) },
+    { id: 'demo-case-tax', category: CATEGORIES[2].value, title: '企业财税咨询与申报支持', intro: '针对成长型企业的财税问题形成诊断清单，提供申报辅导与定期答疑。', cover: demoCover('财税咨询', '#15948a'), createdAt: plusDays(stamp, -16) },
+    { id: 'demo-case-recruit', category: CATEGORIES[3].value, title: '园区企业招聘流程优化', intro: '帮助企业建立岗位画像与面试评估表，提升招聘流程的透明度和效率。', cover: demoCover('招聘服务', '#ad7a3f'), createdAt: plusDays(stamp, -12) },
+  ]
+  const makeService = (serviceId: string, name: string, category: string, cover: string, price: number, caseId: string): Service => ({
+    ...emptyService(), id: serviceId, name, category, cover, intro: `面向园区企业提供${name}，从需求梳理到成果交付全程可追踪。`,
+    detail: `先与客户确认目标和范围，再执行${name}，交付可复核的成果与说明文档。`, guarantee: '按确认的交付标准执行，提供过程沟通与售后答疑。',
+    images: [cover], caseIds: [caseId], faqs: [{ question: '服务如何开始？', answer: '下单后由服务团队联系确认需求和计划。' }],
+    specs: [{ name: '标准版', point: '适合单个业务场景', price, unit: '项', startDays: 2, dayType: '工作日', deliveryDays: 15, standard: '交付方案文档、实施记录与验收说明' }],
+    updatedAt: stamp, published: true,
+  })
+  const sale = makeService('demo-service-sale', '企业数字化流程咨询与自动化实施', CATEGORIES[1].value, demoCover('数字化实施', '#4664c2'), 9800, cases[0].id)
+  sale.listings = { [first.id]: { status: 'on_sale', at: plusDays(stamp, -14) }, [second.id]: { status: 'offline', at: plusDays(stamp, -3) } }
+  const reviewing = makeService('demo-service-review', '企业财税顾问服务', CATEGORIES[2].value, demoCover('财税顾问', '#15948a'), 2600, cases[1].id)
+  reviewing.listings = { [first.id]: { status: 'reviewing', at: plusDays(stamp, -1) } }
+  const rejected = makeService('demo-service-rejected', '园区人才招聘方案', CATEGORIES[3].value, demoCover('人才招聘', '#ad7a3f'), 4500, cases[2].id)
+  rejected.listings = { [second.id]: { status: 'rejected', reason: '请补充服务交付说明后重新提交。', at: plusDays(stamp, -2) } }
+  const draft = makeService('demo-service-draft', '会议空间运营支持', CATEGORIES[4].value, demoCover('空间运营', '#6a75b3'), 1200, cases[0].id)
+  draft.published = false; draft.listings = {}
+  const order = (orderId: string, status: OrderStatus, paid: number): Order => ({ id: orderId, serviceId: sale.id, serviceName: sale.name, parkId: first.id, category: sale.category, customer: '园区企业客户（演示）', amount: 9800, paid, status, createdAt: plusDays(stamp, -10), contractFile: '', contractState: 'none', deliverables: [], deliveryNote: '', acceptanceAt: '', completedAt: '', afterSaleEnd: '', shareRate: 10, afterSaleDays: 7, refunded: 0, settlement: 'waiting' })
+  const completed = order('DEMO-ORDER-001', 'completed', 9800)
+  completed.contractState = 'confirmed'; completed.contractFile = '合作协议.pdf'; completed.completedAt = plusDays(stamp, -6); completed.afterSaleEnd = plusDays(stamp, 1)
+  const inService = order('DEMO-ORDER-002', 'in_service', 9800)
+  inService.contractState = 'confirmed'; inService.contractFile = '合作协议.pdf'
+  const pendingContract = order('DEMO-ORDER-003', 'pending_contract', 9800)
+  const pendingPayment = order('DEMO-ORDER-004', 'pending_payment', 0)
+  const refunds: Refund[] = [{ id: 'demo-refund-001', orderId: inService.id, requested: 1200, agreed: 1200, reason: '客户调整交付范围', status: 'pending', decision: 'continue', note: '', createdAt: stamp }]
+  const invoices: Invoice[] = [{ id: 'demo-invoice-001', kind: 'customer', orderIds: [completed.id], parkId: first.id, amount: 9800, number: 'DEMO-INV-001', file: '演示凭证.pdf', status: 'issued', title: '园区企业客户（演示）', email: 'demo@example.com', createdAt: stamp }]
+  const reviews: Review[] = [{ id: 'demo-review-001', orderId: completed.id, parkId: first.id, direction: 'to_supplier', score: 5, content: '沟通清晰，交付成果符合预期。', anonymous: false, images: [], followup: false, createdAt: stamp }]
+  return { ...base, parks: [first, { ...second, joinedAt: plusDays(stamp, -12) }], shop: { name: base.shop.name || '园区企业服务示例店铺', intro: base.shop.intro || '提供数字化、财税与人才服务，帮助园区企业高效开展业务。', logo: demoCover('企业服务', '#4664c2'), introImages: [demoCover('服务场景', '#15948a')], teamImages: [demoCover('专业团队', '#ad7a3f')], savedAt: stamp }, cases, services: [sale, reviewing, rejected, draft], orders: [completed, inService, pendingContract, pendingPayment], refunds, invoices, reviews, walletOpen: true }
+}
 export function serviceStatus(s: Service, parkId?: string, allParkIds: string[] = []): ListingStatus | 'draft' {
   if (parkId) return s.listings[parkId]?.status || 'draft'
   const statuses = Object.values(s.listings).map(x => x.status)
@@ -77,8 +117,8 @@ export const useCommerceStore = defineStore('commerce', () => {
   const ob = useOnboardingStore()
   const key = computed(() => `gysd-commerce-${ob.activeId}`)
   const fallback = () => defaults(ob.draft.park, ob.draft.serviceName || ob.draft.entityName, ob.draft.merchantIntro)
-  const data = ref<CommerceData>(read(key.value, fallback()))
-  watch(key, () => { data.value = read(key.value, fallback()); refreshTimedTransitions() })
+  const data = ref<CommerceData>(read(key.value, demoData(fallback())))
+  watch(key, () => { data.value = read(key.value, demoData(fallback())); refreshTimedTransitions() })
   watch(() => ob.draft.park, (name) => {
     if (!name || data.value.services.length || data.value.orders.length || data.value.parks.length !== 1) return
     const old = data.value.parks[0]
@@ -100,7 +140,7 @@ export const useCommerceStore = defineStore('commerce', () => {
   function deleteCase(caseId: string) { data.value.cases = data.value.cases.filter(x => x.id !== caseId); data.value.services.forEach(s => s.caseIds = s.caseIds.filter(x => x !== caseId)) }
   function saveService(service: Service, parkIds?: string[]) {
     const copy = clone(service); copy.updatedAt = now()
-    if (parkIds) { copy.published = true; copy.listings = Object.fromEntries(parkIds.map(parkId => [parkId, { status: 'reviewing', at: now() }])) }
+    if (parkIds) { copy.published = true; copy.listings = { ...copy.listings, ...Object.fromEntries(parkIds.map(parkId => [parkId, { status: 'reviewing', at: now() }])) } }
     const at = data.value.services.findIndex(x => x.id === copy.id)
     if (at < 0) data.value.services.unshift(copy); else data.value.services[at] = copy
   }
@@ -150,16 +190,42 @@ export const useCommerceStore = defineStore('commerce', () => {
     }
   }
   function reset() { data.value = fallback() }
-  function seed() {
-    reset(); data.value.walletOpen = true; const first = data.value.parks[0].id
-    const s = emptyService(); s.name = '企业数字化流程咨询与自动化实施'; s.category = CATEGORIES[1].value; s.intro = '梳理业务流程并交付可落地的自动化方案。'; s.detail = '包含需求访谈、流程设计、方案实施与交付验收。'; s.guarantee = '按约定里程碑交付，提供 7 日售后支持。'; s.specs[0] = { name: '标准版', point: '适合单条业务流程', price: 9800, unit: '项', startDays: 2, dayType: '工作日', deliveryDays: 15, standard: '交付流程文档、系统配置及培训记录' }; s.published = true; s.listings[first] = { status: 'on_sale', at: now() }; data.value.services.push(s)
-    const a = createOrder(s.id, first, 'completed')!; a.contractState = 'confirmed'; a.contractFile = '合作协议.pdf'; a.completedAt = plusDays(now(), -10); a.afterSaleEnd = plusDays(now(), -3); a.settlement = 'settled'
-    const b = createOrder(s.id, first, 'in_service')!; b.contractState = 'confirmed'; b.contractFile = '合作协议.pdf'
-    const c = createOrder(s.id, first, 'pending_contract')!; c.contractState = 'none'
-    createOrder(s.id, first, 'pending_payment')
-    data.value.reviews.push({ id: id(), orderId: a.id, parkId: first, direction: 'to_supplier', score: 5, content: '沟通高效，方案清晰，交付符合预期。', anonymous: false, images: [], followup: false, createdAt: now() })
+  function seed() { data.value = demoData(fallback()) }
+  function preparePublishDemo() {
+    const sample = demoData(fallback()).services.find(item => item.id === 'demo-service-sale')!
+    const draft = clone(sample)
+    draft.id = 'demo-service-publish-flow'
+    draft.name = `${sample.name}（发布演示）`
+    draft.published = false
+    draft.listings = {}
+    const at = data.value.services.findIndex(item => item.id === draft.id)
+    if (at < 0) data.value.services.unshift(draft)
+    else if (data.value.services[at].published) data.value.services[at] = draft
+    return draft.id
+  }
+  function addMissingExamples() {
+    const sample = demoData(fallback())
+    const current = data.value
+    for (const park of sample.parks) if (!current.parks.some(item => item.id === park.id || item.name === park.name)) current.parks.push(park)
+    if (!current.shop.savedAt) current.shop = sample.shop
+    const appendMissing = <T extends { id: string }>(target: T[], examples: T[]) => {
+      const present = new Set(target.map(item => item.id))
+      for (const item of examples) if (!present.has(item.id)) target.push(item)
+    }
+    appendMissing(current.cases, sample.cases)
+    appendMissing(current.services, sample.services)
+    appendMissing(current.orders, sample.orders)
+    appendMissing(current.refunds, sample.refunds)
+    appendMissing(current.invoices, sample.invoices)
+    appendMissing(current.reviews, sample.reviews)
+    current.walletOpen = true
+  }
+  const sampleMarker = `gysd-demo-catalog-v2-${ob.activeId}`
+  if (!localStorage.getItem(sampleMarker)) {
+    addMissingExamples()
+    localStorage.setItem(sampleMarker, '1')
   }
   refreshTimedTransitions()
   window.setInterval(refreshTimedTransitions, 60_000)
-  return { data, joinedParks, availableParks, activeRefund, customerInvoiced, invoiceable, joinPark, saveShop, saveCase, deleteCase, saveService, changeListing, deleteService, createOrder, submitContract, confirmContract, requestAcceptance, concludeAcceptance, createRefund, decideRefund, finalizeRefund, cancelRefund, issueInvoice, returnInvoice, addReview, reset, seed, refreshTimedTransitions }
+  return { data, joinedParks, availableParks, activeRefund, customerInvoiced, invoiceable, joinPark, saveShop, saveCase, deleteCase, saveService, changeListing, deleteService, createOrder, submitContract, confirmContract, requestAcceptance, concludeAcceptance, createRefund, decideRefund, finalizeRefund, cancelRefund, issueInvoice, returnInvoice, addReview, reset, seed, addMissingExamples, preparePublishDemo, refreshTimedTransitions }
 })

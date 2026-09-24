@@ -71,4 +71,5 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
 .park-page{min-width:800px}
 .park-card-top :deep(.el-tag){display:inline-flex;align-items:center;gap:4px;line-height:1;white-space:nowrap}
 .park-card-top :deep(.el-tag svg){flex:none}
+.park-group{margin-top:32px;padding-top:26px}.park-group-head{margin-bottom:13px}.park-grid{gap:16px}.park-card-top{margin-bottom:10px}.park-card h3{margin-bottom:5px}.park-date{margin-top:6px}.park-stats{margin-top:20px}.available-group{margin-top:38px}
 </style>

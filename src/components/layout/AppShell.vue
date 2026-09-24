@@ -27,7 +27,7 @@ watch(() => route.path, async () => {
         <BizStateView v-if="bizRoute && acc.dataState !== 'ready'" />
         <router-view v-else v-slot="{ Component }">
           <transition name="page" mode="out-in">
-            <component :is="Component" :key="route.path" :page-title="pageTitle" />
+            <component :is="Component" :key="`${route.path}:${route.query.demo || ''}`" :page-title="pageTitle" />
           </transition>
         </router-view>
       </main>

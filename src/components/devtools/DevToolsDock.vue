@@ -16,7 +16,7 @@ import { useAcceptanceStore, DESIGN_VERSIONS, type PageDataState, type EntryStat
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useCommerceStore } from '@/stores/commerce'
 import DragHandle from '@/components/devtools/DragHandle.vue'
-import { ElButton, ElMessage, ElSwitch } from 'element-plus'
+import { ElButton, ElMessage, ElMessageBox, ElSwitch } from 'element-plus'
 
 const acc = useAcceptanceStore()
 const commerce = useCommerceStore()
@@ -67,6 +67,7 @@ const stateOptions: { value: PageDataState; label: string }[] = [
   { value: 'empty', label: '空态' },
   { value: 'error', label: '异常' },
 ]
+const publishSteps = [2, 3, 4] as const
 
 const entryOptions: { value: EntryStatus; label: string }[] = [
   { value: 'approved', label: '已入驻' },
@@ -123,8 +124,20 @@ function fillAndGo() {
   acc.panelOpen = false
   window.location.hash = '#/onboarding/step/5'
 }
-function seedCommerce() { commerce.seed(); acc.setEntryStatus('approved'); ElMessage.success('交易演示场景已生成') }
-function resetCommerce() { commerce.reset(); ElMessage.success('当前主体的交易演示数据已重置') }
+function fillCommerceExamples() { commerce.addMissingExamples(); acc.setEntryStatus('approved'); acc.setDataState('ready'); ElMessage.success('各目录示例数据已补齐') }
+async function resetCommerce() {
+  try { await ElMessageBox.confirm('将清空当前主体的店铺、案例、服务和交易演示数据。您也可以只切换上方「空态」预览，无需清空数据。', '清空当前主体数据？', { type: 'warning', confirmButtonText: '确认清空', cancelButtonText: '取消' }) }
+  catch { return }
+  commerce.reset(); ElMessage.success('当前主体数据已清空')
+}
+function publishScenario(target: 'blank' | 1 | 2 | 3 | 4) {
+  acc.setEntryStatus('approved')
+  acc.setDataState('ready')
+  if (target === 'blank') { panelGo('/service/new'); return }
+  const id = commerce.preparePublishDemo()
+  panelGo(`/service/edit/${id}?step=${target}&demo=${Date.now()}`)
+  ElMessage.success(`已填入发布示例，跳到第 ${target} 步`)
+}
 function customerOrder() { const s=commerce.data.services.find(x=>x.id===demoService.value);const parkId=s&&Object.entries(s.listings).find(([,x])=>x.status==='on_sale')?.[0];if(!s||!parkId){ElMessage.warning('请先选择已上架服务');return}const order=commerce.createOrder(s.id,parkId);demoOrder.value=order?.id||'';ElMessage.success('客户下单演示已生成') }
 function setServiceReview(status: 'on_sale' | 'rejected' | 'offline') {
   const s = commerce.data.services.find(x => x.id === demoService.value)
@@ -251,9 +264,16 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
           </section>
 
           <section class="sec">
+            <h3><Wand2 :size="13" /> 发布服务流程</h3>
+            <p class="demo-hint">空表单用于验收必填反馈；填入示例后可直接跳到任一步，检查预览和提交。</p>
+            <div class="demo-grid"><ElButton size="small" @click="publishScenario('blank')">空白发布</ElButton><ElButton size="small" type="primary" @click="publishScenario(1)">填满并开始</ElButton></div>
+            <div class="demo-grid publish-steps"><ElButton v-for="n in publishSteps" :key="n" size="small" @click="publishScenario(n)">跳到第 {{ n }} 步</ElButton></div>
+          </section>
+
+          <section class="sec">
             <h3><Wand2 :size="13" /> 交易场景模拟</h3>
-            <p class="demo-hint">仅修改当前主体的本地演示状态；园区、客户和财务动作在这里模拟。</p>
-            <div class="demo-grid"><ElButton size="small" type="primary" @click="seedCommerce">填入交易场景</ElButton><ElButton size="small" @click="resetCommerce">重置交易数据</ElButton></div>
+            <p class="demo-hint">各目录首次打开已有示例。下方可补齐缺失样例，或模拟园区、客户和财务动作。</p>
+            <div class="demo-grid"><ElButton size="small" type="primary" @click="fillCommerceExamples">补齐各目录示例</ElButton><ElButton size="small" @click="resetCommerce">清空当前主体数据</ElButton></div>
             <div class="demo-grid"><ElButton size="small" @click="commerce.data.walletOpen = !commerce.data.walletOpen">钱包：{{commerce.data.walletOpen?'已开户':'未开户'}}</ElButton></div>
             <select v-model="demoService" class="demo-select"><option value="">选择服务</option><option v-for="s in commerce.data.services" :key="s.id" :value="s.id">{{s.name || '未命名服务'}}</option></select>
             <div class="demo-grid"><ElButton size="small" @click="setServiceReview('on_sale')">审核通过</ElButton><ElButton size="small" @click="setServiceReview('rejected')">审核驳回</ElButton><ElButton size="small" @click="setServiceReview('offline')">运营下架</ElButton></div>
@@ -340,6 +360,7 @@ export default { components: { WorkspaceProto } }
   z-index: 90;
 }
 .demo-grid{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.demo-grid :deep(.el-button){margin:0;border-radius:7px}.demo-select{width:100%;height:30px;margin-top:7px;padding:0 7px;border:1px solid #d8e1ef;border-radius:7px;background:#fff;color:#354862;font-size:12px}
+.publish-steps :deep(.el-button){flex:1;min-width:0}
 
 .dock-close {
   height: 32px;
