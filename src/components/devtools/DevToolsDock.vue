@@ -15,11 +15,13 @@ import {
 import { useAcceptanceStore, DESIGN_VERSIONS, type PageDataState, type EntryStatus } from '@/stores/acceptance'
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useCommerceStore } from '@/stores/commerce'
+import { useMerchantChangeStore } from '@/stores/merchantChange'
 import DragHandle from '@/components/devtools/DragHandle.vue'
 import { ElButton, ElMessage, ElMessageBox, ElSwitch } from 'element-plus'
 
 const acc = useAcceptanceStore()
 const commerce = useCommerceStore()
+const merchantChange = useMerchantChangeStore()
 const demoService = ref('')
 const demoOrder = ref('')
 const demoRefund = ref('')
@@ -268,6 +270,11 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             <p class="demo-hint">空表单用于验收必填反馈；填入示例后可直接跳到任一步，检查预览和提交。</p>
             <div class="demo-grid"><ElButton size="small" @click="publishScenario('blank')">空白发布</ElButton><ElButton size="small" type="primary" @click="publishScenario(1)">填满并开始</ElButton></div>
             <div class="demo-grid publish-steps"><ElButton v-for="n in publishSteps" :key="n" size="small" @click="publishScenario(n)">跳到第 {{ n }} 步</ElButton></div>
+          </section>
+
+          <section class="sec">
+            <h3><Wand2 :size="13" /> 商户档案变更</h3>
+            <div class="demo-grid"><ElButton size="small" @click="panelGo('/merchant/change')">打开变更向导</ElButton><ElButton size="small" :disabled="merchantChange.current()?.status !== 'reviewing'" @click="merchantChange.review('approved')">模拟审核通过</ElButton><ElButton size="small" :disabled="merchantChange.current()?.status !== 'reviewing'" @click="merchantChange.review('rejected')">模拟审核驳回</ElButton></div>
           </section>
 
           <section class="sec">

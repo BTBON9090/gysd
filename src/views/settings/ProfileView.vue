@@ -243,11 +243,7 @@ onUnmounted(stopCountdown)
 
 <template>
   <div class="profile-page">
-    <header class="page-intro">
-      <p class="eyebrow">基础设置 <span>/</span> 个人信息</p>
-      <h1>个人信息</h1>
-      <p class="page-subtitle">维护头像、姓名与登录密码；注册园区、当前商户与当前角色为只读信息。</p>
-    </header>
+    <header class="page-intro"><span class="intro-icon"><UserRound :size="24" /></span><div><h1>个人信息</h1><p class="page-subtitle">维护头像、姓名与登录密码；注册园区、当前商户与当前角色为只读信息。</p></div></header>
 
     <div class="card-grid">
       <!-- 个人资料 -->
@@ -425,11 +421,12 @@ onUnmounted(stopCountdown)
   padding: var(--sp-page-y) var(--sp-page-x) 28px;
 }
 
-.page-intro { margin-bottom: 22px; }
+.page-intro { display:flex;align-items:center;gap:15px;margin-bottom:22px; }
+.intro-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:11px;background:#eaf0ff;color:#3659c2}
 .eyebrow { margin: 0 0 9px; color: #3656c5; font-size: 12px; font-weight: 700; }
 .eyebrow span { margin: 0 7px; color: #a9b5c7; }
 .page-intro h1 { margin: 0; color: #17233b; font-size: 27px; letter-spacing: -0.025em; }
-.page-subtitle { margin: 7px 0 0; color: #586880; font-size: 14px; }
+.page-subtitle { margin: 3px 0 0; color: #586880; font-size: 14px; }
 
 .card-grid { display: grid; gap: 16px; }
 .card {

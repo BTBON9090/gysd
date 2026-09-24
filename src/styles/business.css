@@ -6,3 +6,6 @@
 .biz-page .el-tag--success{background:#e7f6ee;border-color:#bfe6d1;color:#117a5a}.biz-page .el-tag--danger{background:#fff0ef;border-color:#f1c7c3;color:#b13d36}.biz-page .el-tag--warning{background:#fff6e8;border-color:#efdcb4;color:#9a681d}.biz-page .el-tag--info{background:#f0f3f7;border-color:#dce3ed;color:#56677f}.biz-page .el-tag--primary{background:#edf2ff;border-color:#cad7fa;color:#3255bc}
 @media(max-width:850px){.biz-table{display:block;max-width:100%;overflow-x:auto}.biz-table th,.biz-table td{white-space:nowrap}.biz-page{max-width:100%}}
 .biz-table{display:block;max-width:100%;overflow-x:auto}.biz-table th,.biz-table td{white-space:nowrap}
+.biz-head h1{margin-bottom:3px}
+.list-sticky{position:sticky;top:0;z-index:12;padding:10px 0;background:rgba(255,255,255,.97);box-shadow:0 1px 0 #e8edf4}
+.biz-page>.biz-toolbar{position:sticky;top:0;z-index:12;padding:10px 0;background:rgba(255,255,255,.97);box-shadow:0 1px 0 #e8edf4}

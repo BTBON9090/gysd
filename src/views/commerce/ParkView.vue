@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ElButton, ElMessage, ElMessageBox, ElTag } from 'element-plus'
-import { ArrowUpRight, Building2, Check, ClipboardList, ExternalLink, MapPin, MapPinned, MessageSquareText, Plus, Store } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
+import { ElButton, ElInput, ElMessage, ElMessageBox, ElPagination, ElTag } from 'element-plus'
+import { ArrowUpRight, Building2, Check, ClipboardList, ExternalLink, MapPin, MapPinned, MessageSquareText, Plus, Search, Store } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useCommerceStore } from '@/stores/commerce'
 
 const c = useCommerceStore()
 const router = useRouter()
+const keyword = ref('')
+const page = ref(1)
+const available = computed(() => c.availableParks.filter(park => (park.name + park.address).includes(keyword.value.trim())))
+const pageParks = computed(() => available.value.slice((page.value - 1) * 9, page.value * 9))
+watch(() => available.value.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / 9))) })
 function count(parkId: string, kind: 'service' | 'order' | 'review') {
   if (kind === 'service') return c.data.services.filter(service => service.listings[parkId]?.status === 'on_sale').length
   if (kind === 'order') return c.data.orders.filter(order => order.parkId === parkId).length
@@ -22,7 +28,7 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
 </script>
 
 <template>
-  <div class="biz-page park-page">
+  <div class="biz-page park-page" :class="{ 'no-available': !c.availableParks.length }">
     <header class="biz-head park-head">
       <div class="park-heading">
         <span class="park-heading-icon"><MapPinned :size="25" :stroke-width="1.9" /></span>
@@ -50,15 +56,16 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
     </section>
 
     <section class="park-group available-group">
-      <div class="park-group-head"><div><h2>可申请园区 <span>{{ c.availableParks.length }}</span></h2><p>申请后即时加入，可在新园区发布服务。</p></div></div>
-      <div v-if="!c.availableParks.length" class="biz-empty"><h3>暂无可申请园区</h3><p>平台内可加入的园区都已展示在上方。</p></div>
+      <div class="park-group-head"><div><h2>可申请园区 <span>{{ c.availableParks.length }}</span></h2><p>选择园区并申请加入，加入后即可发布服务。</p></div><ElInput v-model="keyword" clearable placeholder="搜索园区名称或地址" @input="page = 1"><template #prefix><Search :size="15" /></template></ElInput></div>
+      <div v-if="!available.length" class="biz-empty"><h3>{{ keyword ? '暂无匹配园区' : '暂无可申请园区' }}</h3><p>{{ keyword ? '试试其他园区名称或地址。' : '当前没有更多可申请园区。' }}</p></div>
       <div v-else class="park-grid">
-        <article v-for="park in c.availableParks" :key="park.id" class="park-card available-card">
+        <article v-for="park in pageParks" :key="park.id" class="park-card available-card">
           <div class="park-card-top"><span class="park-card-icon"><MapPin :size="20" /></span><span class="available-label">开放申请</span></div>
           <h3>{{ park.name }}</h3><p class="park-meta"><MapPin :size="14" /> {{ park.address }}</p>
           <footer><ElButton type="primary" @click="join(park.id, park.name)"><Plus :size="14" /> 申请加入</ElButton><ElButton text @click="client(park.id)">查看园区客户端 <ExternalLink :size="14" /></ElButton></footer>
         </article>
       </div>
+      <div v-if="available.length > 9" class="park-pagination"><span>共 {{ available.length }} 个园区</span><ElPagination v-model:current-page="page" :page-size="9" :total="available.length" layout="prev, pager, next" background /></div>
     </section>
   </div>
 </template>
@@ -68,8 +75,14 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
 </style>
 
 <style scoped>
+.park-page{display:flex;flex-direction:column}.park-head{order:0;margin-bottom:11px}.available-group{order:1;margin-top:0;padding-top:18px;border-top:1px solid #e4eaf3}.joined-group{order:2;margin-top:29px;padding-top:23px}.park-group-head{display:flex;align-items:center;justify-content:space-between;gap:20px}.park-group-head :deep(.el-input){max-width:250px}.park-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.joined-group .park-grid:has(> :only-child){grid-template-columns:repeat(3,minmax(0,1fr))}.park-card{padding:15px 16px 12px}.park-card-top{margin-bottom:8px}.park-card-icon{width:32px;height:32px}.park-card h3{font-size:14px;margin:0 0 6px}.park-meta{font-size:11px}.park-date{font-size:11px;margin-top:5px}.park-stats{margin-top:12px;padding:11px 0}.park-stats button{padding:0 7px;grid-template-columns:14px 1fr}.park-stats strong{font-size:17px}.park-stats button>span{font-size:10px;margin-top:4px}.park-card footer{margin-top:8px}.available-card{border-style:solid;background:#fff}.available-card footer{margin-top:14px}.park-pagination{display:flex;justify-content:space-between;align-items:center;padding-top:16px;color:#77869b;font-size:12px}
+@media(max-width:1100px){.park-grid,.joined-group .park-grid:has(> :only-child){grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:800px){.park-grid,.joined-group .park-grid:has(> :only-child){grid-template-columns:1fr}}
+</style>
+
+<style scoped>
 .park-page{min-width:800px}
+.park-page.no-available .joined-group{order:1;margin-top:0;padding-top:18px}.park-page.no-available .available-group{order:2;margin-top:27px;padding-top:20px}.park-page.no-available .available-group .biz-empty{padding:20px}.park-page.no-available .available-group .biz-empty:before{width:32px;height:32px;margin-bottom:7px;background-size:18px}
 .park-card-top :deep(.el-tag){display:inline-flex;align-items:center;gap:4px;line-height:1;white-space:nowrap}
 .park-card-top :deep(.el-tag svg){flex:none}
-.park-group{margin-top:32px;padding-top:26px}.park-group-head{margin-bottom:13px}.park-grid{gap:16px}.park-card-top{margin-bottom:10px}.park-card h3{margin-bottom:5px}.park-date{margin-top:6px}.park-stats{margin-top:20px}.available-group{margin-top:38px}
+.park-group-head{margin-bottom:13px}.park-card-top{margin-bottom:10px}.park-card h3{margin-bottom:5px}.park-date{margin-top:6px}
 </style>

@@ -1,3 +1,4 @@
+@font-face{font-family:'D-DIN';src:url('/fonts/D-DIN-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
 /* ============================================================
    万联易达供应商端 · 设计令牌 V1.1
    方向：B 端骨架 + C 端手感（圆角/温度/微动效）
@@ -235,6 +236,7 @@ button {
 }
 .subject-popper { width: min(380px, calc(100vw - 24px)); }
 .subject-popper .el-select-dropdown__item { height: auto; min-height: 58px; padding: 7px 11px; margin: 3px 5px; border-radius: 8px; line-height: 1.35; }
+.subject-popper .el-select-dropdown__item:last-child{min-height:36px;height:36px;padding-top:5px;padding-bottom:5px}
 .subject-popper .el-select-dropdown__item.is-selected { background: #eef2ff; }
 .subject-option { position: relative; display: grid; gap: 3px; padding-right: 58px; }
 .subject-option strong { overflow: hidden; color: #233551; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }

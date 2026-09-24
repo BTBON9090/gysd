@@ -49,6 +49,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'wallet', name: 'wallet', component: () => import('@/views/commerce/WalletView.vue'), meta: { title: '我的钱包' } },
       { path: 'review', name: 'review', component: () => import('@/views/commerce/ReviewView.vue'), meta: { title: '评价中心' } },
       { path: 'merchant', name: 'merchant', component: () => import('@/views/merchant/MerchantArchiveView.vue'), meta: { title: '商户管理' } },
+      { path: 'merchant/change', name: 'merchant-change', component: () => import('@/views/merchant/MerchantChangeView.vue'), meta: { title: '入驻信息变更' } },
       { path: 'settings', name: 'settings', component: () => import('@/views/settings/ProfileView.vue'), meta: { title: '个人信息' } },
       { path: 'settings/member', name: 'settings-member', component: () => import('@/views/settings/MembersView.vue'), meta: { title: '成员管理' } },
     ],

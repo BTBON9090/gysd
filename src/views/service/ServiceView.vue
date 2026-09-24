@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElSelect, ElTag } from 'element-plus'
+import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElPopover, ElSelect, ElTag } from 'element-plus'
 import { ArrowDownToLine, ArrowUpToLine, Eye, HeartHandshake, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
 import ServicePreview from '@/components/service/ServicePreview.vue'
 import DemoImage from '@/components/commerce/DemoImage.vue'
@@ -29,13 +29,13 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 <template>
   <div class="biz-page service-page">
     <header class="biz-head service-head">
-      <div class="service-heading"><span class="service-heading-icon"><HeartHandshake :size="24" /></span><div><h1>服务管理</h1><p>按园区查看审核和上架状态，维护服务内容。</p></div></div>
+      <div class="service-heading"><span class="service-heading-icon"><HeartHandshake :size="24" /></span><div><h1>服务管理 <span class="service-count">{{ c.data.services.length }}</span></h1><p>按园区查看审核和上架状态，维护服务内容。</p></div></div>
       <ElButton type="primary" @click="create"><Plus :size="15" /> 发布服务</ElButton>
     </header>
     <section class="service-workspace">
-      <div class="service-section-head"><div><h2>我的服务 <span>{{c.data.services.length}}</span></h2><p>各园区独立审核；状态变化会更新在对应服务中。</p></div></div>
+      <div class="service-sticky list-sticky">
       <div class="service-filters"><div class="service-filter-fields"><ElSelect v-model="filter.park" clearable placeholder="全部已加入园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :label="p.name" :value="p.id"/></ElSelect><ElCascader :model-value="filter.category?filter.category.split(' / '):[]" :options="CATEGORY_TREE" :props="{checkStrictly:true}" clearable filterable placeholder="全部分类" @change="filter.category=Array.isArray($event)?$event.join(' / '):''"/><ElInput v-model="filter.name" clearable placeholder="搜索服务名称" @keyup.enter="query"><template #prefix><Search :size="15" /></template></ElInput></div><div class="service-filter-actions"><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div></div>
-      <div class="biz-tabs service-tabs"><button v-for="[key,label] in tabs" :key="key" class="biz-tab" :class="{active:tab===key}" @click="setTab(key)">{{label}} <span>{{count(key)}}</span></button></div>
+      <div class="biz-tabs service-tabs"><button v-for="[key,label] in tabs" :key="key" class="biz-tab" :class="{active:tab===key}" @click="setTab(key)">{{label}} <span>{{count(key)}}</span></button></div></div>
       <div v-if="!rows.length" class="biz-empty"><h3>{{c.data.services.length?'暂无匹配的服务':'暂无服务，发布第一个服务吧'}}</h3><p>{{c.data.services.length?'请调整筛选条件或清空筛选。':'提交后按园区审核。'}}</p><ElButton v-if="c.data.services.length" @click="reset">清空筛选</ElButton><ElButton v-else type="primary" @click="create">发布服务</ElButton></div>
       <div v-else class="service-list">
         <article v-for="s in rows" :key="s.id" class="service-card">
@@ -45,15 +45,15 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
               <div class="service-identity"><h3 :title="s.name">{{s.name||'未命名草稿'}}</h3><ElTag :type="aggregateTone(s)" effect="light">{{aggregateLabel(s)}}</ElTag></div>
               <p class="service-category" :title="s.category">{{s.category||'未选择分类'}}</p>
               <div class="service-park-statuses">
-                <span v-for="p in c.joinedParks" :key="p.id" class="park-status" :class="`is-${s.listings[p.id]?.status||'draft'}`" :title="s.listings[p.id]?.reason?`${p.name} · ${s.listings[p.id].reason} · ${s.listings[p.id].at.slice(0,19).replace('T',' ')}`:p.name"><b>{{p.name}}</b><i>·</i><span>{{s.listings[p.id]?STATUS_LABEL[s.listings[p.id].status]:'未发布'}}</span><em v-if="s.listings[p.id]?.forced">运营下架</em></span>
+                <template v-for="p in c.joinedParks" :key="p.id"><ElPopover v-if="s.listings[p.id]?.status==='rejected'" trigger="click" placement="bottom-start" :width="300"><template #reference><button type="button" class="park-status is-rejected actionable"><b>{{p.name}}</b><i>·</i><span class="reject-dot"></span><span>已驳回 · 查看原因</span></button></template><strong>园区审核未通过</strong><p class="reject-reason">{{ s.listings[p.id]?.reason || '请核对服务资料并重新提交。' }}</p><small>{{ s.listings[p.id]?.at.slice(0,19).replace('T',' ') }}</small></ElPopover><span v-else class="park-status" :class="`is-${s.listings[p.id]?.status||'draft'}`" :title="p.name"><b>{{p.name}}</b><i>·</i><span>{{s.listings[p.id]?STATUS_LABEL[s.listings[p.id].status]:'未发布'}}</span><em v-if="s.listings[p.id]?.forced">运营下架</em></span></template>
                 <span v-if="!c.joinedParks.length" class="service-unpublished">尚未加入园区</span>
               </div>
+              <div class="service-specs"><span v-for="(spec,index) in s.specs" :key="index" class="service-spec"><b>{{spec.name||`规格 ${index+1}`}}</b><strong>{{spec.price>0?`${money(spec.price)} / ${spec.unit}`:'价格待设置'}}</strong></span><span v-if="!s.specs.length" class="service-unpublished">尚未设置规格</span></div>
+              <small class="service-updated">更新 {{s.updatedAt.slice(0,10)}}</small>
             </div>
             <div class="service-card-side">
               <div class="service-sales"><span>累计销量</span><strong>{{sales(s)}}</strong></div>
-              <div class="service-specs"><span v-for="(spec,index) in s.specs" :key="index" class="service-spec"><b>{{spec.name||`规格 ${index+1}`}}</b><strong>{{spec.price>0?`${money(spec.price)} / ${spec.unit}`:'价格待设置'}}</strong></span><span v-if="!s.specs.length" class="service-unpublished">尚未设置规格</span></div>
               <div class="service-actions"><ElButton @click="detail=s"><Eye :size="14" />详情</ElButton><ElButton v-if="s.published" @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton v-if="!s.published" type="primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" type="primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" :type="eligible(s,'publish').length?'default':'warning'" plain @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
-              <small class="service-updated">更新 {{s.updatedAt.slice(0,10)}}</small>
             </div>
           </div>
         </article>
@@ -113,4 +113,9 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .selection-tools{margin:14px 0 4px}.selection-tools :deep(.el-button){min-height:32px;padding:5px 11px;margin:0;border-color:#d5dfef;background:#f8faff;color:#3b5da8}
 .park-options{display:grid;gap:8px;margin-top:18px}.park-option{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px;padding:10px 0;border-bottom:1px solid #edf1f5}.park-option small{grid-column:1/-1;color:#ae5a4c;font-size:12px}
 @media(max-width:1050px){.service-card-body{grid-template-columns:88px minmax(0,1fr) 250px;gap:13px}.service-cover{width:88px;height:88px}.service-card{padding:15px}.service-card-side{padding-left:12px}}
+</style>
+
+<style scoped>
+.service-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;vertical-align:middle;border-radius:6px;background:#edf2ff;color:#3458bd;font-size:12px;font-weight:700;letter-spacing:0}.service-workspace{padding-top:0}.service-sticky{margin-bottom:16px}.service-tabs{margin-bottom:0}.service-card-body{grid-template-columns:112px minmax(0,1fr) 205px}.service-card-content{display:flex;flex-direction:column;align-items:flex-start}.service-card-side{align-items:flex-start}.service-specs{max-width:100%;margin-top:12px}.service-spec{width:auto;max-width:100%;gap:13px}.service-updated{margin-top:9px;padding:0}.service-sales{justify-content:flex-start;gap:6px;font-size:12px}.service-sales strong{font-family:'D-DIN','DIN Alternate','Arial Narrow',sans-serif;font-size:23px;font-weight:700}.service-actions{align-items:flex-start;justify-content:flex-start;margin-top:16px}.park-status.actionable{cursor:pointer;font:inherit;text-align:left}.park-status.is-rejected{border-color:#f0b3ae;background:#fff0ef}.park-status.is-rejected>span{color:#b74239}.reject-dot{display:inline-block;flex:none;width:6px;height:6px;border-radius:50%;background:#d83731;box-shadow:0 0 0 3px #fbdad8}.reject-reason{margin:8px 0;color:#4b5d75;font-size:12px;line-height:1.6}
+@media(max-width:1050px){.service-card-body{grid-template-columns:88px minmax(0,1fr) 190px}}
 </style>

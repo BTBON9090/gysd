@@ -220,13 +220,13 @@ async function caseFile(event: Event) {
           <article v-for="(spec,index) in form.specs" :key="index" class="spec-card">
             <div class="spec-card-head"><span>规格 {{ String(index + 1).padStart(2, '0') }}</span><ElButton v-if="form.specs.length > 1" text type="danger" @click="form.specs.splice(index,1)"><Trash2 :size="14" />删除</ElButton></div>
             <div class="spec-fields">
-              <label class="biz-field spec-name">规格名称 <b class="required">*</b><ElInput v-model="spec.name" maxlength="30" placeholder="如标准版" /><small v-if="errors[`spec-${index}-name`]" class="field-error">{{ errors[`spec-${index}-name`] }}</small></label>
-              <label class="biz-field spec-point">卖点 <b class="required">*</b><ElInput v-model="spec.point" maxlength="100" placeholder="概括该规格的主要价值" /><small v-if="errors[`spec-${index}-point`]" class="field-error">{{ errors[`spec-${index}-point`] }}</small></label>
-              <label class="biz-field spec-price">价格（元） <b class="required">*</b><ElInputNumber v-model="spec.price" :min="0" :precision="2" :step="100" /><small v-if="errors[`spec-${index}-price`]" class="field-error">{{ errors[`spec-${index}-price`] }}</small></label>
-              <label class="biz-field spec-unit">计价单位 <b class="required">*</b><ElSelect v-model="spec.unit"><ElOption v-for="unit in ['项','次','件']" :key="unit" :label="unit" :value="unit" /></ElSelect><small v-if="errors[`spec-${index}-unit`]" class="field-error">{{ errors[`spec-${index}-unit`] }}</small></label>
-              <label class="biz-field spec-start">支付后开始时间 <b class="required">*</b><span class="spec-days"><ElInputNumber v-model="spec.startDays" :min="0" /><ElSelect v-model="spec.dayType"><ElOption label="自然日" value="自然日" /><ElOption label="工作日" value="工作日" /></ElSelect></span><small v-if="errors[`spec-${index}-startDays`]" class="field-error">{{ errors[`spec-${index}-startDays`] }}</small></label>
-              <label class="biz-field spec-delivery">交付周期（天） <b class="required">*</b><ElInputNumber v-model="spec.deliveryDays" :min="1" :max="9999" /><small v-if="errors[`spec-${index}-deliveryDays`]" class="field-error">{{ errors[`spec-${index}-deliveryDays`] }}</small></label>
-              <label class="biz-field spec-standard">交付标准 <b class="required">*</b><ElInput v-model="spec.standard" type="textarea" :rows="2" maxlength="500" show-word-limit placeholder="明确验收时应交付的内容" /><small v-if="errors[`spec-${index}-standard`]" class="field-error">{{ errors[`spec-${index}-standard`] }}</small></label>
+              <label class="biz-field spec-name"><span class="field-label">规格名称 <b class="required">*</b></span><ElInput v-model="spec.name" maxlength="30" placeholder="如标准版" /><small v-if="errors[`spec-${index}-name`]" class="field-error">{{ errors[`spec-${index}-name`] }}</small></label>
+              <label class="biz-field spec-point"><span class="field-label">卖点 <b class="required">*</b></span><ElInput v-model="spec.point" maxlength="100" placeholder="概括该规格的主要价值" /><small v-if="errors[`spec-${index}-point`]" class="field-error">{{ errors[`spec-${index}-point`] }}</small></label>
+              <label class="biz-field spec-price"><span class="field-label">价格（元） <b class="required">*</b></span><ElInputNumber v-model="spec.price" :min="0" :precision="2" :step="100" /><small v-if="errors[`spec-${index}-price`]" class="field-error">{{ errors[`spec-${index}-price`] }}</small></label>
+              <label class="biz-field spec-unit"><span class="field-label">计价单位 <b class="required">*</b></span><ElSelect v-model="spec.unit"><ElOption v-for="unit in ['项','次','件']" :key="unit" :label="unit" :value="unit" /></ElSelect><small v-if="errors[`spec-${index}-unit`]" class="field-error">{{ errors[`spec-${index}-unit`] }}</small></label>
+              <label class="biz-field spec-start"><span class="field-label">支付后开始时间 <b class="required">*</b></span><span class="spec-days"><ElInputNumber v-model="spec.startDays" :min="0" /><ElSelect v-model="spec.dayType"><ElOption label="自然日" value="自然日" /><ElOption label="工作日" value="工作日" /></ElSelect></span><small v-if="errors[`spec-${index}-startDays`]" class="field-error">{{ errors[`spec-${index}-startDays`] }}</small></label>
+              <label class="biz-field spec-delivery"><span class="field-label">交付周期（天） <b class="required">*</b></span><ElInputNumber v-model="spec.deliveryDays" :min="1" :max="9999" /><small v-if="errors[`spec-${index}-deliveryDays`]" class="field-error">{{ errors[`spec-${index}-deliveryDays`] }}</small></label>
+              <label class="biz-field spec-standard"><span class="field-label">交付标准 <b class="required">*</b></span><ElInput v-model="spec.standard" type="textarea" :rows="2" maxlength="500" show-word-limit placeholder="明确验收时应交付的内容" /><small v-if="errors[`spec-${index}-standard`]" class="field-error">{{ errors[`spec-${index}-standard`] }}</small></label>
             </div>
           </article>
         </section>
@@ -305,12 +305,13 @@ async function caseFile(event: Event) {
 .editor-rule-note{margin:18px 0 0;padding:12px 14px;border-radius:8px;background:#f2f6ff;color:#546986;font-size:12px;line-height:1.7}
 .spec-card{margin-top:16px;padding:18px 20px;border:1px solid #dfe7f1;border-radius:10px;background:#fbfcff}
 .spec-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;color:#3458b9;font-size:14px;font-weight:700}
-.spec-fields{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px 12px;align-items:start}
-.spec-fields .biz-field{min-width:0}.spec-name{grid-column:span 4}.spec-point{grid-column:span 8}.spec-price{grid-column:span 3}.spec-unit{grid-column:span 2}.spec-start{grid-column:span 4}.spec-delivery{grid-column:span 3}.spec-standard{grid-column:1/-1}
+.spec-fields{display:grid;grid-template-columns:minmax(165px,1.2fr) minmax(115px,.8fr) minmax(230px,1.6fr) minmax(155px,1fr);gap:17px 12px;align-items:start}
+.spec-fields .biz-field{display:flex;flex-direction:column;gap:6px;min-width:0}.spec-fields .field-label{display:block;line-height:20px}.spec-name{grid-column:span 2}.spec-point{grid-column:span 2}.spec-price,.spec-unit,.spec-start,.spec-delivery{grid-column:span 1}.spec-standard{grid-column:1/-1}
 .spec-fields :deep(.el-input),.spec-fields :deep(.el-select),.spec-fields :deep(.el-input-number),.spec-fields :deep(.el-textarea){width:100%;min-width:0}
 .spec-fields :deep(.el-select__wrapper){flex:1;min-width:0}
 .spec-fields .field-error{color:#bd3f3b;font-weight:600}
-.spec-days{display:grid;grid-template-columns:minmax(95px,1fr) 100px;gap:7px;margin-top:7px}
+.spec-days{display:grid;grid-template-columns:minmax(95px,1fr) 92px;gap:7px;margin-top:0}
+.spec-fields .biz-field>.el-input,.spec-fields .biz-field>.el-select,.spec-fields .biz-field>.el-textarea,.spec-fields .biz-field>.el-input-number,.spec-fields .biz-field>small{margin-top:0}
 .spec-days :deep(.el-input-number),.spec-days :deep(.el-select){margin-top:0}
 .park-select{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .park-select :deep(.el-checkbox.park-choice){display:flex;align-items:center;min-width:0;min-height:82px;margin:0;padding:14px 15px;border:1px solid #dde6f2;border-radius:10px;background:#fff;transition:border-color .15s,background .15s}
