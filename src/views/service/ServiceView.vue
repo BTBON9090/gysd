@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElPopover, ElSelect, ElTag } from 'element-plus'
+import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElPagination, ElPopover, ElSelect, ElTag } from 'element-plus'
 import { ArrowDownToLine, ArrowUpToLine, Eye, HeartHandshake, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
 import ServicePreview from '@/components/service/ServicePreview.vue'
 import DemoImage from '@/components/commerce/DemoImage.vue'
@@ -16,6 +16,7 @@ const sales=(service:Service)=>c.data.orders.filter(order=>order.serviceId===ser
 const filtered=computed(()=>c.data.services.filter(s=>(!applied.category||s.category.startsWith(applied.category))&&(!applied.name||s.name.includes(applied.name))).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)))
 function matches(s:Service,t:string){if(!applied.park)return t==='all'||serviceStatus(s,undefined,c.joinedParks.map(p=>p.id))===t;const own=s.listings[applied.park];if(t==='draft')return !own;if(!own)return false;return t==='all'||own.status===t}
 const tabRows=computed(()=>filtered.value.filter(s=>matches(s,tab.value)));const rows=computed(()=>tabRows.value.slice((page.value-1)*20,page.value*20));const count=(t:string)=>filtered.value.filter(s=>matches(s,t)).length
+watch(() => tabRows.value.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / 20))) })
 function setTab(t:string){tab.value=t;page.value=1}function query(){Object.assign(applied,filter);page.value=1}function reset(){Object.assign(filter,{park:'',category:'',name:''});tab.value='all';query()}
 function create(){if(!c.data.walletOpen){ElMessage.warning('发布服务前请先开通钱包');router.push('/wallet');return}router.push('/service/new')}
 function continueDraft(s:Service){router.push(`/service/edit/${s.id}`)}
@@ -58,7 +59,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
           </div>
         </article>
       </div>
-      <div v-if="tabRows.length>20" class="biz-footer"><span>共 {{tabRows.length}} 项</span><div class="biz-actions"><ElButton :disabled="page<=1" @click="page--">上一页</ElButton><span>{{page}}</span><ElButton :disabled="page*20>=tabRows.length" @click="page++">下一页</ElButton></div></div>
+      <div v-if="tabRows.length>20" class="biz-footer"><span>共 {{tabRows.length}} 项服务</span><ElPagination v-model:current-page="page" :page-size="20" :total="tabRows.length" layout="prev, pager, next" background /></div>
     </section>
 <ElDialog v-model="dialog" :title="action==='publish'?`上架园区 · ${target?.name||''}`: `下架园区 · ${target?.name||''}`" width="560px"><p class="biz-muted">{{action==='publish'?'选择要上架的园区。已上架或审核中的园区不可重复提交。':'仅可下架已上架园区；审核中的园区不可下架。'}}</p><div class="biz-actions selection-tools"><ElButton plain @click="selected=target?eligible(target,action).map(p=>p.id):[]">全选可操作</ElButton><ElButton plain :disabled="!selected.length" @click="selected=[]">取消全选</ElButton></div><ElCheckboxGroup v-model="selected" class="park-options"><div v-for="p in c.joinedParks" :key="p.id" class="park-option"><ElCheckbox :value="p.id" :disabled="!target||!eligible(target,action).some(x=>x.id===p.id)">{{p.name}}</ElCheckbox><ElTag :type="target?.listings[p.id]?.status==='on_sale'?'success':target?.listings[p.id]?.status==='rejected'?'danger':'info'">{{target?.listings[p.id]?STATUS_LABEL[target.listings[p.id].status]:'未发布'}}</ElTag><small v-if="target?.listings[p.id]?.reason">{{target.listings[p.id].reason}} · {{target.listings[p.id].at.slice(0,19).replace('T',' ')}}</small></div></ElCheckboxGroup><template #footer><ElButton @click="dialog=false">取消</ElButton><ElButton type="primary" :disabled="!selected.length" @click="submit">{{action==='publish'?'提交上架审核':'下架所选'}}</ElButton></template></ElDialog>
 <ElDialog :model-value="Boolean(detail)" @update:model-value="detail=null" title="客户端服务详情预览" width="760px"><ServicePreview v-if="detail" :service="detail"/></ElDialog></div></template>

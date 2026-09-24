@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElDialog, ElInput, ElMessage, ElOption, ElRate, ElSelect, ElSwitch, ElTag } from 'element-plus'
+import { ElButton, ElDialog, ElInput, ElMessage, ElOption, ElPagination, ElRate, ElSelect, ElSwitch, ElTag } from 'element-plus'
 import { dateText, useCommerceStore, type Order, type Review } from '@/stores/commerce'
 
 const c = useCommerceStore()
@@ -9,6 +9,8 @@ const router = useRouter()
 const route = useRoute()
 const tab = ref('all')
 const park = ref(String(route.query.park || ''))
+const page = ref(1)
+const pageSize = 10
 const dialog = ref(false)
 const error = ref('')
 const form = reactive<Review>({ id: '', orderId: '', parkId: '', direction: 'to_customer', score: 5, content: '', anonymous: false, images: [], followup: false, createdAt: '' })
@@ -23,7 +25,10 @@ function matches(o: Order, key: string) {
   const theirs = hasInitial(o.id, 'to_supplier')
   return key === 'all' || key === 'pending_me' && !mine || key === 'pending_client' && !theirs || key === 'both' && mine && theirs
 }
-const rows = computed(() => base.value.filter(o => matches(o, tab.value)))
+const tabRows = computed(() => base.value.filter(o => matches(o, tab.value)))
+const rows = computed(() => tabRows.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+watch([park, tab], () => { page.value = 1 })
+watch(() => tabRows.value.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / pageSize))) })
 const count = (key: string) => base.value.filter(o => matches(o, key)).length
 const incoming = computed(() => c.data.reviews.filter(x => x.direction === 'to_supplier'))
 const score = computed(() => incoming.value.length ? (incoming.value.reduce((sum, x) => sum + x.score, 0) / incoming.value.length).toFixed(1) : '—')
@@ -59,6 +64,7 @@ function submit() {
         <div class="review-columns"><section><h4>客户评价</h4><div v-if="customerReviews(o.id).length" v-for="item in customerReviews(o.id)" :key="item.id" class="review-entry"><strong>{{ item.score }}.0 ★ <small v-if="item.followup">追评</small></strong><p>{{ item.content }}</p><small>{{ dateText(item.createdAt) }}</small></div><p v-else class="biz-muted">客户尚未评价</p></section><section><h4>我的评价</h4><div v-if="myReviews(o.id).length" v-for="item in myReviews(o.id)" :key="item.id" class="review-entry"><strong>{{ item.score }}.0 ★ <small v-if="item.followup">追评</small></strong><p>{{ item.content }}</p><small>{{ dateText(item.createdAt) }}</small></div><p v-else class="biz-muted">尚未评价客户</p></section></div>
         <footer><ElButton text type="primary" @click="router.push({path:`/order/${o.id}`,query:{tab:'settlement'}})">查看订单</ElButton><ElButton v-if="!hasInitial(o.id,'to_customer')" type="primary" :disabled="!!c.activeRefund(o.id)" @click="open(o)">评价客户</ElButton><ElButton v-else-if="!hasFollowup(o.id)" @click="open(o,true)">追加评价</ElButton><span v-if="c.activeRefund(o.id)" class="biz-muted">售后处理中，暂不可评价</span></footer>
       </article></div>
+      <div v-if="tabRows.length > pageSize" class="biz-footer"><span>共 {{ tabRows.length }} 笔评价订单</span><ElPagination v-model:current-page="page" :page-size="pageSize" :total="tabRows.length" layout="prev, pager, next" background /></div>
     </template>
     <ElDialog v-model="dialog" :title="form.followup?'追加评价':'评价客户'" width="540px"><div class="biz-grid"><div class="biz-field full">订单 <strong>{{ form.orderId }}</strong></div><label class="biz-field full">评分 <ElRate v-model="form.score" /></label><label class="biz-field full">评价内容 <ElInput v-model="form.content" type="textarea" :rows="4" maxlength="1000" show-word-limit /></label><label class="biz-field full">图片 <small>最多 6 张</small><input type="file" accept="image/*" multiple @change="file" /></label><label class="biz-field full biz-inline">匿名评价 <ElSwitch v-model="form.anonymous" /></label></div><p v-if="error" class="biz-note danger" role="alert">{{ error }}</p><template #footer><ElButton @click="dialog=false">取消</ElButton><ElButton type="primary" @click="submit">提交评价</ElButton></template></ElDialog>
   </div>
