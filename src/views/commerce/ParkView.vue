@@ -1,0 +1,13 @@
+<script setup lang="ts">
+import { ElButton, ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { useRouter } from 'vue-router'
+import { useCommerceStore } from '@/stores/commerce'
+const c = useCommerceStore(); const router = useRouter()
+function count(pid:string, kind:'service'|'order'|'review') { if(kind==='service') return c.data.services.filter(s=>s.listings[pid]?.status==='on_sale').length; if(kind==='order') return c.data.orders.filter(o=>o.parkId===pid).length; return c.data.reviews.filter(r=>r.parkId===pid).length }
+async function join(pid:string,name:string) { try { await ElMessageBox.confirm(`确认加入「${name}」？加入后可在此园区发布服务。`, '加入园区', {confirmButtonText:'确认加入',cancelButtonText:'取消'}); if(c.joinPark(pid)) ElMessage.success('已加入园区') } catch { /* cancelled */ } }
+function go(kind:string,pid:string){router.push({path:`/${kind}`,query:{park:pid}})}
+</script>
+<template><div class="biz-page"><header class="biz-head"><div><p class="biz-eyebrow">园区与服务 / 我的园区</p><h1>我的园区</h1><p>管理已加入园区，查看各园区的服务与交易。</p></div></header>
+<section class="biz-section"><h2>已加入 <span class="biz-muted">{{ c.joinedParks.length }}</span></h2><div class="biz-list"><article v-for="p in c.joinedParks" :key="p.id" class="biz-list-item"><div class="park-title"><div><h3>{{ p.name }}</h3><p>入驻时间 {{ p.joinedAt?.slice(0,10) }}</p></div><ElTag type="success">已入驻</ElTag></div><div class="biz-stat-row"><button @click="go('service',p.id)"><strong>{{ count(p.id,'service') }}</strong>已上架服务</button><button @click="go('order',p.id)"><strong>{{ count(p.id,'order') }}</strong>订单</button><button @click="go('review',p.id)"><strong>{{ count(p.id,'review') }}</strong>评价</button></div><footer><ElButton @click="router.push({path:'/customer-demo',query:{park:p.id}})">查看园区客户端</ElButton></footer></article></div></section>
+<section class="biz-section"><h2>可申请园区</h2><div v-if="!c.availableParks.length" class="biz-empty"><h3>暂无可申请园区</h3><p>平台内可加入的园区都已展示在上方。</p></div><div v-else class="biz-list"><article v-for="p in c.availableParks" :key="p.id" class="biz-list-item"><h3>{{ p.name }}</h3><p>{{ p.address }}</p><footer><ElButton type="primary" @click="join(p.id,p.name)">申请加入</ElButton><ElButton @click="router.push({path:'/customer-demo',query:{park:p.id}})">查看园区客户端</ElButton></footer></article></div></section></div></template>
+<style scoped>.park-title{display:flex;align-items:start;justify-content:space-between;gap:15px}.park-title p{margin:6px 0 18px}.biz-stat-row{margin:2px 0 6px;gap:60px}.biz-stat-row button:hover strong{color:#3458c7}.biz-list{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:840px){.biz-list{grid-template-columns:1fr}}</style>

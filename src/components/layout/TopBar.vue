@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell, ChevronDown, LogOut, User, PanelLeftClose, PanelLeftOpen, Building2, Plus } from 'lucide-vue-next'
-import { ElBadge, ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu, ElMessageBox, ElOption, ElSelect } from 'element-plus'
+import { ElBadge, ElButton, ElDialog, ElDropdown, ElDropdownItem, ElDropdownMenu, ElMessageBox, ElOption, ElSelect } from 'element-plus'
 import { useAcceptanceStore } from '@/stores/acceptance'
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useProfileStore } from '@/stores/profile'
 import { useSessionStore } from '@/stores/session'
+import { useCommerceStore } from '@/stores/commerce'
 
 const acc = useAcceptanceStore()
 const ob = useOnboardingStore()
 const profile = useProfileStore()
 const session = useSessionStore()
+const commerce = useCommerceStore()
 const router = useRouter()
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 const isPending = computed(() => acc.entryStatus === 'pending')
@@ -21,7 +23,9 @@ const entryText = computed(() => isPending.value
 const entryTone = computed(() => isPending.value ? ob.status : 'approved')
 const statusLabels = { draft: '待提交', reviewing: '审核中', rejected: '已驳回', approved: '已通过' }
 
-const parkName = computed(() => profile.registeredParks[0] || '')
+const customerDialog = ref(false)
+const customerPark = ref('')
+const displayStatus = (item: {id:string;status:string}) => item.id === ob.activeId && acc.entryStatus === 'approved' ? '已通过' : statusLabels[item.status as keyof typeof statusLabels]
 function switchApplication(id: string) {
   if (id === '__new__') {
     ob.createApplication()
@@ -29,15 +33,19 @@ function switchApplication(id: string) {
     router.push('/workspace')
     return
   }
+  const retainPreview = id === ob.activeId && acc.entryStatus === 'approved'
   if (!ob.selectApplication(id)) return
-  acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
-  if (ob.status === 'approved') router.push('/merchant')
+  acc.setEntryStatus(ob.status === 'approved' || retainPreview ? 'approved' : 'pending')
+  if (acc.entryStatus === 'approved') router.push('/park')
   else if (ob.status === 'reviewing' || ob.status === 'rejected') router.push('/onboarding/progress')
   else router.push(ob.entityVerified ? `/onboarding/step/${Math.max(1, ob.maxStep)}` : '/onboarding/entity')
 }
 function switchCustomer() {
-  if (!parkName.value) return
-  sessionStorage.setItem('gysd-demo-customer-park', parkName.value)
+  if (!customerPark.value) return
+  const park = commerce.joinedParks.find(p => p.id === customerPark.value)
+  if (!park) return
+  sessionStorage.setItem('gysd-demo-customer-park', park.name)
+  customerDialog.value = false
   router.push('/customer-demo')
 }
 async function logout() {
@@ -79,11 +87,11 @@ async function logout() {
         <span>切换供应商</span>
         <ElSelect :model-value="ob.activeId" class="supplier-select" popper-class="subject-popper" aria-label="切换主体" @change="switchApplication">
           <ElOption v-if="!ob.entityVerified" :value="ob.activeId" label="个人账号 · 新申请" />
-          <ElOption v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id" :label="`${item.draft.entityName} · ${statusLabels[item.status]}`">
+          <ElOption v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id" :label="`${item.draft.entityName} · ${displayStatus(item)}`">
             <div class="subject-option">
               <strong>{{ item.draft.entityName }}</strong>
               <small>管理员 · {{ item.draft.creditCode || '主体信息待完善' }}</small>
-              <span class="subject-state" :class="item.status">{{ statusLabels[item.status] }}</span>
+              <span class="subject-state" :class="item.status">{{ displayStatus(item) }}</span>
             </div>
           </ElOption>
           <ElOption value="__new__" label="供应商入驻"><div class="subject-new"><Plus :size="15" /> 供应商入驻</div></ElOption>
@@ -108,16 +116,22 @@ async function logout() {
         <template #dropdown>
           <ElDropdownMenu>
             <ElDropdownItem :icon="User" @click="router.push('/settings')">个人信息</ElDropdownItem>
-            <ElDropdownItem :icon="Building2" :disabled="!parkName" :title="parkName || '暂无关联园区'" @click="switchCustomer">切换园区客户</ElDropdownItem>
+            <ElDropdownItem :icon="Building2" :disabled="!commerce.joinedParks.length" @click="customerDialog=true">切换园区客户</ElDropdownItem>
             <ElDropdownItem :icon="LogOut" divided @click="logout">退出登录</ElDropdownItem>
           </ElDropdownMenu>
         </template>
       </ElDropdown>
     </div>
+    <ElDialog v-model="customerDialog" title="切换园区客户" width="420px" append-to-body>
+      <p class="customer-copy">选择要进入的园区客户端演示视角。</p>
+      <ElSelect v-model="customerPark" placeholder="选择已加入园区" style="width:100%"><ElOption v-for="park in commerce.joinedParks" :key="park.id" :label="park.name" :value="park.id" /></ElSelect>
+      <template #footer><ElButton @click="customerDialog=false">取消</ElButton><ElButton type="primary" :disabled="!customerPark" @click="switchCustomer">进入园区客户端</ElButton></template>
+    </ElDialog>
   </header>
 </template>
 
 <style scoped>
+.customer-copy{margin:0 0 14px;color:#62728b;font-size:13px}
 .topbar {
   height: var(--topbar-h);
   flex-shrink: 0;

@@ -21,14 +21,14 @@ export const DESIGN_VERSIONS: DesignVersion[] = [
 ]
 
 const VERSION_KEY = 'gysd-design-version'
-const DOCK_KEY = 'gysd-review-dock-position'
+const DOCK_KEY = 'gysd-review-dock-position-v2'
 
 function initialDockPosition() {
   try {
     const stored = JSON.parse(localStorage.getItem(DOCK_KEY) || '{}')
     if (Number.isFinite(stored.x) && Number.isFinite(stored.y)) return stored as { x: number; y: number }
   } catch { /* ignore */ }
-  return { x: Math.max(12, window.innerWidth - 106), y: 120 }
+  return { x: Math.max(12, window.innerWidth - 106), y: Math.max(12, window.innerHeight - 86) }
 }
 
 export interface AcceptanceIssue {
@@ -46,7 +46,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
   const versionId = ref<string>(DESIGN_VERSIONS.some(v => v.id === storedVersion) ? storedVersion! : DESIGN_VERSIONS[0].id)
   const dockPosition = ref(initialDockPosition())
   const dataState = ref<PageDataState>('ready')
-  const entryStatus = ref<EntryStatus>('approved')
+  const entryStatus = ref<EntryStatus>(localStorage.getItem('gysd-demo-entry-status') === 'approved' ? 'approved' : 'pending')
   const compareMode = ref(false)
   const issues = ref<AcceptanceIssue[]>([])
   const annotateMode = ref(false)
@@ -69,6 +69,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
   }
   function setEntryStatus(s: EntryStatus) {
     entryStatus.value = s
+    localStorage.setItem('gysd-demo-entry-status', s)
   }
   function toggleCompare(on?: boolean) {
     compareMode.value = on ?? !compareMode.value

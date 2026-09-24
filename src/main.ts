@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import './styles/tokens.css'
 import './styles/onboarding-v2.css'
+import './styles/business.css'
 
 const app = createApp(App)
 app.use(createPinia())

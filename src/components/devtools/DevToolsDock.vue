@@ -14,10 +14,15 @@ import {
 } from 'lucide-vue-next'
 import { useAcceptanceStore, DESIGN_VERSIONS, type PageDataState, type EntryStatus } from '@/stores/acceptance'
 import { useOnboardingStore } from '@/stores/onboarding'
+import { useCommerceStore } from '@/stores/commerce'
 import DragHandle from '@/components/devtools/DragHandle.vue'
 import { ElButton, ElMessage, ElSwitch } from 'element-plus'
 
 const acc = useAcceptanceStore()
+const commerce = useCommerceStore()
+const demoService = ref('')
+const demoOrder = ref('')
+const demoRefund = ref('')
 const draft = ref('')
 const copied = ref(false)
 const dockRef = ref<HTMLElement | null>(null)
@@ -118,6 +123,30 @@ function fillAndGo() {
   acc.panelOpen = false
   window.location.hash = '#/onboarding/step/5'
 }
+function seedCommerce() { commerce.seed(); acc.setEntryStatus('approved'); ElMessage.success('交易演示场景已生成') }
+function resetCommerce() { commerce.reset(); ElMessage.success('当前主体的交易演示数据已重置') }
+function customerOrder() { const s=commerce.data.services.find(x=>x.id===demoService.value);const parkId=s&&Object.entries(s.listings).find(([,x])=>x.status==='on_sale')?.[0];if(!s||!parkId){ElMessage.warning('请先选择已上架服务');return}const order=commerce.createOrder(s.id,parkId);demoOrder.value=order?.id||'';ElMessage.success('客户下单演示已生成') }
+function setServiceReview(status: 'on_sale' | 'rejected' | 'offline') {
+  const s = commerce.data.services.find(x => x.id === demoService.value)
+  if (!s) return
+  const ids = Object.entries(s.listings).filter(([, x]) => status === 'offline' ? x.status === 'on_sale' : x.status === 'reviewing').map(([id]) => id)
+  if (!ids.length) { ElMessage.warning('当前服务没有可处理的园区记录'); return }
+  commerce.changeListing(s.id, ids, status, status === 'offline')
+  ElMessage.success('园区审核模拟状态已更新')
+}
+function orderCallback(kind: 'pay'|'contract-yes'|'contract-no'|'accept-yes'|'accept-no'|'refund') {
+  const o = commerce.data.orders.find(x => x.id === demoOrder.value)
+  if (!o) return
+  let done=false
+  if (kind === 'pay' && o.status === 'pending_payment') { o.paid=o.amount; o.status='pending_contract';done=true }
+  else if ((kind === 'contract-yes' || kind === 'contract-no') && o.contractState === 'waiting') { commerce.confirmContract(o.id, kind === 'contract-yes');done=true }
+  else if ((kind === 'accept-yes' || kind === 'accept-no') && o.status === 'pending_acceptance') { commerce.concludeAcceptance(o.id, kind === 'accept-yes');done=true }
+  else if (kind === 'refund') done=commerce.createRefund(o.id, Math.max(1,o.paid-o.refunded), '客户发起退款（演示）')
+  done ? ElMessage.success('客户 / 平台回调演示已执行') : ElMessage.warning('当前订单不满足该操作条件')
+}
+function customerReview(followup:boolean){const o=commerce.data.orders.find(x=>x.id===demoOrder.value);if(!o||o.status!=='completed'){ElMessage.warning('请选择已完成订单');return}const ok=commerce.addReview({id:crypto.randomUUID(),orderId:o.id,parkId:o.parkId,direction:'to_supplier',score:5,content:followup?'客户追加评价：售后响应及时。':'客户评价：服务交付符合预期。',anonymous:false,images:[],followup,createdAt:new Date().toISOString()});ok?ElMessage.success('客户评价已生成'):ElMessage.warning('该订单本次评价不可重复')}
+function invoiceCallback(status: 'issued'|'failed'|'returned') { const inv=commerce.data.invoices.find(x=>x.kind==='platform'&&['issuing','returning','failed'].includes(x.status));if(!inv){ElMessage.warning('暂无可模拟的平台发票');return}inv.status=status;ElMessage.success('财务回调演示已执行') }
+function refundCallback(action:'accept'|'decline'|'cancel') { const refund=commerce.data.refunds.find(x=>x.id===demoRefund.value);if(!refund){ElMessage.warning('请先选择退款单');return}if(action==='cancel'){commerce.cancelRefund(refund.id)}else if(refund.status==='client_confirm'){commerce.finalizeRefund(refund.id,action==='accept')}else{ElMessage.warning('当前退款单不在待客户确认状态');return}ElMessage.success('客户退款操作演示已执行') }
 </script>
 
 <template>
@@ -222,6 +251,21 @@ function fillAndGo() {
           </section>
 
           <section class="sec">
+            <h3><Wand2 :size="13" /> 交易场景模拟</h3>
+            <p class="demo-hint">仅修改当前主体的本地演示状态；园区、客户和财务动作在这里模拟。</p>
+            <div class="demo-grid"><ElButton size="small" type="primary" @click="seedCommerce">填入交易场景</ElButton><ElButton size="small" @click="resetCommerce">重置交易数据</ElButton></div>
+            <div class="demo-grid"><ElButton size="small" @click="commerce.data.walletOpen = !commerce.data.walletOpen">钱包：{{commerce.data.walletOpen?'已开户':'未开户'}}</ElButton></div>
+            <select v-model="demoService" class="demo-select"><option value="">选择服务</option><option v-for="s in commerce.data.services" :key="s.id" :value="s.id">{{s.name || '未命名服务'}}</option></select>
+            <div class="demo-grid"><ElButton size="small" @click="setServiceReview('on_sale')">审核通过</ElButton><ElButton size="small" @click="setServiceReview('rejected')">审核驳回</ElButton><ElButton size="small" @click="setServiceReview('offline')">运营下架</ElButton></div>
+            <div class="demo-grid"><ElButton size="small" @click="customerOrder">客户下单</ElButton></div>
+            <select v-model="demoOrder" class="demo-select"><option value="">选择订单</option><option v-for="o in commerce.data.orders" :key="o.id" :value="o.id">{{o.id}} · {{o.status}}</option></select>
+            <div class="demo-grid"><ElButton size="small" @click="orderCallback('pay')">客户支付</ElButton><ElButton size="small" @click="orderCallback('contract-yes')">确认合同</ElButton><ElButton size="small" @click="orderCallback('contract-no')">驳回合同</ElButton><ElButton size="small" @click="orderCallback('accept-yes')">验收通过</ElButton><ElButton size="small" @click="orderCallback('accept-no')">验收驳回</ElButton><ElButton size="small" @click="orderCallback('refund')">客户退款</ElButton><ElButton size="small" @click="customerReview(false)">客户初评</ElButton><ElButton size="small" @click="customerReview(true)">客户追评</ElButton></div>
+            <select v-model="demoRefund" class="demo-select"><option value="">选择进行中退款单</option><option v-for="x in commerce.data.refunds.filter(r=>commerce.activeRefund(r.orderId)?.id===r.id)" :key="x.id" :value="x.id">{{x.id.slice(0,8)}} · {{x.status}}</option></select>
+            <div class="demo-grid"><ElButton size="small" @click="refundCallback('accept')">客户同意改价</ElButton><ElButton size="small" @click="refundCallback('decline')">客户拒绝改价</ElButton><ElButton size="small" @click="refundCallback('cancel')">客户取消退款</ElButton></div>
+            <div class="demo-grid"><ElButton size="small" @click="invoiceCallback('issued')">平台票成功</ElButton><ElButton size="small" @click="invoiceCallback('failed')">平台票失败</ElButton><ElButton size="small" @click="invoiceCallback('returned')">平台退票</ElButton></div>
+          </section>
+
+          <section class="sec">
             <h3><GitCompare :size="13" /> 分屏对比</h3>
             <div class="switch-row">
               <span>
@@ -295,6 +339,7 @@ export default { components: { WorkspaceProto } }
   position: fixed;
   z-index: 90;
 }
+.demo-grid{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.demo-grid :deep(.el-button){margin:0;border-radius:7px}.demo-select{width:100%;height:30px;margin-top:7px;padding:0 7px;border:1px solid #d8e1ef;border-radius:7px;background:#fff;color:#354862;font-size:12px}
 
 .dock-close {
   height: 32px;

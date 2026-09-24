@@ -1,0 +1,2 @@
+<script setup lang="ts">import { useRouter } from 'vue-router';import { ElButton } from 'element-plus';const r=useRouter()
+</script><template><div class="biz-page"><div class="biz-empty success"><h1>服务提交成功，等待审核</h1><p>所选园区将分别审核服务。可在服务管理中查看每个园区的状态。</p><ElButton type="primary" @click="r.push('/service/new')">继续发布</ElButton><ElButton @click="r.push('/service')">返回服务管理</ElButton></div></div></template><style scoped>.success{margin-top:70px;padding:70px 20px;border-style:solid;background:#f3faf8}.success h1{font-size:24px;color:#147f70}</style>

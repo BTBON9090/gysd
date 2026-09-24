@@ -10,7 +10,7 @@ const ob = useOnboardingStore()
 
 onMounted(async () => {
   await router.isReady()
-  acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
+  if (!localStorage.getItem('gysd-demo-entry-status')) acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
   // hash 路由：参数在 # 后，如 #/workspace?state=empty&skin=proto
   const hash = window.location.hash
   const qi = hash.indexOf('?')

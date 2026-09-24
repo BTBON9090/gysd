@@ -3,10 +3,11 @@ import { useRouter } from 'vue-router'
 import { ElButton } from 'element-plus'
 import { ArrowRight, ShieldCheck } from 'lucide-vue-next'
 import { useSessionStore } from '@/stores/session'
+import { useAcceptanceStore } from '@/stores/acceptance'
 
 const router = useRouter()
 const session = useSessionStore()
-function resume() { session.resume(); router.replace('/workspace') }
+function resume() { session.resume(); router.replace(useAcceptanceStore().entryStatus === 'approved' ? '/park' : '/workspace') }
 </script>
 
 <template>

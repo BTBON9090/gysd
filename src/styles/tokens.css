@@ -223,6 +223,7 @@ button {
 }
 .el-tag {
   --el-tag-border-radius: 6px;
+  font-weight: 650;
 }
 .el-tag.is-round { border-radius: 6px; }
 .el-badge__content.is-fixed {

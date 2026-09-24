@@ -1,0 +1,5 @@
+<script setup lang="ts">
+import { ElButton } from 'element-plus'
+import { useAcceptanceStore } from '@/stores/acceptance'
+const acc=useAcceptanceStore()
+</script><template><div class="biz-state"><template v-if="acc.dataState==='loading'"><div class="skeleton title"/><div class="skeleton line"/><div class="skeleton block"/></template><template v-else><h2>{{acc.dataState==='error'?'加载失败':'暂无数据'}}</h2><p>{{acc.dataState==='error'?'请稍后重试，或检查网络连接。':'当前场景还没有可展示的内容。'}}</p><ElButton type="primary" @click="acc.setDataState('ready')">{{acc.dataState==='error'?'重新加载':'返回正常数据'}}</ElButton></template></div></template><style scoped>.biz-state{max-width:1150px;margin:0 auto;padding:90px 32px;text-align:center;color:#66768e}.biz-state h2{font-size:20px;color:#233550;margin:0 0 8px}.biz-state p{font-size:13px;margin:0 0 18px}.skeleton{border-radius:7px;background:#eff2f7;animation:pulse 1.4s ease-in-out infinite alternate}.title{height:27px;width:180px;margin-bottom:18px}.line{height:14px;width:340px;max-width:80%;margin-bottom:40px}.block{height:260px;width:100%}@keyframes pulse{to{opacity:.55}}</style>

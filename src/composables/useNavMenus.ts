@@ -34,8 +34,8 @@ export const navMenus: NavItem[] = [
     icon: Store,
     tone: 'cyan',
     children: [
-      { key: 'shop-info', label: '店铺信息', path: '/shop/info' },
-      { key: 'shop-decorate', label: '店铺装修', path: '/shop/decorate' },
+      { key: 'shop-info', label: '店铺资料', path: '/shop/info' },
+      { key: 'shop-cases', label: '案例管理', path: '/shop/cases' },
     ],
   },
   { key: 'service', label: '服务管理', path: '/service', icon: HeartHandshake, tone: 'green' },

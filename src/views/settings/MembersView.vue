@@ -96,7 +96,6 @@ function confirmAction() {
       <p class="eyebrow">基础设置 <span>/</span> 成员管理</p>
       <div class="head-row">
         <div><h1>成员管理</h1><p>管理当前已通过主体的管理员账号。</p></div>
-        <ElButton v-if="acc.entryStatus === 'approved'" type="primary" @click="openAdd"><Plus :size="16" /> 新增成员</ElButton>
       </div>
     </header>
 
@@ -108,7 +107,10 @@ function confirmAction() {
     <template v-else>
       <div class="list-toolbar">
         <div class="list-count">共 <strong>{{ rows.length }}</strong> 位成员 <span>· 全员管理员</span></div>
-        <ElInput v-model="query" clearable placeholder="搜索姓名或手机号" class="search-input"><template #prefix><Search :size="15" /></template></ElInput>
+        <div class="toolbar-actions">
+          <ElInput v-model="query" clearable placeholder="搜索姓名或手机号" class="search-input"><template #prefix><Search :size="15" /></template></ElInput>
+          <ElButton type="primary" @click="openAdd"><Plus :size="16" /> 新增成员</ElButton>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -129,7 +131,6 @@ function confirmAction() {
           </tbody>
         </table>
       </div>
-      <p class="demo-note">演示数据保存在本机浏览器。正式环境新增成员需由数据中台开户，成功后才会出现在列表中。</p>
     </template>
 
     <ElDialog v-model="editorVisible" :title="editorTitle" width="440px" append-to-body>
@@ -148,5 +149,5 @@ function confirmAction() {
 </template>
 
 <style scoped>
-.members-page{max-width:1120px;margin:auto;padding:var(--sp-page-y) var(--sp-page-x) 44px;color:#20304a}.page-head{margin-bottom:30px}.eyebrow{margin:0 0 10px;color:#3656c5;font-size:12px;font-weight:700}.eyebrow span{margin:0 8px;color:#a9b5c7}.head-row{display:flex;align-items:end;justify-content:space-between;gap:20px;padding-right:70px}.head-row h1{font-size:27px;letter-spacing:-.025em;margin:0}.head-row p{font-size:14px;color:#5b6980;margin:8px 0 0}.head-row :deep(.el-button){border-radius:8px;height:36px}.head-row :deep(svg){margin-right:5px}.list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.list-count{font-size:13px;color:#64738a}.list-count strong{color:#253757}.list-count span{margin-left:6px}.search-input{width:248px}.table-wrap{border:1px solid #e3e9f2;border-radius:12px;overflow:auto;background:#fff}table{width:100%;min-width:640px;border-collapse:collapse;text-align:left;font-size:13px}th{font-size:12px;font-weight:650;color:#65738a;background:#f7f9fc}th,td{padding:15px 18px}tbody tr+tr{border-top:1px solid #edf1f6}.person{display:flex;align-items:center;gap:10px}.person strong{color:#1c2c46;font-weight:650}.avatar{display:grid;place-items:center;width:31px;height:31px;border-radius:8px;background:#edf1ff;color:#3656c5;font-weight:700}.self-mark{font-size:11px;padding:2px 6px;border-radius:5px;background:#eff3f9;color:#64738a}.phone{font-variant-numeric:tabular-nums;color:#40516b}.actions-col{text-align:right}.actions{display:flex;justify-content:flex-end;gap:0}.actions :deep(.el-button){margin:0}.self-tip{color:#97a1b2;font-size:12px}.empty-row{text-align:center;color:#75839a;padding:40px}.demo-note{font-size:12px;color:#7a879a;margin-top:13px}.not-ready{text-align:center;padding:70px 20px;color:#68778c}.not-ready h2{font-size:19px;color:#20304a;margin:12px 0 5px}.not-ready p{margin:0 0 18px}.editor-form{display:grid;gap:20px}.editor-form label{display:grid;gap:7px;font-size:13px;font-weight:600;color:#293a55}.editor-form b{display:none}.editor-form small{color:#c94a42;font-weight:400}.editor-form p{margin:0;padding:11px 13px;border-radius:8px;background:#f4f7ff;color:#52647d;font-size:12px;line-height:1.55}.confirm-copy{margin:0;color:#42516a;line-height:1.65;font-size:14px}@media(max-width:700px){.head-row{align-items:start;flex-direction:column;padding-right:0}.list-toolbar{align-items:stretch;flex-direction:column}.search-input{width:100%}}
+.members-page{max-width:1120px;margin:auto;padding:var(--sp-page-y) var(--sp-page-x) 44px;color:#20304a}.page-head{margin-bottom:30px}.eyebrow{margin:0 0 10px;color:#3656c5;font-size:12px;font-weight:700}.eyebrow span{margin:0 8px;color:#a9b5c7}.head-row h1{font-size:27px;letter-spacing:-.025em;margin:0}.head-row p{font-size:14px;color:#5b6980;margin:8px 0 0}.list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.toolbar-actions{display:flex;align-items:center;gap:10px}.toolbar-actions :deep(.el-button){height:36px;border-radius:8px}.toolbar-actions :deep(svg){margin-right:5px}.list-count{font-size:13px;color:#64738a}.list-count strong{color:#253757}.list-count span{margin-left:6px}.search-input{width:248px}.table-wrap{border:1px solid #e3e9f2;border-radius:12px;overflow:auto;background:#fff}table{width:100%;min-width:640px;border-collapse:collapse;text-align:left;font-size:13px}th{font-size:12px;font-weight:650;color:#65738a;background:#f7f9fc}th,td{padding:15px 18px}tbody tr+tr{border-top:1px solid #edf1f6}.person{display:flex;align-items:center;gap:10px}.person strong{color:#1c2c46;font-weight:650}.avatar{display:grid;place-items:center;width:31px;height:31px;border-radius:8px;background:#edf1ff;color:#3656c5;font-weight:700}.self-mark{font-size:11px;padding:2px 6px;border-radius:5px;background:#eff3f9;color:#64738a}.phone{font-variant-numeric:tabular-nums;color:#40516b}.actions-col{text-align:right}.actions{display:flex;justify-content:flex-end;gap:0}.actions :deep(.el-button){margin:0}.self-tip{color:#97a1b2;font-size:12px}.empty-row{text-align:center;color:#75839a;padding:40px}.demo-note{font-size:12px;color:#7a879a;margin-top:13px}.not-ready{text-align:center;padding:70px 20px;color:#68778c}.not-ready h2{font-size:19px;color:#20304a;margin:12px 0 5px}.not-ready p{margin:0 0 18px}.editor-form{display:grid;gap:20px}.editor-form label{display:grid;gap:7px;font-size:13px;font-weight:600;color:#293a55}.editor-form b{display:none}.editor-form small{color:#c94a42;font-weight:400}.editor-form p{margin:0;padding:11px 13px;border-radius:8px;background:#f4f7ff;color:#52647d;font-size:12px;line-height:1.55}.confirm-copy{margin:0;color:#42516a;line-height:1.65;font-size:14px}@media(max-width:700px){.list-toolbar{align-items:stretch;flex-direction:column}.toolbar-actions{width:100%;flex-wrap:wrap}.search-input{width:auto;flex:1;min-width:170px}}
 </style>
