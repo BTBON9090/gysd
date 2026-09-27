@@ -24,12 +24,12 @@ watch(() => route.path, async () => {
     <div class="shell-body">
       <SideNav v-model:collapsed="sideCollapsed" />
       <main ref="mainRef" class="shell-main" :data-state="acc.dataState">
-        <BizStateView v-if="bizRoute && acc.dataState !== 'ready'" />
+        <div class="shell-content"><BizStateView v-if="bizRoute && acc.dataState !== 'ready'" />
         <router-view v-else v-slot="{ Component }">
           <transition name="page" mode="out-in">
             <component :is="Component" :key="`${route.path}:${route.query.demo || ''}`" :page-title="pageTitle" />
           </transition>
-        </router-view>
+        </router-view></div>
       </main>
     </div>
   </div>
@@ -53,6 +53,7 @@ watch(() => route.path, async () => {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   overflow-x: auto;
   scroll-behavior: smooth;
   background: #fff;
@@ -71,4 +72,8 @@ watch(() => route.path, async () => {
   opacity: 0;
   transform: translateY(-2px);
 }
+</style>
+
+<style scoped>
+.shell{min-width:0;width:100%}.shell-content{width:100%;min-width:calc(1200px - 100vw + 100%);min-height:100%;height:100%}.shell-body{min-width:0}
 </style>

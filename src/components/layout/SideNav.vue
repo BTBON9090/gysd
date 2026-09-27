@@ -259,3 +259,11 @@ const rootItems = computed(() => acc.entryStatus === 'pending'
   text-decoration: underline;
 }
 </style>
+
+<style scoped>
+.sidenav :deep(.el-menu-item),.sidenav :deep(.el-sub-menu__title){padding-left:12px!important}.nav-icon{width:18px;height:18px;margin-right:10px;background:transparent!important;border-radius:0}.sidenav :deep(.el-menu-item.is-active .nav-icon){background:transparent!important}.sidenav :deep(.el-sub-menu .el-menu-item){padding-left:40px!important}
+</style>
+
+<style scoped>
+.sidenav.collapsed :deep(.el-menu-item),.sidenav.collapsed :deep(.el-sub-menu__title){padding-left:0!important}.sidenav.collapsed .nav-icon{margin-right:0}
+</style>

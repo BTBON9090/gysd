@@ -153,9 +153,9 @@ function orderCallback(kind: 'pay'|'contract-yes'|'contract-no'|'accept-yes'|'ac
   const o = commerce.data.orders.find(x => x.id === demoOrder.value)
   if (!o) return
   let done=false
-  if (kind === 'pay' && o.status === 'pending_payment') { o.paid=o.amount; o.status='pending_contract';done=true }
-  else if ((kind === 'contract-yes' || kind === 'contract-no') && o.contractState === 'waiting') { commerce.confirmContract(o.id, kind === 'contract-yes');done=true }
-  else if ((kind === 'accept-yes' || kind === 'accept-no') && o.status === 'pending_acceptance') { commerce.concludeAcceptance(o.id, kind === 'accept-yes');done=true }
+  if (kind === 'pay') done=commerce.payOrderStage(o.id)
+  else if ((kind === 'contract-yes' || kind === 'contract-no') && o.contractState === 'waiting') { done=commerce.confirmContract(o.id, kind === 'contract-yes') }
+  else if ((kind === 'accept-yes' || kind === 'accept-no') && o.status === 'pending_acceptance') { done=commerce.concludeAcceptance(o.id, kind === 'accept-yes') }
   else if (kind === 'refund') done=commerce.createRefund(o.id, Math.max(1,o.paid-o.refunded), '客户发起退款（演示）')
   done ? ElMessage.success('客户 / 平台回调演示已执行') : ElMessage.warning('当前订单不满足该操作条件')
 }
@@ -286,7 +286,7 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             <div class="demo-grid"><ElButton size="small" @click="setServiceReview('on_sale')">审核通过</ElButton><ElButton size="small" @click="setServiceReview('rejected')">审核驳回</ElButton><ElButton size="small" @click="setServiceReview('offline')">运营下架</ElButton></div>
             <div class="demo-grid"><ElButton size="small" @click="customerOrder">客户下单</ElButton></div>
             <select v-model="demoOrder" class="demo-select"><option value="">选择订单</option><option v-for="o in commerce.data.orders" :key="o.id" :value="o.id">{{o.id}} · {{o.status}}</option></select>
-            <div class="demo-grid"><ElButton size="small" @click="orderCallback('pay')">客户支付</ElButton><ElButton size="small" @click="orderCallback('contract-yes')">确认合同</ElButton><ElButton size="small" @click="orderCallback('contract-no')">驳回合同</ElButton><ElButton size="small" @click="orderCallback('accept-yes')">验收通过</ElButton><ElButton size="small" @click="orderCallback('accept-no')">验收驳回</ElButton><ElButton size="small" @click="orderCallback('refund')">客户退款</ElButton><ElButton size="small" @click="customerReview(false)">客户初评</ElButton><ElButton size="small" @click="customerReview(true)">客户追评</ElButton></div>
+            <ElButton size="small" type="primary" plain @click="demoOrder=commerce.prepareComplexOrderDemo(); $router.push('/order/'+demoOrder)">打开三期付款与退款订单</ElButton><div class="demo-grid"><ElButton size="small" @click="orderCallback('pay')">客户支付下一期</ElButton><ElButton size="small" @click="orderCallback('contract-yes')">确认合同</ElButton><ElButton size="small" @click="orderCallback('contract-no')">驳回合同</ElButton><ElButton size="small" @click="orderCallback('accept-yes')">验收通过</ElButton><ElButton size="small" @click="orderCallback('accept-no')">验收驳回</ElButton><ElButton size="small" @click="orderCallback('refund')">客户退款</ElButton><ElButton size="small" @click="customerReview(false)">客户初评</ElButton><ElButton size="small" @click="customerReview(true)">客户追评</ElButton></div>
             <select v-model="demoRefund" class="demo-select"><option value="">选择进行中退款单</option><option v-for="x in commerce.data.refunds.filter(r=>commerce.activeRefund(r.orderId)?.id===r.id)" :key="x.id" :value="x.id">{{x.id.slice(0,8)}} · {{x.status}}</option></select>
             <div class="demo-grid"><ElButton size="small" @click="refundCallback('accept')">客户同意改价</ElButton><ElButton size="small" @click="refundCallback('decline')">客户拒绝改价</ElButton><ElButton size="small" @click="refundCallback('cancel')">客户取消退款</ElButton></div>
             <div class="demo-grid"><ElButton size="small" @click="invoiceCallback('issued')">平台票成功</ElButton><ElButton size="small" @click="invoiceCallback('failed')">平台票失败</ElButton><ElButton size="small" @click="invoiceCallback('returned')">平台退票</ElButton></div>

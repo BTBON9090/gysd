@@ -26,6 +26,8 @@ export const useMerchantChangeStore = defineStore('merchantChange', () => {
   function save(step: number) { if (current()) current()!.step = step }
   function submit() {
     if (!current() || current()!.status === 'reviewing') return false
+    if (ob.validateStep(5, current()!.draft).length) return false
+    for (const field of ['entityType', 'entityName', 'creditCode', 'park', 'supplierType'] as const) { if (current()!.draft[field] !== ob.draft[field]) return false }
     current()!.status = 'reviewing'
     current()!.submittedAt = new Date().toISOString()
     current()!.reason = ''

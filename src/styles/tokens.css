@@ -8,7 +8,7 @@
    ============================================================ */
 
 :root {
-  --biz-content-width: 1190px;
+  --biz-content-width: 1440px;
   /* ===== 品牌主色：高级蓝（略暖） ===== */
   --brand: #3b63d3;
   --brand-hover: #4a71de;
@@ -193,7 +193,7 @@ button {
 
 /* ===== Element Plus 覆盖：贴合令牌 ===== */
 :root {
-  --biz-content-width: 1190px;
+  --biz-content-width: 1440px;
   --el-color-primary: #3b63d3;
   --el-color-primary-light-3: #6b8ae0;
   --el-color-primary-light-5: #96aae9;
@@ -375,3 +375,20 @@ button {
 .el-message-box__btns{display:flex;justify-content:flex-end;gap:8px;padding:4px 0 0 !important}
 .el-message-box__btns .el-button{min-width:72px;margin:0 !important;border-radius:8px !important;font-weight:650}
 .biz-field-tooltip{max-width:360px !important;max-height:min(50vh,320px);overflow:auto;white-space:normal !important;overflow-wrap:anywhere;line-height:1.6 !important}
+
+/* Desktop workspace: preserve columns in narrow windows. */
+html,body,#app{min-width:0;width:100%;overflow:hidden}
+
+/* Desktop dialog frame: only the body scrolls; actions remain visible. */
+.el-dialog:not(.is-fullscreen){display:flex;flex-direction:column;max-height:calc(100dvh - 64px);margin:32px auto!important;padding:0!important;border-radius:12px!important;overflow:hidden}
+.el-dialog__header{flex:none;padding:22px 24px 16px!important;margin:0!important;border-bottom:1px solid #edf0f5}
+.el-dialog__title{font-size:18px!important;font-weight:700!important;line-height:26px!important;color:#20304a}
+.el-dialog__headerbtn{top:16px!important;right:16px!important}
+.el-dialog__body{min-height:0;overflow:auto;padding:20px 24px!important;scrollbar-gutter:stable}
+.el-dialog__footer{flex:none;padding:16px 24px!important;border-top:1px solid #edf0f5;background:#fff}
+.el-dialog__footer .el-button+.el-button{margin-left:8px}
+.el-message-box__content{display:block!important}
+.el-message-box__container{display:flex!important;align-items:flex-start!important;gap:12px}
+.el-message-box__status{margin-top:3px!important;line-height:24px!important}
+.el-message-box__message p{margin:0;line-height:24px}
+.el-button.is-text:not(.is-circle){padding:5px 10px!important;min-height:28px;height:auto}

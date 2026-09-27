@@ -75,7 +75,7 @@ async function logout() {
 
     <div class="topbar-right">
       <span
-        class="entry-status"
+        v-if="acc.entryStatus !== 'approved'" class="entry-status"
         :class="[entryTone, { pending: isPending }]"
         title="供应商入驻状态"
       >
@@ -263,7 +263,5 @@ async function logout() {
 .supplier-select :deep(.el-select__wrapper:hover) { box-shadow: 0 0 0 1px #9eb0d7 inset; }
 .supplier-select :deep(.el-select__selected-item) { color: #233551; font-weight: 600; font-size: 12px; }
 .subject-new{display:flex;align-items:center;gap:7px;color:#3656c5;font-weight:650}
-@media(max-width:900px) { .supplier-switch > span { display: none; } .supplier-select { width: 180px; } .user-meta { display: none; } }
-@media(max-width:620px) { .entry-status { display: none; } .supplier-select { width: 135px; } }
 
 </style>

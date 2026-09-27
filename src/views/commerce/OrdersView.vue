@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElCascader, ElDatePicker, ElInput, ElOption, ElPagination, ElSelect, ElTag } from 'element-plus'
+import { ElButton, ElCascader, ElDatePicker, ElInput, ElOption, ElPagination, ElPopover, ElSelect, ElTag } from 'element-plus'
 import { ClipboardList, Search } from 'lucide-vue-next'
 import { CATEGORY_TREE, dateText, money, STATUS_LABEL, useCommerceStore, type Order, type OrderStatus } from '@/stores/commerce'
+
+import { orderStages, outstanding, STAGE_LABEL } from '@/utils/orderStages'
 
 const c = useCommerceStore()
 const router = useRouter()
@@ -30,22 +32,22 @@ watch(() => tabRows.value.length, length => { page.value = Math.min(page.value, 
 function count(status: string) { return filtered.value.filter(o => status === 'all' || o.status === status).length }
 function query() { Object.assign(applied, filter); page.value = 1 }
 function reset() { Object.assign(filter, { park: '', category: '', name: '', id: '', from: '', to: '' }); query() }
-function pane(status: OrderStatus) { return status === 'pending_contract' ? 'contract' : status === 'in_service' ? 'delivery' : status === 'completed' ? 'settlement' : 'bill' }
+function currentPhase(o: Order) {
+  const stages = orderStages(o)
+  const index = stages.findIndex(s => s.status !== 'accepted')
+  return { stage: stages[index < 0 ? stages.length - 1 : index], number: index < 0 ? stages.length : index + 1 }
+}
+function unpaidPhase(o: Order) { return orderStages(o).map((s,i) => s.amount > s.paid ? `第${i+1}期` : '').filter(Boolean).join('、') }
+function pane(status: OrderStatus) { return status === 'pending_contract' ? 'contract' : status === 'in_service' || status === 'pending_acceptance' ? 'delivery' : status === 'completed' ? 'settlement' : 'bill' }
 function detail(o: Order, focus = false) { router.push({ path: '/order/' + o.id, query: focus ? { tab: pane(o.status) } : {} }) }
 function primary(o: Order) {
-  if (c.activeRefund(o.id)) return '处理退款'
+  if (c.activeRefund(o.id)) return c.activeRefund(o.id)?.status === 'pending' ? '处理退款' : '查看退款'
   if (o.status === 'pending_contract') return o.contractState === 'waiting' ? '' : o.contractState === 'rejected' ? '重传合同' : '上传合同'
   if (o.status === 'in_service') return o.deliverables.length ? '重新提交' : '去履约'
   if (o.status === 'completed') return '去评价'
   return ''
 }
-function act(o: Order) { if (c.activeRefund(o.id)) router.push({ path: '/aftersale', query: { order: o.id } }); else if (o.status === 'completed') router.push({ path: '/review', query: { order: o.id } }); else detail(o, true) }
-function delivery(o: Order) {
-  if (o.deliverySnapshot) return o.deliverySnapshot
-  const specs = c.data.services.find(s => s.id === o.serviceId)?.specs || []
-  const spec = specs.find(s => s.price === o.amount) || specs[0]
-  return spec ? '支付后 ' + spec.startDays + ' ' + spec.dayType + '开始 · ' + spec.deliveryDays + ' 天交付' : '按订单约定交付'
-}
+function act(o: Order) { if (c.activeRefund(o.id)) router.push({ path: '/order/' + o.id, query: { tab: 'bill', refund: c.activeRefund(o.id)!.id } }); else if (o.status === 'completed') router.push({ path: '/review', query: { order: o.id } }); else detail(o, true) }
 </script>
 
 <template>
@@ -65,15 +67,28 @@ function delivery(o: Order) {
         <div class="biz-tabs order-tabs"><button v-for="[key, label] in tabs" :key="key" class="biz-tab" :class="{ active: tab === key }" @click="tab = key; page = 1">{{ label }} <span>{{ count(key) }}</span></button></div>
       </div>
       <div v-if="!rows.length" class="biz-empty"><h3>{{ c.data.orders.length ? '暂无符合条件的订单' : '暂无订单' }}</h3><p>{{ c.data.orders.length ? '调整筛选条件或查看其他状态。' : '客户下单后，订单会显示在这里。' }}</p><ElButton v-if="hasFilter" @click="reset">清空筛选</ElButton></div>
-      <div v-else class="order-table-wrap"><table class="order-table"><thead><tr><th>订单信息</th><th>来源园区</th><th>交付方式</th><th>订单金额</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="o in rows" :key="o.id"><td class="order-info"><strong :title="o.serviceName">{{ o.serviceName }}</strong><span>{{ o.id }}</span><small>下单 {{ dateText(o.createdAt) }}</small></td><td class="order-park">{{ c.joinedParks.find(p => p.id === o.parkId)?.name || '—' }}</td><td class="order-delivery">{{ delivery(o) }}</td><td class="order-amount"><strong>{{ money(o.amount) }}</strong><small>已付 {{ money(o.paid) }}</small><small v-if="o.amount - o.paid > 0">待付 {{ money(o.amount - o.paid) }}</small></td><td><ElTag :type="o.status === 'completed' ? 'success' : o.status === 'cancelled' ? 'info' : o.status === 'pending_contract' ? 'warning' : 'primary'" effect="light">{{ STATUS_LABEL[o.status] }}</ElTag></td><td><div class="order-actions"><ElButton v-if="primary(o)" type="primary" plain @click="act(o)">{{ primary(o) }}</ElButton><ElButton text type="primary" @click="detail(o)">详情</ElButton></div></td></tr></tbody></table></div>
+      <div v-else class="order-table-wrap"><table class="order-table"><colgroup><col style="width:15%" /><col style="width:19%" /><col style="width:13%" /><col style="width:18%" /><col style="width:16%" /><col style="width:9%" /><col style="width:10%" /></colgroup><thead><tr><th>订单 / 下单时间</th><th>服务信息</th><th>来源园区</th><th>履约方式 / 进度</th><th class="align-right">整单金额汇总</th><th>订单状态</th><th class="align-right">操作</th></tr></thead><tbody>
+        <tr v-for="o in rows" :key="o.id">
+          <td><button class="order-number" :title="o.id" @click="detail(o)">{{ o.id }}</button><small>{{ dateText(o.createdAt) }}</small></td>
+          <td class="order-info"><button class="service-name" @click="detail(o)">{{ o.serviceName }}</button><small class="category" :title="o.category">{{ o.category }}</small><small>{{ o.specSnapshot?.name || '标准规格' }} · {{ o.quantity || 1 }} {{ o.specSnapshot?.unit || '项' }}</small></td>
+          <td class="order-park">{{ c.joinedParks.find(p => p.id === o.parkId)?.name || '—' }}</td>
+          <td class="order-delivery"><span>{{ o.stages?.length ? '分期付款 · 分期验收' : '一次付款 · 一次验收' }}</span><small>周期 {{ o.specSnapshot?.deliveryDays || '—' }} 天 · {{ orderStages(o).length }} 期</small><small>当前第 {{ currentPhase(o).number }} / {{ orderStages(o).length }} 期 · {{ STAGE_LABEL[currentPhase(o).stage.status] }}</small><ElPopover trigger="click" placement="bottom" :width="650"><template #reference><button type="button" class="phase-ledger-link">查看各期账单 ↗</button></template><div class="phase-ledger"><h3>各期付款与退款</h3><p>{{ o.serviceName }}</p><table><thead><tr><th>阶段</th><th>应付</th><th>累计支付</th><th>已退款</th><th>待付</th></tr></thead><tbody><tr v-for="(stage,index) in orderStages(o)" :key="stage.id"><td><strong>第 {{ index+1 }} 期 · {{ stage.name }}</strong><small>{{ STAGE_LABEL[stage.status] }}</small></td><td>{{ money(stage.amount) }}</td><td>{{ money(stage.paid) }}</td><td>{{ money(stage.refunded) }}</td><td>{{ money(Math.max(0,stage.amount-stage.paid)) }}</td></tr></tbody></table><p v-if="c.activeRefund(o.id)" class="ledger-refund">退款申请 {{ money(c.activeRefund(o.id)!.requested) }} · {{ orderStages(o).find(s=>s.id===c.activeRefund(o.id)?.stageId)?.name || '整笔订单' }} · {{ STATUS_LABEL[c.activeRefund(o.id)!.status] }}（尚未计入已退款）</p><small>已退款单独核算，不会重新计入待付。</small></div></ElPopover></td>
+          <td class="order-amount align-right"><strong><span class="amount-scope">总额 </span>{{ money(o.amount) }}</strong><small class="paid">累计支付 {{ money(o.paid) }}</small><small v-if="outstanding(o)" :class="o.status === 'cancelled' ? '' : 'unpaid'">{{ o.status === 'cancelled' ? '未付' : '待付' }} {{ money(outstanding(o)) }}</small><small v-if="outstanding(o) && o.stages?.length" class="phase-due">{{ unpaidPhase(o) }}</small><small v-if="o.refunded" class="refunded">累计退款 {{ money(o.refunded) }}</small></td>
+          <td class="order-state"><span class="status-dot" :class="o.status">{{ STATUS_LABEL[o.status] }}</span><ElTag v-if="c.activeRefund(o.id)" type="danger" size="small" effect="plain">{{ c.activeRefund(o.id)?.status === 'pending' ? '退款待处理' : c.activeRefund(o.id)?.status === 'client_confirm' ? '退款待确认' : '退款已拒绝' }}</ElTag><small v-else-if="o.contractState === 'waiting' && o.status === 'pending_contract'">合同待确认</small></td>
+          <td><div class="order-actions"><ElButton v-if="primary(o)" text type="primary" @click="act(o)">{{ primary(o) }}</ElButton><ElButton text type="primary" @click="detail(o)">详情</ElButton></div></td>
+        </tr>
+      </tbody></table></div>
       <div v-if="tabRows.length > pageSize" class="order-pagination"><span>共 {{ tabRows.length }} 笔订单</span><ElPagination v-model:current-page="page" :page-size="pageSize" :total="tabRows.length" layout="prev, pager, next" background /></div>
     </template>
   </div>
 </template>
 
 <style scoped>
-.order-page{max-width:1360px;min-width:890px}.order-head{justify-content:flex-start;align-items:center}.order-head-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:11px;background:#eaf0ff;color:#3659c2}.order-head>div{flex:1}.order-total{color:#78869b;font-size:12px;white-space:nowrap}.order-total strong{color:#284ab0;font-size:19px;font-variant-numeric:tabular-nums}
+.order-page{max-width:var(--biz-content-width);min-width:0}.order-head{justify-content:flex-start;align-items:center}.order-head-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:11px;background:#eaf0ff;color:#3659c2}.order-head>div{flex:1}.order-total{color:#78869b;font-size:12px;white-space:nowrap}.order-total strong{color:#284ab0;font-size:19px;font-variant-numeric:tabular-nums}
 .order-filters{display:grid;grid-template-columns:minmax(155px,1.1fr) minmax(145px,1fr) minmax(135px,.9fr) minmax(130px,.85fr);gap:10px;align-items:center}.order-filters :deep(.el-select),.order-filters :deep(.el-cascader),.order-filters :deep(.el-input){width:100%;min-width:0}.order-date{grid-column:span 3;display:flex;align-items:center;gap:8px;min-width:0;color:#6b7a90;font-size:12px}.order-date span{white-space:nowrap}.order-date b{font-weight:400}.order-date :deep(.el-date-editor){width:150px;max-width:35%;height:32px}.order-filter-actions{display:flex;gap:8px;justify-content:flex-end}.order-filter-actions :deep(.el-button){margin:0}.order-tabs{margin:10px 0 9px;flex-wrap:nowrap;overflow-x:auto;border-bottom:0}.order-tabs .biz-tab{flex:none;padding:10px 13px;white-space:nowrap}.order-tabs .biz-tab span{font-size:11px;color:#8c99ac}.order-tabs .biz-tab.active span{color:#3153bd}
-.order-table-wrap{overflow-x:auto;border:1px solid #e1e8f1;border-radius:11px;background:#fff}.order-table{width:100%;border-collapse:collapse;min-width:940px;text-align:left;font-size:12px}.order-table th{background:#f7f9fd;color:#6d7d94;font-weight:700;white-space:nowrap}.order-table th,.order-table td{padding:15px 13px;border-bottom:1px solid #ecf0f5;vertical-align:middle}.order-table tr:last-child td{border-bottom:0}.order-table tbody tr:hover{background:#fbfcff}.order-info{min-width:205px}.order-info strong{display:block;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#21314a;font-size:13px}.order-info span,.order-info small,.order-amount small{display:block;margin-top:5px;color:#8895a7;font-size:11px}.order-park{min-width:150px;max-width:210px;line-height:1.5;color:#46566d}.order-delivery{min-width:166px;max-width:195px;color:#52637a;line-height:1.5}.order-amount{min-width:135px;white-space:nowrap}.order-amount strong{color:#233853;font-size:15px;font-variant-numeric:tabular-nums}.order-actions{display:flex;align-items:center;gap:4px;white-space:nowrap}.order-actions :deep(.el-button){margin:0}.order-pagination{display:flex;justify-content:space-between;align-items:center;padding-top:18px;color:#77869b;font-size:12px}
-@media(max-width:1130px){.order-filters{grid-template-columns:repeat(4,minmax(0,1fr))}.order-date{grid-column:span 3}.order-date :deep(.el-date-editor){width:130px}}
+.order-table-wrap{overflow:hidden;border:1px solid #e2e8f0;border-radius:9px;background:#fff}.order-table{width:100%;table-layout:fixed;border-collapse:collapse;text-align:left;font-size:12px;line-height:1.5}.order-table th{background:#f7f9fc;color:#728098;font-size:11px;font-weight:500;white-space:nowrap}.order-table th,.order-table td{padding:16px 12px;border-bottom:1px solid #ecf0f5;vertical-align:top}.order-table th{padding-top:11px;padding-bottom:11px}.order-table tr:last-child td{border-bottom:0}.order-table tbody tr:hover{background:#fafcff}.order-table small{display:block;margin-top:5px;color:#8995a7;font-size:11px}.order-number,.service-name{display:block;width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left}.order-number{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#365cc1;font-variant-numeric:tabular-nums}.service-name{color:#26374e;font-weight:650;line-height:1.55}.service-name:hover{color:#365cc1}.category{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.order-park{color:#51617a}.order-delivery{color:#455771}.order-amount{white-space:nowrap;font-variant-numeric:tabular-nums}.order-amount strong{color:#21324b;font-size:14px}.order-table .paid{color:#278465}.order-table .unpaid{color:#af6d25}.order-table .refunded{color:#b75a5a}.align-right{text-align:right}.order-state .el-tag{margin-top:9px;font-size:10px;padding:0 5px;white-space:nowrap}.status-dot{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}.status-dot::before{content:'';width:5px;height:5px;border-radius:50%;background:#4a72d4}.status-dot.completed::before{background:#2a977d}.status-dot.cancelled::before{background:#a3adbb}.status-dot.pending_contract::before{background:#9b71ce}.order-actions{display:flex;flex-direction:column;align-items:flex-end;gap:3px}.order-actions :deep(.el-button){margin:0;padding:3px 0;height:23px;font-size:12px}.order-pagination{display:flex;justify-content:space-between;align-items:center;padding-top:18px;color:#77869b;font-size:12px}
+</style>
+
+<style scoped>
+.order-table th,.order-table td{padding-left:10px;padding-right:10px}.order-table td:last-child{padding-right:14px}.order-actions{gap:6px}.order-actions :deep(.el-button){white-space:nowrap}.amount-scope{font-size:10px;font-weight:400;color:#8090a7}.order-table .phase-due{margin-top:0;color:#9ba6b6;font-size:10px}.phase-ledger-link{border:0;background:none;padding:6px 0 0;color:#365cc1;font-size:11px;cursor:pointer}.phase-ledger h3{margin:0;font-size:15px;color:#263954}.phase-ledger p{margin:6px 0 14px;font-size:12px;color:#75849a}.phase-ledger table{width:100%;border-collapse:collapse;font-size:12px}.phase-ledger td,.phase-ledger th{padding:10px 6px;text-align:right;border-bottom:1px solid #e7edf5;white-space:nowrap}.phase-ledger td:first-child,.phase-ledger th:first-child{text-align:left;white-space:normal}.phase-ledger th{background:#f7f9fc;font-size:11px;font-weight:500}.phase-ledger strong{font-size:12px;font-weight:600}.phase-ledger small{display:block;font-size:11px;color:#8290a4;margin-top:5px}.phase-ledger .ledger-refund{padding:10px;margin:12px 0 6px;background:#fff4ed;color:#a46636;border-radius:6px}
 </style>

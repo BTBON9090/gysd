@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { Trash2, Save, ChevronLeft, ChevronRight, LogOut } from 'lucide-vue-next'
 import { ElButton, ElMessage, ElMessageBox } from 'element-plus'
 import { useOnboardingStore, STEPS } from '@/stores/onboarding'
+import { useMerchantChangeStore } from '@/stores/merchantChange'
 import { useAcceptanceStore } from '@/stores/acceptance'
 
 const props = defineProps<{
+  changeMode?: boolean
   step?: number
   title?: string
   subtitle?: string
@@ -21,8 +23,9 @@ const route = useRoute()
 const router = useRouter()
 const ob = useOnboardingStore()
 const acc = useAcceptanceStore()
+const change = useMerchantChangeStore()
 const isV2 = computed(() => acc.versionId === 'v2.0-light')
-const canGoBack = computed(() => step.value > 1 || (step.value === 1 && ob.draft.entityType === 'personal'))
+const canGoBack = computed(() => step.value > 1 || (step.value === 1 && !props.changeMode && ob.draft.entityType === 'personal'))
 
 const showSteps = computed(() => props.showSteps ?? true)
 const showFooter = computed(() => props.showFooter ?? true)
@@ -49,9 +52,10 @@ async function onDeleteDraft() {
     await ElMessageBox.confirm('删除后将清空本流程已填内容，确定删除草稿？', '删除草稿', {
       type: 'warning',
       customClass: 'ob-confirm-box',
-      confirmButtonText: '删除',
+      confirmButtonText: '删除', confirmButtonClass: 'el-button--danger',
       cancelButtonText: '取消',
     })
+    if (props.changeMode) { change.cancel(); router.push('/merchant'); return }
     ob.resetDraft()
     acc.setEntryStatus(ob.status === 'approved' ? 'approved' : 'pending')
     ElMessage.success('草稿已删除')
@@ -62,17 +66,20 @@ async function onDeleteDraft() {
 }
 
 function onSave() {
+  if (props.changeMode) { change.save(step.value); ElMessage.success('变更草稿已保存'); return }
   ob.saveDraft()
   ElMessage.success(ob.savedAt ? `已暂存 ${ob.savedAt}` : '已暂存')
 }
 
 function onExit() {
+  if (props.changeMode) { change.save(step.value); router.push('/merchant'); return }
   ob.saveDraft()
   ElMessage.success('已退出入驻，当前资料已保留')
   router.push('/workspace')
 }
 
 function onPrev() {
+  if (props.changeMode) { change.save(Math.max(1, step.value - 1)); return }
   if (step.value > 1) {
     router.push(`/onboarding/step/${step.value - 1}`)
   } else if (route.path.startsWith('/onboarding/step/') && ob.draft.entityType === 'personal') {
@@ -103,9 +110,9 @@ function onNext() {
           :class="{
             finish: s.n < step,
             process: s.n === step,
-            clickable: ob.maxStep >= s.n && s.n !== step,
+            clickable: (changeMode || ob.maxStep >= s.n) && s.n !== step,
           }"
-          @click="ob.maxStep >= s.n && s.n !== step && router.push(`/onboarding/step/${s.n}`)"
+          @click="changeMode ? change.save(s.n) : ob.maxStep >= s.n && s.n !== step && router.push(`/onboarding/step/${s.n}`)"
         >
           <span class="step-dot">
             <template v-if="s.n < step">✓</template>
@@ -128,13 +135,13 @@ function onNext() {
     <footer v-if="showFooter" class="ob-footer">
       <div class="ob-footer-inner ob-footer-v2">
         <div class="ob-footer-left">
-          <button class="save-link exit-link" type="button" @click="onExit"><LogOut :size="15" /> 退出入驻</button>
-          <button v-if="ob.status === 'draft'" class="save-link" type="button" @click="onSave"><Save :size="15" /> 暂存草稿</button>
-          <button v-if="ob.status === 'draft'" class="save-link delete-link" type="button" @click="onDeleteDraft"><Trash2 :size="15" /> 删除草稿</button>
+          <button class="save-link exit-link" type="button" @click="onExit"><LogOut :size="15" /> {{ changeMode ? '返回商户档案' : '退出入驻' }}</button>
+          <button v-if="changeMode || ob.status === 'draft'" class="save-link" type="button" @click="onSave"><Save :size="15" /> 暂存草稿</button>
+          <button v-if="changeMode || ob.status === 'draft'" class="save-link delete-link" type="button" @click="onDeleteDraft"><Trash2 :size="15" /> 删除草稿</button>
         </div>
         <div class="ob-footer-right">
           <ElButton v-if="canGoBack" class="prev-btn" @click="onPrev"><ChevronLeft :size="15" /> 上一步</ElButton>
-          <ElButton type="primary" class="next-btn" :disabled="nextDisabled" @click="onNext">{{ step === 5 ? '提交入驻' : '下一步' }} <ChevronRight :size="15" /></ElButton>
+          <ElButton type="primary" class="next-btn" :disabled="nextDisabled" @click="onNext">{{ step === 5 ? (changeMode ? '提交运营审核' : '提交入驻') : '下一步' }} <ChevronRight :size="15" /></ElButton>
         </div>
       </div>
     </footer>
@@ -149,7 +156,6 @@ function onNext() {
   flex-direction: column;
   background: var(--bg-page);
 }
-
 
 .ob-top {
   position: sticky;
@@ -461,22 +467,4 @@ function onNext() {
 .exit-link { color:var(--text-secondary); }
 .exit-link:hover { color:var(--text-primary); background:var(--bg-hover); }
 
-@media (max-width: 760px) {
-  .ob-top { padding: 0 14px; }
-  .ob-user-meta, .ob-status { display: none; }
-  .ob-steps { overflow-x: auto; padding: 12px 14px; }
-  .steps-row { min-width: 690px; }
-  .ob-main { padding: 20px 14px 100px; }
-  .ob-footer-inner { padding: 10px 14px; }
-  .ob-footer-left { width: 100%; justify-content: flex-end; }
-  .ob-footer-right { width: 100%; justify-content: space-between; }
-  .ob-footer-right .el-button { flex: 1; min-width: 0; }
-  .ob-footer-left .ghost-btn:first-child { display: none; }
-  .ob-nav { margin-right:0; }
-  .ob-nav-link { font-size:0; padding:0 9px; }
-  .ob-nav-link svg { width:17px; height:17px; }
-  .ob-footer-v2 .ob-footer-left { width:auto; }
-  .ob-footer-v2 .ob-footer-right { width:auto; }
-  .ob-footer-v2 .ob-footer-right .el-button { flex:none; }
-}
 </style>

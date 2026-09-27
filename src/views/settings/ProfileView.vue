@@ -18,7 +18,7 @@ import {
   ElTag,
 } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Camera, KeyRound, Lock, LogOut, ShieldCheck, Smartphone, Trash2, UserRound } from 'lucide-vue-next'
+import { Camera, KeyRound, Lock, LogOut, Smartphone, Trash2, UserRound } from 'lucide-vue-next'
 import { useProfileStore } from '@/stores/profile'
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useSessionStore } from '@/stores/session'
@@ -248,13 +248,6 @@ onUnmounted(stopCountdown)
     <div class="card-grid">
       <!-- 个人资料 -->
       <section class="card">
-        <div class="card-head">
-          <span class="card-ic"><UserRound :size="18" /></span>
-          <div>
-            <h2>个人资料</h2>
-            <p>头像与姓名保存于本机，用于演示。</p>
-          </div>
-        </div>
 
         <div class="avatar-row">
           <button
@@ -315,13 +308,6 @@ onUnmounted(stopCountdown)
 
       <!-- 账号安全 -->
       <section class="card">
-        <div class="card-head">
-          <span class="card-ic"><ShieldCheck :size="18" /></span>
-          <div>
-            <h2>账号安全</h2>
-            <p>登录密码、绑定手机号与退出登录。</p>
-          </div>
-        </div>
 
         <ul class="security-list">
           <li>
@@ -585,9 +571,4 @@ onUnmounted(stopCountdown)
   border: 0;
 }
 
-@media (max-width: 720px) {
-  .fact { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .security-list li { flex-wrap: wrap; }
-  .sec-main { flex-basis: calc(100% - 47px); }
-}
 </style>

@@ -424,11 +424,6 @@ function next() {
   color: var(--text-secondary);
 }
 
-@media (max-width: 760px) {
-  .entity-grid { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .field.span-2 { grid-column: auto; }
-}
 </style>
 
 <style>

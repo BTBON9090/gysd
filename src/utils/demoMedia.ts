@@ -1,5 +1,6 @@
 const PREFIX = 'local-image:'
 const VIDEO_PREFIX = 'local-video:'
+const DOCUMENT_PREFIX = 'local-document:'
 const DB_NAME = 'gysd-demo-media'
 const STORE_NAME = 'images'
 const urlCache = new Map<string, string>()
@@ -26,12 +27,14 @@ async function saveDemoFile(file: File, prefix: string): Promise<string> {
   return key
 }
 
+export function saveDemoDocument(file: File): Promise<string> { return saveDemoFile(file, DOCUMENT_PREFIX) }
+
 export function saveDemoImage(file: File): Promise<string> { return saveDemoFile(file, PREFIX) }
 export function saveDemoVideo(file: File): Promise<string> { return saveDemoFile(file, VIDEO_PREFIX) }
 
 export async function resolveDemoImage(source: string): Promise<string> {
   if (!source) return ''
-  if (!source.startsWith(PREFIX) && !source.startsWith(VIDEO_PREFIX)) return /^(data:image\/|blob:|https?:\/)/.test(source) ? source : ''
+  if (!source.startsWith(PREFIX) && !source.startsWith(VIDEO_PREFIX) && !source.startsWith(DOCUMENT_PREFIX)) return /^(data:image\/|blob:|https?:\/)/.test(source) ? source : ''
   const cached = urlCache.get(source)
   if (cached) return cached
   const db = await openDb()

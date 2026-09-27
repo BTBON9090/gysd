@@ -10,8 +10,9 @@ export interface Shop { name: string; intro: string; logo: string; introImages: 
 export interface Case { id: string; category: string; title: string; intro: string; cover: string; createdAt: string }
 export interface Spec { name: string; point: string; price: number; unit: string; startDays: number; dayType: string; deliveryDays: number; standard: string }
 export interface Service { id: string; category: string; name: string; intro: string; cover: string; regions: string[]; media: string[]; detail: string; guarantee: string; images: string[]; caseIds: string[]; faqs: { question: string; answer: string }[]; taxRate: number; specs: Spec[]; listings: Record<string, { status: ListingStatus; forced?: boolean; reason?: string; at: string }>; updatedAt: string; published: boolean }
-export interface Order { id: string; serviceId: string; serviceName: string; parkId: string; category: string; customer: string; amount: number; paid: number; deliverySnapshot?: string; specSnapshot?: Spec; quantity?: number; customerRequest?: string; requestAttachments?: string[]; paymentAt?: string; contractUploadedAt?: string; contractConfirmedAt?: string; status: OrderStatus; createdAt: string; contractFile: string; contractState: 'none' | 'waiting' | 'rejected' | 'confirmed'; deliverables: string[]; deliveryNote: string; acceptanceAt: string; completedAt: string; afterSaleEnd: string; shareRate: number; afterSaleDays: number; refunded: number; settlement: 'waiting' | 'settled' }
-export interface Refund { id: string; orderId: string; requested: number; agreed: number; reason: string; status: RefundStatus; decision: 'close' | 'continue'; note: string; createdAt: string }
+export interface OrderStage { id: string; name: string; amount: number; paid: number; refunded: number; paymentMethod?: string; paymentAt?: string; payDueAt?: string; dueAt?: string; status: 'pending' | 'in_progress' | 'pending_acceptance' | 'accepted' | 'rejected'; standard: string; files: string[]; note: string; submittedAt?: string; acceptedAt?: string; feedback?: string }
+export interface Order { id: string; serviceId: string; serviceName: string; parkId: string; category: string; customer: string; amount: number; paid: number; fileResources?: Record<string, string>; stages?: OrderStage[]; contactName?: string; contactPhone?: string; deliverySnapshot?: string; specSnapshot?: Spec; quantity?: number; customerRequest?: string; requestAttachments?: string[]; paymentAt?: string; contractUploadedAt?: string; contractConfirmedAt?: string; status: OrderStatus; createdAt: string; contractFile: string; contractState: 'none' | 'waiting' | 'rejected' | 'confirmed'; deliverables: string[]; deliveryNote: string; acceptanceAt: string; completedAt: string; afterSaleEnd: string; shareRate: number; afterSaleDays: number; refunded: number; settlement: 'waiting' | 'settled' }
+export interface Refund { allocations?: Record<string,number>; stageId?: string; updatedAt?: string; history?: { at: string; text: string }[]; id: string; orderId: string; requested: number; agreed: number; reason: string; status: RefundStatus; decision: 'close' | 'continue'; note: string; createdAt: string }
 export interface Invoice { id: string; kind: 'customer' | 'platform'; orderIds: string[]; amounts?: Record<string,number>; parkId: string; amount: number; number: string; file: string; status: 'issued' | 'issuing' | 'failed' | 'returned' | 'returning'; title: string; email: string; subjectType?: string; ticketType?: string; taxId?: string; address?: string; phone?: string; bank?: string; account?: string; createdAt: string }
 export interface Review { id: string; orderId: string; parkId: string; direction: 'to_supplier' | 'to_customer'; score: number; content: string; anonymous: boolean; images: string[]; followup: boolean; createdAt: string }
 export interface CommerceData { parks: Park[]; shop: Shop; cases: Case[]; services: Service[]; orders: Order[]; refunds: Refund[]; invoices: Invoice[]; reviews: Review[]; walletOpen: boolean }
@@ -103,9 +104,22 @@ function demoData(base: CommerceData): CommerceData {
   const pendingContract = order('DEMO-ORDER-003', 'pending_contract', 9800)
   const pendingPayment = order('DEMO-ORDER-004', 'pending_payment', 0)
   const refunds: Refund[] = [{ id: 'demo-refund-001', orderId: inService.id, requested: 1200, agreed: 1200, reason: '客户调整交付范围', status: 'pending', decision: 'continue', note: '', createdAt: stamp }]
+  const complex = order('DEMO-ORDER-MULTI-001', 'in_service', 89600)
+  Object.assign(complex, { serviceName: '企业数字化流程咨询与自动化实施 · 全流程建设', customer: '临港智造科技有限公司（演示）', amount: 128000, refunded: 2400, contactName: '陈女士（演示）', contactPhone: '138****2608', createdAt: plusDays(stamp, -24), paymentAt: plusDays(stamp, -23), contractState: 'confirmed', contractFile: '数字化建设服务合同（已签署）.pdf', contractUploadedAt: plusDays(stamp, -22), contractConfirmedAt: plusDays(stamp, -21), deliverySnapshot: '分期付款 · 分期验收 · 45 天 / 3 期', specSnapshot: { ...sale.specs[0], name: '企业全流程版', price: 128000, deliveryDays: 45, standard: '分三期交付诊断方案、系统配置与上线培训成果' }, customerRequest: '梳理采购、财务和人事三个部门的审批流程，完成系统配置、历史数据迁移与上线培训。第二阶段移除已取消的报表定制，保留审批与权限配置。', requestAttachments: ['业务流程与岗位权限清单.xlsx', '系统集成需求说明.pdf'] })
+  complex.stages = [
+    { id: 'phase-1', name: '需求诊断与方案', amount: 38400, paid: 38400, refunded: 2400, paymentMethod: '企业网银', paymentAt: plusDays(stamp, -23), payDueAt: plusDays(stamp, -22), dueAt: plusDays(stamp, -12), status: 'accepted', standard: '完成现状诊断、流程蓝图与实施计划；确认 12 个关键审批流程。', files: ['流程诊断报告.pdf', '实施计划与流程蓝图.pdf'], note: '交付成果已由项目负责人确认。取消现场调研的差旅部分，退还 2,400 元。', submittedAt: plusDays(stamp, -14), acceptedAt: plusDays(stamp, -12) },
+    { id: 'phase-2', name: '系统配置与联调', amount: 51200, paid: 51200, refunded: 0, paymentMethod: '企业网银', paymentAt: plusDays(stamp, -11), payDueAt: plusDays(stamp, -10), dueAt: plusDays(stamp, 7), status: 'rejected', standard: '完成 12 个流程配置、权限矩阵和接口联调，提交测试报告，关键缺陷清零。', files: ['系统配置清单-v1.pdf', '联调测试报告-v1.pdf'], note: '已完成核心流程配置；客户要求补充跨部门权限测试。', submittedAt: plusDays(stamp, -2), feedback: '跨部门权限校验未完整覆盖，请补充采购负责人代理审批场景后重新提交。' },
+    { id: 'phase-3', name: '上线培训与移交', amount: 38400, paid: 0, refunded: 0, payDueAt: plusDays(stamp, 8), dueAt: plusDays(stamp, 24), status: 'pending', standard: '完成历史数据迁移、两场培训及运维移交；提供操作手册、签到记录和上线验收报告。', files: [], note: '' },
+  ]
+  refunds.unshift(
+    { id: 'demo-refund-multi-current', orderId: complex.id, stageId: 'phase-2', requested: 8500, agreed: 8500, reason: '取消第二阶段报表定制，申请退还未履约部分', status: 'pending', decision: 'continue', note: '', createdAt: plusDays(stamp, -1), history: [{ at: plusDays(stamp, -1), text: '客户申请退款 ¥8,500.00，申请退款后继续履约' }] },
+    { id: 'demo-refund-multi-paid', orderId: complex.id, stageId: 'phase-1', requested: 2400, agreed: 2400, reason: '取消现场调研差旅，改为远程调研', status: 'refunded', decision: 'continue', note: '双方已确认差旅部分退款，诊断与方案成果正常验收。', createdAt: plusDays(stamp, -15), updatedAt: plusDays(stamp, -13), history: [{ at: plusDays(stamp, -15), text: '客户申请退款 ¥2,400.00' }, { at: plusDays(stamp, -13), text: '供应商同意退款；款项已退回，继续履约' }] },
+    { id: 'demo-refund-multi-cancelled', orderId: complex.id, stageId: 'phase-2', requested: 1000, agreed: 1000, reason: '沟通后保留原接口联调范围', status: 'cancelled', decision: 'continue', note: '客户已撤销，未发生资金退款。', createdAt: plusDays(stamp, -5), updatedAt: plusDays(stamp, -4) },
+  )
   const invoices: Invoice[] = [{ id: 'demo-invoice-001', kind: 'customer', orderIds: [completed.id], parkId: first.id, amount: 9800, number: 'DEMO-INV-001', file: '演示凭证.pdf', status: 'issued', title: '园区企业客户（演示）', email: 'demo@example.com', createdAt: stamp }]
+  invoices.push({ id: 'demo-invoice-multi-returned', kind: 'customer', orderIds: [complex.id], amounts: { [complex.id]: 38400 }, parkId: first.id, amount: 38400, number: 'DEMO-INV-MULTI-01', file: '第一阶段发票（已退票）.pdf', status: 'returned', title: complex.customer, email: 'demo@example.com', createdAt: plusDays(stamp, -17) })
   const reviews: Review[] = [{ id: 'demo-review-001', orderId: completed.id, parkId: first.id, direction: 'to_supplier', score: 5, content: '沟通清晰，交付成果符合预期。', anonymous: false, images: [], followup: false, createdAt: stamp }]
-  return { ...base, parks: [first, { ...second, joinedAt: plusDays(stamp, -12) }], shop: { name: base.shop.name || '园区企业服务示例店铺', intro: base.shop.intro || '提供数字化、财税与人才服务，帮助园区企业高效开展业务。', logo: demoCover('企业服务', '#4664c2'), introImages: [demoCover('服务场景', '#15948a')], teamImages: [demoCover('专业团队', '#ad7a3f')], savedAt: stamp }, cases, services: [sale, reviewing, rejected, draft], orders: [completed, inService, pendingContract, pendingPayment], refunds, invoices, reviews, walletOpen: true }
+  return { ...base, parks: [first, { ...second, joinedAt: plusDays(stamp, -12) }], shop: { name: base.shop.name || '园区企业服务示例店铺', intro: base.shop.intro || '提供数字化、财税与人才服务，帮助园区企业高效开展业务。', logo: demoCover('企业服务', '#4664c2'), introImages: [demoCover('服务场景', '#15948a')], teamImages: [demoCover('专业团队', '#ad7a3f')], savedAt: stamp }, cases, services: [sale, reviewing, rejected, draft], orders: [complex, completed, inService, pendingContract, pendingPayment], refunds, invoices, reviews, walletOpen: true }
 }
 export function serviceStatus(s: Service, parkId?: string, allParkIds: string[] = []): ListingStatus | 'draft' {
   if (parkId) return s.listings[parkId]?.status || 'draft'
@@ -118,7 +132,7 @@ export const useCommerceStore = defineStore('commerce', () => {
   const key = computed(() => `gysd-commerce-${ob.activeId}`)
   const fallback = () => defaults(ob.draft.park, ob.draft.serviceName || ob.draft.entityName, ob.draft.merchantIntro)
   const data = ref<CommerceData>(read(key.value, demoData(fallback())))
-  watch(key, () => { data.value = read(key.value, demoData(fallback())); refreshTimedTransitions() })
+  watch(key, () => { data.value = read(key.value, demoData(fallback())); initializeComplexExample(); refreshTimedTransitions() })
   watch(() => ob.draft.park, (name) => {
     if (!name || data.value.services.length || data.value.orders.length || data.value.parks.length !== 1) return
     const old = data.value.parks[0]
@@ -131,7 +145,7 @@ export const useCommerceStore = defineStore('commerce', () => {
   watch(data, () => localStorage.setItem(key.value, JSON.stringify(data.value)), { deep: true })
   const joinedParks = computed(() => data.value.parks.filter(p => p.joinedAt))
   const availableParks = computed(() => PARK_OPTIONS.filter(p => !data.value.parks.some(item => item.id === p.id || item.name === p.name)))
-  const activeRefund = (orderId: string) => { const latest = data.value.refunds.find(r => r.orderId === orderId); return latest && ['pending', 'client_confirm', 'rejected'].includes(latest.status) ? latest : undefined }
+  const activeRefund = (orderId: string) => data.value.refunds.find(r => r.orderId === orderId && ['pending', 'client_confirm', 'rejected'].includes(r.status))
   const customerInvoiced = (orderId: string) => data.value.invoices.some(inv => inv.kind === 'customer' && inv.status === 'issued' && inv.orderIds.includes(orderId))
   const invoiceable = (o: Order) => Math.max(0, o.paid - o.refunded - data.value.invoices.filter(i => i.kind === 'customer' && i.status === 'issued' && i.orderIds.includes(o.id)).reduce((n, i) => n + (i.amounts?.[o.id] ?? i.amount / i.orderIds.length), 0))
   function joinPark(parkId: string) { const park = availableParks.value.find(p => p.id === parkId); if (!park) return false; data.value.parks.push({ ...park, joinedAt: now() }); return true }
@@ -152,25 +166,76 @@ export const useCommerceStore = defineStore('commerce', () => {
     data.value.orders.unshift(order); return order
   }
   function submitContract(orderId: string, file: string) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.status !== 'pending_contract' || !['none','rejected'].includes(o.contractState) || activeRefund(o.id)) return false; o.contractFile = file; o.contractState = 'waiting'; o.contractUploadedAt = now(); return true }
-  function confirmContract(orderId: string, approved: boolean) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.contractState !== 'waiting') return; o.contractState = approved ? 'confirmed' : 'rejected'; if (approved) { o.status = 'in_service'; o.contractConfirmedAt = now() } }
-  function requestAcceptance(orderId: string, files: string[], note: string) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.status !== 'in_service' || o.contractState !== 'confirmed' || !o.paid || activeRefund(o.id) || !files.length) return false; o.deliverables = files; o.deliveryNote = note; o.status = 'pending_acceptance'; o.acceptanceAt = now(); return true }
-  function concludeAcceptance(orderId: string, approved: boolean) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.status !== 'pending_acceptance') return; if (approved) { o.status = 'completed'; o.completedAt = now(); o.afterSaleEnd = plusDays(o.completedAt, o.afterSaleDays) } else { o.status = 'in_service'; o.acceptanceAt = '' } }
-  function createRefund(orderId: string, amount: number, reason: string) {
-    const o = data.value.orders.find(x => x.id === orderId); const active = activeRefund(orderId); if (!o || o.status === 'pending_payment' || active && active.status !== 'rejected' || amount <= 0 || amount > o.paid - o.refunded || customerInvoiced(orderId) || (o.afterSaleEnd && Date.now() > new Date(o.afterSaleEnd).getTime())) return false
+  function confirmContract(orderId: string, approved: boolean) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.contractState !== 'waiting' || activeRefund(o.id)) return false; o.contractState = approved ? 'confirmed' : 'rejected'; if (approved) { o.status = 'in_service'; o.contractConfirmedAt = now() } return true }
+  function payOrderStage(orderId: string) {
+    const o = data.value.orders.find(x => x.id === orderId)
+    if (!o || ['cancelled','completed'].includes(o.status) || activeRefund(o.id)) return false
+    if (o.stages?.length) {
+      const stage = o.stages.find(x => x.paid < x.amount)
+      if (!stage || o.stages.slice(0, o.stages.indexOf(stage)).some(x => x.status !== 'accepted')) return false
+      o.paid += stage.amount - stage.paid; stage.paid = stage.amount; stage.paymentAt = now(); stage.paymentMethod = '企业网银'; stage.status = 'in_progress'
+    } else { if (o.status !== 'pending_payment') return false; o.paid = o.amount }
+    o.paymentAt = now()
+    if (o.status === 'pending_payment') o.status = 'pending_contract'
+    return true
+  }
+  function requestAcceptance(orderId: string, files: string[], note: string, stageId?: string) {
+    const o = data.value.orders.find(x => x.id === orderId)
+    if (!o || o.status !== 'in_service' || o.contractState !== 'confirmed' || !o.paid || activeRefund(o.id) || !files.length) return false
+    if (o.stages?.length) {
+      const stage = o.stages.find(x => x.status !== 'accepted')
+      if (!stage || stageId && stage.id !== stageId || stage.paid < stage.amount) return false
+      stage.files = [...files]; stage.note = note; stage.status = 'pending_acceptance'; stage.submittedAt = now(); stage.feedback = ''
+    }
+    o.deliverables = [...files]; o.deliveryNote = note; o.status = 'pending_acceptance'; o.acceptanceAt = now(); return true
+  }
+  function concludeAcceptance(orderId: string, approved: boolean) {
+    const o = data.value.orders.find(x => x.id === orderId)
+    if (!o || o.status !== 'pending_acceptance' || activeRefund(o.id)) return false
+    const stage = o.stages?.find(x => x.status === 'pending_acceptance')
+    if (o.stages?.length && !stage) return false
+    if (stage) { stage.status = approved ? 'accepted' : 'rejected'; if (approved) stage.acceptedAt = now(); else stage.feedback = '客户驳回验收，请核对交付标准后补充材料。' }
+    if (approved && (!o.stages?.length || o.stages.every(x => x.status === 'accepted'))) { o.status = 'completed'; o.completedAt = now(); o.afterSaleEnd = plusDays(o.completedAt, o.afterSaleDays) }
+    else { o.status = 'in_service'; o.acceptanceAt = ''; if (approved) { o.deliverables = []; o.deliveryNote = '' } }
+    return true
+  }
+  function createRefund(orderId: string, amount: number, reason: string, stageId?: string) {
+    const o = data.value.orders.find(x => x.id === orderId); const active = activeRefund(orderId); if (!o || o.status === 'pending_payment' || active && active.status !== 'rejected' || amount <= 0 || amount > o.paid - o.refunded || o.settlement === 'settled' || customerInvoiced(orderId) || (o.afterSaleEnd && Date.now() > new Date(o.afterSaleEnd).getTime())) return false
+    const stage = stageId ? o.stages?.find(x => x.id === stageId) : undefined
+    if (stageId && (!stage || amount > stage.paid - stage.refunded)) return false
     if (o.status === 'pending_contract') { o.refunded += o.paid - o.refunded; o.status = 'cancelled'; data.value.refunds.unshift({ id: id(), orderId, requested: o.paid, agreed: o.paid, reason, status: 'refunded', decision: 'close', note: '合同确认前系统即时全额退款', createdAt: now() }); return true }
-    data.value.refunds.unshift({ id: id(), orderId, requested: amount, agreed: amount, reason, status: 'pending', decision: 'continue', note: '', createdAt: now() }); return true
+    if (active?.status === 'rejected') { active.status = 'cancelled'; active.updatedAt = now(); (active.history ||= []).push({ at: now(), text: '客户重新发起申请，本次申请已结束' }) }
+    data.value.refunds.unshift({ id: id(), orderId, stageId, requested: amount, agreed: amount, reason, status: 'pending', decision: 'continue', note: '', createdAt: now() }); return true
   }
   function decideRefund(refundId: string, action: 'agree' | 'reject' | 'change', amount: number, decision: 'close' | 'continue', note: string) {
     const r = data.value.refunds.find(x => x.id === refundId); if (!r || r.status !== 'pending') return false
     const o = data.value.orders.find(x => x.id === r.orderId); if (!o) return false
-    if (action === 'reject') { if (!note.trim()) return false; r.status = 'rejected'; r.note = note; return true }
-    if (amount <= 0 || amount > o.paid - o.refunded || (action === 'change' && !note.trim())) return false
+    if (action === 'reject') { if (!note.trim()) return false; r.status = 'rejected'; r.note = note; r.updatedAt = now(); (r.history ||= []).push({ at: now(), text: `供应商拒绝退款：${note}` }); return true }
+    const stage = r.stageId ? o.stages?.find(x => x.id === r.stageId) : undefined
+    if (!Number.isFinite(amount) || amount <= 0 || amount > o.paid - o.refunded || o.settlement === 'settled' || stage && amount > stage.paid - stage.refunded || customerInvoiced(o.id) || action === 'agree' && amount !== r.requested || (action === 'change' && !note.trim())) return false
     r.agreed = amount; r.decision = decision; r.note = note
-    if (action === 'change') r.status = 'client_confirm'; else finalizeRefund(r.id)
+    if (action === 'change') { r.status = 'client_confirm'; r.updatedAt = now(); (r.history ||= []).push({ at: now(), text: `供应商提议退款 ${money(amount)}，等待客户确认：${note}` }) } else finalizeRefund(r.id)
     return true
   }
-  function finalizeRefund(refundId: string, clientAccept = true) { const r = data.value.refunds.find(x => x.id === refundId); if (!r || r.status !== 'client_confirm' && r.status !== 'pending') return; if (!clientAccept) { r.status = 'pending'; return }; const o = data.value.orders.find(x => x.id === r.orderId); if (!o) return; r.status = 'refunded'; o.refunded += r.agreed; if (r.decision === 'close') { o.status = 'cancelled'; o.afterSaleEnd = plusDays(now(), o.afterSaleDays) } }
-  function cancelRefund(refundId: string) { const r = data.value.refunds.find(x => x.id === refundId); if (!r || !['pending','client_confirm','rejected'].includes(r.status)) return false; r.status = 'cancelled'; return true }
+  function finalizeRefund(refundId: string, clientAccept = true) {
+    const r = data.value.refunds.find(x => x.id === refundId)
+    if (!r || !['client_confirm','pending'].includes(r.status)) return false
+    if (!clientAccept) { r.status = 'pending'; r.updatedAt = now(); (r.history ||= []).push({ at: now(), text: '客户不同意调整方案，退回供应商重新处理' }); return true }
+    const o = data.value.orders.find(x => x.id === r.orderId)
+    const stage = o?.stages?.find(x => x.id === r.stageId)
+    if (!o || customerInvoiced(o.id) || o.settlement === 'settled' || r.agreed > o.paid - o.refunded || stage && r.agreed > stage.paid - stage.refunded) return false
+    r.status = 'refunded'; r.updatedAt = now(); o.refunded += r.agreed
+    if (stage) { stage.refunded += r.agreed; r.allocations = { [stage.id]: r.agreed } }
+    else if (o.stages?.length) {
+      // Whole-order demo refunds consume the most recent paid phase first.
+      let left = r.agreed; r.allocations = {}
+      for (const phase of [...o.stages].reverse()) { const part = Math.min(left, phase.paid - phase.refunded); if (part > 0) { phase.refunded += part; r.allocations[phase.id] = part; left -= part } }
+    }
+    ;(r.history ||= []).push({ at: now(), text: `退款 ${money(r.agreed)} 已完成，${r.decision === 'close' ? '关闭订单' : '继续履约'}` })
+    if (r.decision === 'close') { o.status = 'cancelled'; o.afterSaleEnd = plusDays(now(), o.afterSaleDays) }
+    return true
+  }
+  function cancelRefund(refundId: string) { const r = data.value.refunds.find(x => x.id === refundId); if (!r || !['pending','client_confirm','rejected'].includes(r.status)) return false; r.status = 'cancelled'; r.updatedAt = now(); (r.history ||= []).push({ at: now(), text: '客户撤销退款，未产生退款支出' }); return true }
   function issueInvoice(kind: Invoice['kind'], orderIds: string[], number: string, file: string, title: string, email: string, details: Partial<Invoice> = {}) {
     const orders = data.value.orders.filter(o => orderIds.includes(o.id)); if (!orders.length) return false
     if (kind === 'customer' && orders.some(o => activeRefund(o.id) || invoiceable(o) <= 0)) return false
@@ -220,6 +285,32 @@ export const useCommerceStore = defineStore('commerce', () => {
     appendMissing(current.reviews, sample.reviews)
     current.walletOpen = true
   }
+  function prepareComplexOrderDemo() {
+    const sample = demoData(fallback())
+    const order = sample.orders.find(o => o.id === 'DEMO-ORDER-MULTI-001')!
+    if (!data.value.orders.some(o => o.id === order.id)) {
+      data.value.orders.unshift(order)
+      data.value.refunds.unshift(...sample.refunds.filter(r => r.orderId === order.id))
+    }
+    for (const invoice of sample.invoices.filter(i => i.orderIds.includes(order.id))) if (!data.value.invoices.some(i => i.id === invoice.id)) data.value.invoices.push(invoice)
+    return order.id
+  }
+  function initializeComplexExample() {
+    const marker = `gysd-complex-fixture-v1-${ob.activeId}`
+    if (!localStorage.getItem(marker)) { prepareComplexOrderDemo(); localStorage.setItem(marker, '1') }
+  }
+  initializeComplexExample()
+  // Backfill only missing metadata on legacy demo orders; never alter transaction state.
+  for (const sample of demoData(fallback()).orders) {
+    const existing = data.value.orders.find(o => o.id === sample.id)
+    if (!existing) continue
+    if (!existing.specSnapshot && sample.specSnapshot) existing.specSnapshot = clone(sample.specSnapshot)
+    if (!existing.quantity) existing.quantity = sample.quantity || 1
+    if (!existing.deliverySnapshot) existing.deliverySnapshot = sample.deliverySnapshot
+    if (existing.paid && !existing.paymentAt) existing.paymentAt = plusDays(existing.createdAt, 1)
+    if (existing.contractFile && !existing.contractUploadedAt) existing.contractUploadedAt = plusDays(existing.createdAt, 2)
+    if (existing.contractState === 'confirmed' && !existing.contractConfirmedAt) existing.contractConfirmedAt = plusDays(existing.createdAt, 3)
+  }
   const sampleMarker = `gysd-demo-catalog-v2-${ob.activeId}`
   if (!localStorage.getItem(sampleMarker)) {
     addMissingExamples()
@@ -227,5 +318,5 @@ export const useCommerceStore = defineStore('commerce', () => {
   }
   refreshTimedTransitions()
   window.setInterval(refreshTimedTransitions, 60_000)
-  return { data, joinedParks, availableParks, activeRefund, customerInvoiced, invoiceable, joinPark, saveShop, saveCase, deleteCase, saveService, changeListing, deleteService, createOrder, submitContract, confirmContract, requestAcceptance, concludeAcceptance, createRefund, decideRefund, finalizeRefund, cancelRefund, issueInvoice, returnInvoice, addReview, reset, seed, addMissingExamples, preparePublishDemo, refreshTimedTransitions }
+  return { data, joinedParks, availableParks, activeRefund, customerInvoiced, invoiceable, joinPark, saveShop, saveCase, deleteCase, saveService, changeListing, deleteService, createOrder, submitContract, confirmContract, requestAcceptance, concludeAcceptance, createRefund, decideRefund, finalizeRefund, cancelRefund, issueInvoice, returnInvoice, addReview, reset, seed, addMissingExamples, preparePublishDemo, prepareComplexOrderDemo, payOrderStage, refreshTimedTransitions }
 })

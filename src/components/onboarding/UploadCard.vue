@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { Upload, Download, Trash2, Check, UserRound, Landmark, ScanLine } from 'lucide-vue-next'
+import { resolveDemoImage } from '@/utils/demoMedia'
 import { ElMessage } from 'element-plus'
 
 const props = withDefaults(
   defineProps<{
+    document?: { source: string; name: string }
     modelValue?: boolean
     title: string
     hint?: string
@@ -40,6 +42,12 @@ const pct = ref(0)
 const fileUrl = ref('')
 const fileNameLive = ref('')
 let timer: ReturnType<typeof setInterval> | null = null
+watch(() => props.document, async document => {
+  if (!document) return
+  const url = await resolveDemoImage(document.source)
+  fileUrl.value = url; fileNameLive.value = document.name
+}, { immediate: true })
+onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 
 const done = computed(() => props.modelValue || phase.value === 'done')
 const displayFile = computed(() => fileNameLive.value || props.fileName || (done.value ? '已上传文件 · 演示状态' : ''))
@@ -60,7 +68,7 @@ function pickReal(e: Event) {
     input.value = ''
     return
   }
-  if (fileUrl.value) URL.revokeObjectURL(fileUrl.value)
+  if (fileUrl.value && !props.document) URL.revokeObjectURL(fileUrl.value)
   fileUrl.value = URL.createObjectURL(file)
   fileNameLive.value = file.name
   if (timer) clearInterval(timer)
@@ -98,7 +106,7 @@ function onRemove() {
   phase.value = 'idle'
   pct.value = 0
   if (fileUrl.value) {
-    URL.revokeObjectURL(fileUrl.value)
+    if (!props.document) URL.revokeObjectURL(fileUrl.value)
     fileUrl.value = ''
   }
   fileNameLive.value = ''

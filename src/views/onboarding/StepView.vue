@@ -23,18 +23,42 @@ import {
   ElTag,
 } from 'element-plus'
 import { useOnboardingStore } from '@/stores/onboarding'
+import { useMerchantChangeStore } from '@/stores/merchantChange'
+import { saveDemoDocument } from '@/utils/demoMedia'
+import MerchantDocuments from '@/components/onboarding/MerchantDocuments.vue'
 import { useAcceptanceStore } from '@/stores/acceptance'
 import OnboardingShell from '@/components/onboarding/OnboardingShell.vue'
 import UploadCard from '@/components/onboarding/UploadCard.vue'
 import FilePreview from '@/components/onboarding/FilePreview.vue'
 
+const props = defineProps<{ changeMode?: boolean }>()
 const route = useRoute()
 const router = useRouter()
 const ob = useOnboardingStore()
 const acc = useAcceptanceStore()
-const d = ob.draft
+const change = useMerchantChangeStore()
+if (props.changeMode && !change.current()) change.start()
+const d = props.changeMode ? (change.current()?.draft || ob.draft) : ob.draft
+async function saveDocument(key: string, file?: File) {
+  if (!file) return
+  try {
+    const source = await saveDemoDocument(file)
+    d.documents = { ...d.documents, [key]: { source, name: file.name } }
+    if (key === 'extra') d.extraCerts = file.name
+    if (key === 'coop') d.coopFileName = file.name
+    if (key === 'split') d.splitFileName = file.name
+    ob.persist()
+  } catch { ElMessage.error('文件保存失败，请重新上传') }
+}
+function removeDocument(key: string) {
+  if (d.documents) delete d.documents[key]
+  if (key === 'coop') d.coopFileName = ''
+  if (key === 'split') d.splitFileName = ''
+  if (key === 'extra') d.extraCerts = ''
+  ob.persist()
+}
 
-const step = computed(() => Math.min(5, Math.max(1, Number(route.params.n) || 1)))
+const step = computed(() => Math.min(5, Math.max(1, (props.changeMode ? change.current()?.step : Number(route.params.n)) || 1)))
 const errors = ref<string[]>([])
 const regionField = ref<HTMLElement | null>(null)
 const regionTagLimit = ref(4)
@@ -56,19 +80,24 @@ function downloadDemoTemplate(name: string) {
 }
 
 function demoFill(n: number) {
-  ob.fillDemoStep(n)
+  ob.fillDemoStep(n, d)
   ElMessage.success(n === 5 ? '演示数据已填满，请核对后提交' : `第 ${n} 步演示数据已填入`)
   errors.value = []
 }
 
 watch(d, () => {
-  if (errors.value.length) errors.value = ob.validateStep(step.value)
+  if (errors.value.length) errors.value = ob.validateStep(step.value, d)
 }, { deep: true })
 
 watch(
   step,
   (n) => {
     errors.value = []
+    if (props.changeMode) {
+      if (change.current()?.status === 'reviewing') router.replace('/merchant')
+      nextTick(() => document.querySelector('.shell-main')?.scrollTo({ top: 0 }))
+      return
+    }
     if (!ob.entityVerified) {
       router.replace('/onboarding/entity')
       return
@@ -145,10 +174,15 @@ function onRegionChange(value: unknown) {
 const skillsPool = ['短视频剪辑', '企业注册', 'RPA 开发', '仓储配送', '薪税筹划', 'ISO 认证']
 
 function next() {
-  const errs = ob.validateStep(step.value)
+  const errs = ob.validateStep(step.value, d)
   errors.value = errs
   if (errs.length) {
     requestAnimationFrame(() => document.querySelector('.field.has-error, .inline-error, .submission-errors')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+    return
+  }
+  if (props.changeMode) {
+    if (step.value < 5) change.save(step.value + 1)
+    else if (change.submit()) { ElMessage.success('变更已提交，等待运营审核'); router.push('/merchant') }
     return
   }
   ob.markStep(step.value + 1)
@@ -168,7 +202,8 @@ function fieldError(message: string) {
 
 function goToSubmissionError(message: string) {
   const match = message.match(/^第 ([1-4]) 步/)
-  router.push(`/onboarding/step/${match ? Number(match[1]) : 2}`)
+  if (props.changeMode) change.save(match ? Number(match[1]) : 2)
+  else router.push(`/onboarding/step/${match ? Number(match[1]) : 2}`)
 }
 
 const meta = computed(() => {
@@ -205,8 +240,8 @@ const meta = computed(() => {
 
 <template>
   <OnboardingShell
-    :step="step"
-    :title="meta.title"
+    :step="step" :change-mode="changeMode"
+    :title="changeMode ? `入驻信息变更 · ${meta.title}` : meta.title"
     :subtitle="meta.subtitle"
     :show-steps="true"
     :show-footer="true"
@@ -239,7 +274,7 @@ const meta = computed(() => {
           <div class="form-grid">
             <div class="field span-2" :class="{ 'has-error': fieldError('请选择申请入驻园区') }">
               <label>申请入驻园区 <em>*</em></label>
-              <ElSelect v-model="d.park" filterable placeholder="搜索并选择园区" style="width: 100%" @change="ob.persist">
+              <ElSelect v-model="d.park" :disabled="changeMode" filterable placeholder="搜索并选择园区" style="width: 100%" @change="ob.persist">
                 <ElOption v-for="p in parks" :key="p" :label="p" :value="p" />
               </ElSelect>
               <span v-if="fieldError('请选择申请入驻园区')" class="field-error">请选择申请入驻园区</span>
@@ -253,7 +288,7 @@ const meta = computed(() => {
                   <div class="entity-badges"><span class="entity-badge">{{ ob.entityLabel }}</span><span class="entity-badge neutral">{{ ob.certLabel }}</span></div>
                   <p>识别码：{{ d.creditCode || '—' }}</p>
                 </div>
-                <ElButton v-if="d.entityType === 'personal'" size="small" text type="primary" @click="router.push('/onboarding/entity')">
+                <ElButton v-if="d.entityType === 'personal' && !changeMode" size="small" text type="primary" @click="router.push('/onboarding/entity')">
                   修改主体
                 </ElButton>
                 <span v-else class="field-help">已核验，主体信息不可修改</span>
@@ -349,16 +384,14 @@ const meta = computed(() => {
                 {{ d.licenseUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </header>
-            <UploadCard
+            <UploadCard :document="d.documents?.license"
               v-model="d.licenseUploaded"
               title="点击上传营业执照"
               hint="JPG / PNG / PDF"
               ocr-label="演示识别回填"
-              @ocr="ob.fillDemoLicense()"
-              @upload="ob.persist()"
-              @remove="ob.persist()"
+              @ocr="ob.fillDemoLicense(d)"
               @preview="(u?: string, n?: string) => openPreview('营业执照', n || 'license-front.png', 'image', u || '')"
-            />
+            @upload="(file?: File) => saveDocument('license', file)" @remove="removeDocument('license')" />
             <span v-if="fieldError('请上传营业执照')" class="field-error inline-error">请上传营业执照</span>
             <div class="fill-box">
               <div class="fill-box-head">
@@ -429,30 +462,26 @@ const meta = computed(() => {
               </ElTag>
             </header>
             <div class="id-pair">
-              <UploadCard
+              <UploadCard :document="d.documents?.idFront"
                 v-model="d.idFront"
                 title="人像面"
                 hint="带照片一面"
                 face="portrait"
                 compact
                 ocr-label="演示识别回填"
-                @ocr="ob.fillDemoId()"
-                @upload="ob.persist()"
-                @remove="ob.persist()"
+                @ocr="ob.fillDemoId(d)"
                 @preview="(u?: string, n?: string) => openPreview('身份证 · 人像面', n || 'id-portrait.png', 'image', u || '')"
-              />
-              <UploadCard
+              @upload="(file?: File) => saveDocument('idFront', file)" @remove="removeDocument('idFront')" />
+              <UploadCard :document="d.documents?.idBack"
                 v-model="d.idBack"
                 title="国徽面"
                 hint="带国徽一面"
                 face="emblem"
                 compact
                 ocr-label="演示识别回填"
-                @ocr="ob.fillDemoId()"
-                @upload="ob.persist()"
-                @remove="ob.persist()"
+                @ocr="ob.fillDemoId(d)"
                 @preview="(u?: string, n?: string) => openPreview('身份证 · 国徽面', n || 'id-emblem.png', 'image', u || '')"
-              />
+              @upload="(file?: File) => saveDocument('idBack', file)" @remove="removeDocument('idBack')" />
             </div>
             <span v-if="fieldError('请上传法人身份证正反面')" class="field-error inline-error">请上传法人身份证人像面和国徽面</span>
             <div class="fill-box">
@@ -515,16 +544,14 @@ const meta = computed(() => {
                 {{ d.bankUploaded ? '已上传' : '待上传' }}
               </ElTag>
             </header>
-            <UploadCard
+            <UploadCard :document="d.documents?.bank"
               v-model="d.bankUploaded"
               title="点击上传开户许可证 / 基本户"
               hint="JPG / PNG / PDF"
               ocr-label="演示识别回填"
-              @ocr="ob.fillDemoBank()"
-              @upload="ob.persist()"
-              @remove="ob.persist()"
+              @ocr="ob.fillDemoBank(d)"
               @preview="(u?: string, n?: string) => openPreview('开户许可 / 基本户', n || 'bank-license.png', 'image', u || '')"
-            />
+            @upload="(file?: File) => saveDocument('bank', file)" @remove="removeDocument('bank')" />
             <div class="fill-box">
               <div class="fill-box-head">
                 <strong>识别信息</strong>
@@ -635,7 +662,7 @@ const meta = computed(() => {
 
             <div class="field span-2">
               <label>补充资质附件</label>
-              <UploadCard
+              <UploadCard :document="d.documents?.extra"
                 :model-value="!!d.extraCerts"
                 title="点击上传行业资质 / 荣誉证书"
                 hint="选填，有助于加快审核"
@@ -645,7 +672,7 @@ const meta = computed(() => {
                 @update:model-value="(v: boolean) => { d.extraCerts = v ? 'certs.zip' : ''; ob.persist() }"
                 @ocr="demoFill(3)"
               @preview="(u?: string, n?: string) => openPreview('补充资质', n || d.extraCerts || 'certs.zip', 'image', u || '')"
-              />
+              @upload="(file?: File) => saveDocument('extra', file)" @remove="removeDocument('extra')" />
             </div>
           </div>
         </div>
@@ -684,7 +711,7 @@ const meta = computed(() => {
                 <button class="template-action download" type="button" @click="downloadDemoTemplate('服务商入驻合作协议')"><Download :size="14" />下载演示模板</button>
               </div>
             </div>
-            <UploadCard
+            <UploadCard :document="d.documents?.coop"
               v-model="d.coopUploaded"
               :file-name="d.coopFileName"
               title="点击上传已签署协议"
@@ -692,10 +719,8 @@ const meta = computed(() => {
               :show-ocr="false"
               ocr-label="演示填入"
               @ocr="demoFill(4)"
-              @upload="(file?: File) => { d.coopFileName = file?.name || ''; ob.persist() }"
-              @remove="() => { d.coopFileName = ''; ob.persist() }"
               @preview="(u?: string, n?: string) => openPreview('服务商入驻合作协议', n || d.coopFileName || '服务商入驻合作协议-已签.pdf', 'pdf', u || '')"
-            />
+            @upload="(file?: File) => saveDocument('coop', file)" @remove="removeDocument('coop')" />
             <span v-if="fieldError('请上传《服务商入驻合作协议》')" class="field-error inline-error">请上传《服务商入驻合作协议》</span>
           </div>
 
@@ -707,7 +732,7 @@ const meta = computed(() => {
                 <button class="template-action download" type="button" @click="downloadDemoTemplate('支付分账协议')"><Download :size="14" />下载演示模板</button>
               </div>
             </div>
-            <UploadCard
+            <UploadCard :document="d.documents?.split"
               v-model="d.splitUploaded"
               :file-name="d.splitFileName"
               title="点击上传已签署协议"
@@ -715,10 +740,8 @@ const meta = computed(() => {
               :show-ocr="false"
               ocr-label="演示填入"
               @ocr="demoFill(4)"
-              @upload="(file?: File) => { d.splitFileName = file?.name || ''; ob.persist() }"
-              @remove="() => { d.splitFileName = ''; ob.persist() }"
               @preview="(u?: string, n?: string) => openPreview('支付分账协议', n || d.splitFileName || '支付分账协议-已签.pdf', 'pdf', u || '')"
-            />
+            @upload="(file?: File) => saveDocument('split', file)" @remove="removeDocument('split')" />
             <span v-if="fieldError('请上传《支付分账协议》')" class="field-error inline-error">请上传《支付分账协议》</span>
           </div>
 
@@ -800,75 +823,8 @@ const meta = computed(() => {
             <div><span class="k">银行账号</span><span class="v">{{ maskAccount(d.bankAccount) }}</span></div>
           </div>
 
-          <h3 class="sec-title">资质文件</h3>
-          <ul class="file-list">
-            <li v-if="d.entityType !== 'personal'" class="file-row">
-              <span class="file-ic">营</span>
-              <div class="file-meta">
-                <strong>营业执照</strong>
-                <small>营业执照上传状态</small>
-              </div>
-              <span class="file-valid">有效期至 {{ d.validTo || '长期' }}</span>
-              <ElTag :type="d.licenseUploaded ? 'success' : 'warning'" size="small">
-                {{ d.licenseUploaded ? '已上传' : '待上传' }}
-              </ElTag>
-            </li>
-            <li class="file-row">
-              <span class="file-ic">证</span>
-              <div class="file-meta">
-                <strong>法人身份证人像面</strong>
-                <small>身份证人像面上传状态</small>
-              </div>
-              <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
-              <ElTag :type="d.idFront ? 'success' : 'warning'" size="small">
-                {{ d.idFront ? '已上传' : '待上传' }}
-              </ElTag>
-            </li>
-            <li class="file-row">
-              <span class="file-ic">证</span>
-              <div class="file-meta">
-                <strong>法人身份证国徽面</strong>
-                <small>身份证国徽面上传状态</small>
-              </div>
-              <span class="file-valid">有效期至 {{ d.idValidTo || '—' }}</span>
-              <ElTag :type="d.idBack ? 'success' : 'warning'" size="small">
-                {{ d.idBack ? '已上传' : '待上传' }}
-              </ElTag>
-            </li>
-            <li v-if="d.entityType !== 'personal'" class="file-row">
-              <span class="file-ic">银</span>
-              <div class="file-meta">
-                <strong>开户许可证 / 基本户</strong>
-                <small>账户文件上传状态</small>
-              </div>
-              <span class="file-valid">账户 {{ maskAccount(d.bankAccount) }}</span>
-              <ElTag :type="d.bankUploaded ? 'success' : 'warning'" size="small">
-                {{ d.bankUploaded ? '已上传' : '待上传' }}
-              </ElTag>
-            </li>
-            <li class="file-row">
-              <span class="file-ic">协</span>
-              <div class="file-meta">
-                <strong>服务商入驻合作协议</strong>
-                <small>{{ d.coopFileName || '服务商入驻合作协议-已签.pdf' }}</small>
-              </div>
-              <span class="file-valid">—</span>
-              <ElTag :type="d.coopUploaded ? 'success' : 'warning'" size="small">
-                {{ d.coopUploaded ? '已上传' : '待上传' }}
-              </ElTag>
-            </li>
-            <li class="file-row">
-              <span class="file-ic">协</span>
-              <div class="file-meta">
-                <strong>支付分账协议</strong>
-                <small>{{ d.splitFileName || '支付分账协议-已签.pdf' }}</small>
-              </div>
-              <span class="file-valid">—</span>
-              <ElTag :type="d.splitUploaded ? 'success' : 'warning'" size="small">
-                {{ d.splitUploaded ? '已上传' : '待上传' }}
-              </ElTag>
-            </li>
-          </ul>
+          <h3 class="sec-title">资质文件</h3><MerchantDocuments :draft="d" />
+
 
           <div v-if="errors.length" class="err-inline">
             仍有未完成项，请返回补全后再提交。
@@ -1564,13 +1520,4 @@ export default {}
 .submission-errors button span { margin-left: 7px; font-weight: 700; }
 .submission-errors button:hover { text-decoration: underline; }
 
-@media (max-width: 900px) {
-  .step-layout { grid-template-columns: 1fr; }
-  .side-col { position: static; }
-}
-@media (max-width: 620px) {
-  .form-grid { grid-template-columns: 1fr; }
-  .field.span-2 { grid-column: auto; }
-  .card { padding: 18px 15px; }
-}
 </style>

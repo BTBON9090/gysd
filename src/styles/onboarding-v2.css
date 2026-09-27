@@ -179,26 +179,6 @@
 .ob.theme-light-v2 .ob-footer-v2 .el-button svg { margin-inline: 0 3px; }
 .ob.theme-light-v2 .ob-footer-v2 .next-btn svg { margin-inline: 4px 0; }
 
-
-@media (max-width: 900px) {
-  .ob.theme-light-v2 .step-layout { grid-template-columns: 1fr; gap: 25px; }
-  .ob.theme-light-v2 .side-col { position: static; }
-}
-@media (max-width: 760px) {
-  .ob.theme-light-v2 .ob-top { padding-inline: 14px; }
-  .ob.theme-light-v2 .ob-main { padding: 24px 18px 100px; }
-  .ob.theme-light-v2 .ob-footer-inner { padding-inline: 18px; }
-  .ob.theme-light-v2 .supplier-switch { display: none; }
-  .ob.theme-light-v2 .ob-nav { margin-right: 0; }
-  .ob.theme-light-v2 .ob-nav-link { font-size: 0; }
-  .ob.theme-light-v2 .ob-footer-v2 { flex-wrap: nowrap; }
-  .ob.theme-light-v2 .ob-footer-v2 .ob-footer-left { width: auto; }
-  .ob.theme-light-v2 .ob-footer-v2 .ob-footer-right { width: auto; }
-  .ob.theme-light-v2 .agreement-head { align-items: flex-start; flex-direction: column; }
-  .ob.theme-light-v2 .summary-grid { grid-template-columns: 1fr; }
-  .ob.theme-light-v2 .summary-pair { grid-template-columns: 1fr; }
-}
-
 /* 入驻确认弹窗由 Element Plus 传送至 body，使用专属类保持与流程一致。 */
 .ob-confirm-box { width: min(440px, 92vw) !important; padding: 22px 24px 20px !important; border: 0 !important; border-radius: 13px !important; box-shadow: 0 20px 58px rgba(17,35,71,.17) !important; }
 .ob-confirm-box .el-message-box__header { padding-bottom: 13px; }

@@ -66,6 +66,7 @@ export interface OnboardingDraft {
   contactMobile: string
   contactTitle: string
   email: string
+  documents?: Record<string, { source: string; name: string }>
   /* step 2：资质 */
   licenseUploaded: boolean
   licenseNo: string
@@ -364,8 +365,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     addEvent(result, result === 'approved' ? '审核通过' : '审核驳回', '园区运营 · 演示', result === 'rejected' ? '请补充近 12 个月服务交付证明，并核对账户信息。' : '资料核验通过')
   }
 
-  function fillDemoLicense() {
-    const d = draft.value
+  function fillDemoLicense(target?: OnboardingDraft) {
+    const d = target || draft.value
     d.licenseUploaded = true
     d.entityName = d.entityName || '万联易达航空物流地面综合服务（郑州）有限公司'
     d.creditCode = d.creditCode || '91310000MA1FL8X21C'
@@ -385,8 +386,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     persist()
   }
 
-  function fillDemoId() {
-    const d = draft.value
+  function fillDemoId(target?: OnboardingDraft) {
+    const d = target || draft.value
     d.idFront = true
     d.idBack = true
     d.legalPerson = d.legalPerson || '周启明'
@@ -401,8 +402,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     persist()
   }
 
-  function fillDemoBank() {
-    const d = draft.value
+  function fillDemoBank(target?: OnboardingDraft) {
+    const d = target || draft.value
     d.bankUploaded = true
     d.accountName = d.accountName || d.entityName || '万联易达航空物流地面综合服务（郑州）有限公司'
     d.bankName = d.bankName || '中国工商银行'
@@ -411,8 +412,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     persist()
   }
 
-  function fillDemoInfo() {
-    const d = draft.value
+  function fillDemoInfo(target?: OnboardingDraft) {
+    const d = target || draft.value
     d.park = d.park || '上海临港新片区智能制造产业园'
     d.serviceName = d.serviceName || '临港企服'
     d.industry = d.industry || '信息技术与软件服务'
@@ -424,8 +425,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     persist()
   }
 
-  function fillDemoProducts() {
-    const d = draft.value
+  function fillDemoProducts(target?: OnboardingDraft) {
+    const d = target || draft.value
     if (!d.serviceCities.length) d.serviceCities = ['上海市 / 上海市', '江苏省 / 苏州市']
     if (!d.skills.length) d.skills = ['RPA 开发', '企业注册']
     d.caseDesc =
@@ -437,8 +438,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     persist()
   }
 
-  function fillDemoAgreement() {
-    const d = draft.value
+  function fillDemoAgreement(target?: OnboardingDraft) {
+    const d = target || draft.value
     d.coopUploaded = true
     d.coopFileName = d.coopFileName || '演示样例-服务商入驻合作协议.pdf'
     d.splitUploaded = true
@@ -467,24 +468,24 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     return Boolean(draft.value.entityName && draft.value.creditCode)
   }
 
-  function fillDemoStep(n: number) {
-    if (n === 1) fillDemoInfo()
+  function fillDemoStep(n: number, target?: OnboardingDraft) {
+    if (n === 1) fillDemoInfo(target)
     if (n === 2) {
-      fillDemoLicense()
-      fillDemoId()
-      fillDemoBank()
+      fillDemoLicense(target)
+      fillDemoId(target)
+      fillDemoBank(target)
     }
-    if (n === 3) fillDemoProducts()
-    if (n === 4) fillDemoAgreement()
-    if (n === 5) fillDemoAll()
+    if (n === 3) fillDemoProducts(target)
+    if (n === 4) fillDemoAgreement(target)
+    if (n === 5) { if (!target || target === draft.value) fillDemoAll(); else for (let i = 1; i <= 4; i++) fillDemoStep(i, target) }
   }
 
-  function validateStep(step: number): string[] {
-    const d = draft.value
+  function validateStep(step: number, target?: OnboardingDraft): string[] {
+    const d = target || draft.value
     const errs: string[] = []
     if (step === 1) {
       // 主体三项已在 /onboarding/entity 核验，此处不再重复；仅校验本步表单
-      const gate = validateEntityGate()
+      const gate = target && target !== draft.value ? [] : validateEntityGate()
       if (gate.length) errs.push(...gate)
       if (!d.park) errs.push('请选择申请入驻园区')
       if (!d.serviceName.trim()) errs.push('请填写服务商名称')
@@ -519,7 +520,7 @@ export const useOnboardingStore = defineStore('onboarding', () => {
     }
     if (step === 5) {
       for (let s = 1; s <= 4; s++) {
-        const e = validateStep(s)
+        const e = validateStep(s, target)
         if (e.length) errs.push(`第 ${s} 步：${e[0]}`)
       }
       if (d.accountName.trim() && d.accountName.trim() !== d.entityName.trim()) errs.push('账户名称须与主体名称一致')

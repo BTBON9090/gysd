@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElPagination, ElPopover, ElSelect, ElTag } from 'element-plus'
-import { ArrowDownToLine, ArrowUpToLine, Eye, HeartHandshake, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
+import { ArrowDownToLine, ArrowUpToLine, HeartHandshake, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
 import ServicePreview from '@/components/service/ServicePreview.vue'
 import DemoImage from '@/components/commerce/DemoImage.vue'
 import { CATEGORY_TREE, money, serviceStatus, STATUS_LABEL, useCommerceStore, type Service } from '@/stores/commerce'
@@ -54,7 +54,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
             </div>
             <div class="service-card-side">
               <div class="service-sales"><span>累计销量</span><strong>{{sales(s)}}</strong></div>
-              <div class="service-actions"><ElButton @click="detail=s"><Eye :size="14" />详情</ElButton><ElButton v-if="s.published" @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton v-if="!s.published" type="primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" type="primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" :type="eligible(s,'publish').length?'default':'warning'" plain @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
+              <div class="service-actions"><ElButton v-if="!s.published" type="primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" type="primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" plain @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton v-if="s.published" @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
             </div>
           </div>
         </article>
@@ -64,7 +64,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 <ElDialog v-model="dialog" :title="action==='publish'?`上架园区 · ${target?.name||''}`: `下架园区 · ${target?.name||''}`" width="560px"><p class="biz-muted">{{action==='publish'?'选择要上架的园区。已上架或审核中的园区不可重复提交。':'仅可下架已上架园区；审核中的园区不可下架。'}}</p><div class="biz-actions selection-tools"><ElButton plain @click="selected=target?eligible(target,action).map(p=>p.id):[]">全选可操作</ElButton><ElButton plain :disabled="!selected.length" @click="selected=[]">取消全选</ElButton></div><ElCheckboxGroup v-model="selected" class="park-options"><div v-for="p in c.joinedParks" :key="p.id" class="park-option"><ElCheckbox :value="p.id" :disabled="!target||!eligible(target,action).some(x=>x.id===p.id)">{{p.name}}</ElCheckbox><ElTag :type="target?.listings[p.id]?.status==='on_sale'?'success':target?.listings[p.id]?.status==='rejected'?'danger':'info'">{{target?.listings[p.id]?STATUS_LABEL[target.listings[p.id].status]:'未发布'}}</ElTag><small v-if="target?.listings[p.id]?.reason">{{target.listings[p.id].reason}} · {{target.listings[p.id].at.slice(0,19).replace('T',' ')}}</small></div></ElCheckboxGroup><template #footer><ElButton @click="dialog=false">取消</ElButton><ElButton type="primary" :disabled="!selected.length" @click="submit">{{action==='publish'?'提交上架审核':'下架所选'}}</ElButton></template></ElDialog>
 <ElDialog :model-value="Boolean(detail)" @update:model-value="detail=null" title="客户端服务详情预览" width="760px"><ServicePreview v-if="detail" :service="detail"/></ElDialog></div></template>
 <style scoped>
-.service-page{min-width:760px;max-width:1190px}
+.service-page{min-width:0;max-width:var(--biz-content-width)}
 .service-head{align-items:center;margin-bottom:29px}
 .service-heading{display:flex;align-items:center;gap:15px}
 .service-heading-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:11px;background:#eaf0ff;color:#3659c2}
@@ -83,17 +83,17 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-tabs .biz-tab span{margin-left:2px;color:#8997aa;font-size:11px}
 .service-tabs .biz-tab.active span{color:#3153bd}
 .service-list{display:grid;gap:15px}
-.service-card{min-width:0;overflow:hidden;padding:18px 20px;border:1px solid #dfe7f1;border-radius:12px;background:#fff}
-.service-card-body{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(250px,29%);gap:18px;min-width:0}
+.service-card{min-width:0;overflow:hidden;padding:16px 18px;border:1px solid #dfe7f1;border-radius:12px;background:#fff}
+.service-card-body{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(250px,29%);gap:16px;min-width:0}
 .service-cover{width:112px;height:112px;overflow:hidden;border:1px solid #e3e9f2;border-radius:9px;background:#f7f9fd}
 .service-card-content{min-width:0}
-.service-card-side{display:flex;flex-direction:column;min-width:0;padding-left:17px;border-left:1px solid #edf0f5}
+.service-card-side{display:flex;flex-direction:column;min-width:0;padding-left:0;border-left:0}
 .service-identity{display:flex;align-items:center;gap:10px;min-width:0}
-.service-identity h3{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;color:#1e2e47;font-size:17px;font-weight:720;line-height:1.45}
+.service-identity h3{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;color:#1e2e47;font-size:16px;font-weight:650;line-height:1.45}
 .service-identity :deep(.el-tag){flex:none}
-.service-category{margin:5px 0 0;color:#8290a4;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.service-park-statuses{display:flex;flex-wrap:wrap;gap:6px;margin-top:13px;min-width:0}
-.park-status{display:inline-flex;align-items:center;gap:5px;max-width:min(260px,100%);min-width:0;padding:5px 8px;border:1px solid #dde6f4;border-radius:6px;background:#f6f9ff;color:#52647e;font-size:11px;line-height:1.3}
+.service-category{margin:3px 0 0;color:#8290a4;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.service-park-statuses{display:flex;width:100%;flex-wrap:nowrap;white-space:nowrap;gap:6px;margin-top:9px;min-width:0}
+.park-status{display:inline-flex;align-items:center;gap:5px;max-width:min(260px,100%);min-width:0;padding:4px 8px;border:1px solid #dde6f4;border-radius:6px;background:#f6f9ff;color:#52647e;font-size:11px;line-height:1.3}
 .park-status b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .park-status i{flex:none;font-style:normal;color:#9aa8b9}
 .park-status>span{flex:none;color:#3157b3;font-weight:650}
@@ -113,11 +113,15 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-updated{display:block;margin-top:auto;padding-top:8px;color:#9aa7b8;font-size:10px}
 .selection-tools{margin:14px 0 4px}.selection-tools :deep(.el-button){min-height:32px;padding:5px 11px;margin:0;border-color:#d5dfef;background:#f8faff;color:#3b5da8}
 .park-options{display:grid;gap:8px;margin-top:18px}.park-option{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px;padding:10px 0;border-bottom:1px solid #edf1f5}.park-option small{grid-column:1/-1;color:#ae5a4c;font-size:12px}
-@media(max-width:1050px){.service-card-body{grid-template-columns:88px minmax(0,1fr) 250px;gap:13px}.service-cover{width:88px;height:88px}.service-card{padding:15px}.service-card-side{padding-left:12px}}
-.service-cover{padding:0;cursor:pointer}.service-cover :deep(.demo-image){pointer-events:none}.service-identity h3 button{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}.service-identity h3 button:hover{color:#3158bd}.park-overflow{padding:5px 9px;border:1px solid #dce5f4;border-radius:6px;background:#f7f9fe;color:#3659b8;font-size:11px;cursor:pointer}.park-overflow-list{display:grid;gap:0}.park-overflow-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px;padding:9px 0;border-bottom:1px solid #edf1f7;font-size:12px}.park-overflow-list>div:last-child{border-bottom:0}.park-overflow-list strong{overflow-wrap:anywhere;color:#41536e}.park-overflow-list span{color:#57709b}.park-overflow-list span.rejected{color:#bd443d}.park-overflow-list small{grid-column:1/-1;color:#a75a54;line-height:1.5}
+
+.service-cover{width:96px;height:96px;padding:0;cursor:pointer}.service-cover :deep(.demo-image){pointer-events:none}.service-identity h3 button{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}.service-identity h3 button:hover{color:#3158bd}.park-overflow{flex:none;padding:5px 9px;border:1px solid #dce5f4;border-radius:6px;background:#f7f9fe;color:#3659b8;font-size:11px;cursor:pointer}.park-overflow-list{display:grid;gap:0}.park-overflow-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px;padding:9px 0;border-bottom:1px solid #edf1f7;font-size:12px}.park-overflow-list>div:last-child{border-bottom:0}.park-overflow-list strong{overflow-wrap:anywhere;color:#41536e}.park-overflow-list span{color:#57709b}.park-overflow-list span.rejected{color:#bd443d}.park-overflow-list small{grid-column:1/-1;color:#a75a54;line-height:1.5}
 </style>
 
 <style scoped>
-.service-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;vertical-align:middle;border-radius:6px;background:#edf2ff;color:#3458bd;font-size:12px;font-weight:700;letter-spacing:0}.service-workspace{padding-top:0;border-top:0}.service-sticky{margin-bottom:16px}.service-tabs{margin-bottom:0}.service-card-body{grid-template-columns:112px minmax(0,1fr) 300px}.service-card-content{display:flex;flex-direction:column;align-items:flex-start}.service-card-side{align-items:stretch;justify-content:space-between}.service-specs{max-width:100%;margin-top:12px}.service-spec{width:auto;max-width:100%;gap:13px}.service-updated{margin-top:9px;padding:0}.service-sales{justify-content:flex-start;gap:6px;font-size:12px}.service-sales strong{font-family:'D-DIN','DIN Alternate','Arial Narrow',sans-serif;font-size:23px;font-weight:700}.service-actions{align-items:center;justify-content:flex-start;flex-wrap:nowrap;gap:4px;margin-top:auto;padding-top:12px}.service-actions :deep(.el-button){min-height:26px;padding:4px 5px;font-size:11px}.park-status.actionable{cursor:pointer;font-size:11px;line-height:1.3;text-align:left;font-family:inherit}.park-status.is-rejected{border-color:#f0b3ae;background:#fff0ef}.park-status.is-rejected>span{color:#b74239}.reject-label{position:relative}.reject-label::after{content:"";position:absolute;right:-5px;top:-4px;width:6px;height:6px;border-radius:50%;background:#d83731;box-shadow:0 0 0 2px #fff0ef}.reject-reason{margin:8px 0;color:#4b5d75;font-size:12px;line-height:1.6}
-@media(max-width:1050px){.service-card-body{grid-template-columns:88px minmax(0,1fr) 275px}}
+.service-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;vertical-align:middle;border-radius:6px;background:#edf2ff;color:#3458bd;font-size:12px;font-weight:700;letter-spacing:0}.service-workspace{padding-top:0;border-top:0}.service-sticky{margin-bottom:16px}.service-tabs{margin-bottom:0;border-bottom:0}.service-card-body{grid-template-columns:96px minmax(0,1fr) 230px}.service-card-content{display:flex;flex-direction:column;align-items:flex-start}.service-card-side{align-items:stretch;justify-content:space-between}.service-specs{max-width:100%;margin-top:8px}.service-spec{width:auto;max-width:100%;gap:13px}.service-updated{margin-top:7px;padding:0}.service-sales{justify-content:flex-end;gap:6px;font-size:12px}.service-sales strong{font-family:'D-DIN','DIN Alternate','Arial Narrow',sans-serif;font-size:23px;font-weight:700}.service-actions{align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:4px;margin-top:auto;padding-top:12px}.service-actions :deep(.el-button){height:28px;min-height:28px;padding:4px 7px;font-size:11px}.park-status.actionable{cursor:pointer;font-size:11px;line-height:1.3;text-align:left;font-family:inherit}.park-status.is-rejected{border-color:#f0b3ae;background:#fff0ef}.park-status.is-rejected>span{color:#b74239}.reject-label{position:relative}.reject-label::after{content:"";position:absolute;right:-5px;top:-4px;width:6px;height:6px;border-radius:50%;background:#d83731;box-shadow:0 0 0 2px #fff0ef}.reject-reason{margin:8px 0;color:#4b5d75;font-size:12px;line-height:1.6}
+
+</style>
+
+<style scoped>
+.service-park-statuses{margin-top:7px;gap:5px}.park-status{height:22px;box-sizing:border-box;padding:0 7px;line-height:20px;font-size:11px;white-space:nowrap}.service-specs{margin-top:5px;gap:8px}.service-spec{height:22px;box-sizing:border-box;padding:0 2px;border:0;background:transparent;line-height:22px;font-size:11px}.service-spec+.service-spec{padding-left:10px;border-left:1px solid #e2e8f1;border-radius:0}
 </style>

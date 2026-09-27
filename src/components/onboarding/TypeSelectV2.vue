@@ -87,6 +87,5 @@ const steps = ['核验经营主体', '填写入驻资料', '提交园区审核',
 .apply-button:hover:not(:disabled) { background: #2945b2; }
 .apply-button:disabled { background: #e8ecf3; color: #748197; box-shadow: none; cursor: not-allowed; }
 .existing-hint { margin: 19px 0 0; color: #69768b; font-size: 12.5px; }
-@media (max-width: 820px) { .selection-layout { grid-template-columns: 1fr; } .type-rail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .head-mark { display: none; } }
-@media (max-width: 560px) { .landing-head h1 { font-size: 29px; } .type-option { height: 45px; font-size: 12px; padding: 0 9px; } .type-option small { display: none; } .type-detail { padding: 24px 20px; } }
+
 </style>
