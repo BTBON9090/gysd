@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListPagination from '@/components/commerce/ListPagination.vue'
 /** 基础设置 · 成员管理，PRD §6.8.2。数据仅用于本地演示。 */
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -38,6 +39,10 @@ const rows = computed(() => [
   { id: 'self', name: profile.name, mobile: profile.mobile, enabled: true, self: true },
   ...others.value.map((m) => ({ ...m, self: false })),
 ].filter((m) => !query.value || `${m.name}${m.mobile}`.includes(query.value.trim())))
+const page = ref(1)
+const pageRows = computed(() => rows.value.slice((page.value - 1) * 20, page.value * 20))
+watch(query, () => { page.value = 1 })
+watch(() => rows.value.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / 20))) })
 const mask = (mobile: string) => mobile.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
 
 const editorVisible = ref(false)
@@ -115,7 +120,7 @@ function confirmAction() {
         <table>
           <thead><tr><th>成员</th><th>手机号</th><th>角色</th><th>状态</th><th class="actions-col">操作</th></tr></thead>
           <tbody>
-            <tr v-for="member in rows" :key="member.id">
+            <tr v-for="member in pageRows" :key="member.id">
               <td><div class="person"><span class="avatar">{{ member.name.slice(0, 1) }}</span><strong>{{ member.name }}</strong><span v-if="member.self" class="self-mark">本人</span></div></td>
               <td class="phone">{{ mask(member.mobile) }}</td>
               <td>管理员</td>
@@ -130,12 +135,13 @@ function confirmAction() {
           </tbody>
         </table>
       </div>
+      <ListPagination v-model:page="page" :page-size="20" :total="rows.length" noun="位成员" />
     </template>
 
     <ElDialog v-model="editorVisible" :title="editorTitle" width="440px" append-to-body>
       <div class="editor-form">
-        <label>姓名 <b>*</b><ElInput v-model="form.name" maxlength="20" placeholder="请输入成员姓名" @input="errors.name = ''" /><small v-if="errors.name">{{ errors.name }}</small></label>
-        <label>手机号 <b>*</b><ElInput v-model="form.mobile" maxlength="11" placeholder="请输入 11 位手机号" @input="errors.mobile = ''" /><small v-if="errors.mobile">{{ errors.mobile }}</small></label>
+        <label :class="{ 'has-error': errors.name }">姓名 <b>*</b><ElInput v-model="form.name" maxlength="20" placeholder="请输入成员姓名" @input="errors.name = ''" /><small v-if="errors.name">{{ errors.name }}</small></label>
+        <label :class="{ 'has-error': errors.mobile }">手机号 <b>*</b><ElInput v-model="form.mobile" maxlength="11" placeholder="请输入 11 位手机号" @input="errors.mobile = ''" /><small v-if="errors.mobile">{{ errors.mobile }}</small></label>
         <p>新增成员默认角色为管理员，开户成功后状态为已启用，可登录供应商端和园区客户端。</p>
       </div>
       <template #footer><ElButton @click="editorVisible = false">取消</ElButton><ElButton type="primary" @click="submitEditor">{{ editingId ? '保存修改' : '确认新增' }}</ElButton></template>
@@ -148,7 +154,7 @@ function confirmAction() {
 </template>
 
 <style scoped>
-.members-page{max-width:var(--biz-content-width,1190px);margin:auto;padding:var(--sp-page-y) var(--sp-page-x) 44px;color:#20304a}.page-head{margin-bottom:30px}.eyebrow{margin:0 0 10px;color:#3656c5;font-size:12px;font-weight:700}.eyebrow span{margin:0 8px;color:#a9b5c7}.head-row h1{font-size:27px;letter-spacing:-.025em;margin:0}.head-row p{font-size:14px;color:#5b6980;margin:8px 0 0}.list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.toolbar-actions{display:flex;align-items:center;gap:10px}.toolbar-actions :deep(.el-button){height:36px;border-radius:8px}.toolbar-actions :deep(svg){margin-right:5px}.list-count{font-size:13px;color:#64738a}.list-count strong{color:#253757}.list-count span{margin-left:6px}.search-input{width:248px}.table-wrap{border:1px solid #e3e9f2;border-radius:12px;overflow:auto;background:#fff}table{width:100%;min-width:640px;border-collapse:collapse;text-align:left;font-size:13px}th{font-size:12px;font-weight:650;color:#65738a;background:#f7f9fc}th,td{padding:15px 18px}tbody tr+tr{border-top:1px solid #edf1f6}.person{display:flex;align-items:center;gap:10px}.person strong{color:#1c2c46;font-weight:650}.avatar{display:grid;place-items:center;width:31px;height:31px;border-radius:8px;background:#edf1ff;color:#3656c5;font-weight:700}.self-mark{font-size:11px;padding:2px 6px;border-radius:5px;background:#eff3f9;color:#64738a}.phone{font-variant-numeric:tabular-nums;color:#40516b}.actions-col{text-align:right}.actions{display:flex;justify-content:flex-end;gap:0}.actions :deep(.el-button){margin:0}.self-tip{color:#97a1b2;font-size:12px}.empty-row{text-align:center;color:#75839a;padding:40px}.demo-note{font-size:12px;color:#7a879a;margin-top:13px}.not-ready{text-align:center;padding:70px 20px;color:#68778c}.not-ready h2{font-size:19px;color:#20304a;margin:12px 0 5px}.not-ready p{margin:0 0 18px}.editor-form{display:grid;gap:20px}.editor-form label{display:grid;gap:7px;font-size:13px;font-weight:600;color:#293a55}.editor-form b{display:none}.editor-form small{color:#c94a42;font-weight:400}.editor-form p{margin:0;padding:11px 13px;border-radius:8px;background:#f4f7ff;color:#52647d;font-size:12px;line-height:1.55}.confirm-copy{margin:0;color:#42516a;line-height:1.65;font-size:14px}
+.members-page{max-width:var(--biz-content-width,1190px);margin:auto;padding:var(--sp-page-y) var(--sp-page-x) 44px;color:#20304a}.page-head{margin-bottom:30px}.eyebrow{margin:0 0 10px;color:#3656c5;font-size:12px;font-weight:700}.eyebrow span{margin:0 8px;color:#596a80}.head-row h1{font-size:27px;letter-spacing:-.025em;margin:0}.head-row p{font-size:14px;color:#5b6980;margin:8px 0 0}.list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.toolbar-actions{display:flex;align-items:center;gap:10px}.toolbar-actions :deep(.el-button){height:36px;border-radius:8px}.toolbar-actions :deep(svg){margin-right:5px}.list-count{font-size:13px;color:#64738a}.list-count strong{color:#253757}.list-count span{margin-left:6px}.search-input{width:248px}.table-wrap{border:1px solid #e3e9f2;border-radius:12px;overflow:auto;background:#fff}table{width:100%;min-width:640px;border-collapse:collapse;text-align:left;font-size:13px}th{font-size:12px;font-weight:650;color:#65738a;background:#f7f9fc}th,td{padding:15px 18px}tbody tr+tr{border-top:1px solid #edf1f6}.person{display:flex;align-items:center;gap:10px}.person strong{color:#1c2c46;font-weight:650}.avatar{display:grid;place-items:center;width:31px;height:31px;border-radius:8px;background:#edf1ff;color:#3656c5;font-weight:700}.self-mark{font-size:11px;padding:2px 6px;border-radius:5px;background:#eff3f9;color:#64738a}.phone{font-variant-numeric:tabular-nums;color:#40516b}.actions-col{text-align:right}.actions{display:flex;justify-content:flex-end;gap:0}.actions :deep(.el-button){margin:0}.self-tip{color:#596a80;font-size:12px}.empty-row{text-align:center;color:#596a80;padding:40px}.demo-note{font-size:12px;color:#596a80;margin-top:13px}.not-ready{text-align:center;padding:70px 20px;color:#68778c}.not-ready h2{font-size:19px;color:#20304a;margin:12px 0 5px}.not-ready p{margin:0 0 18px}.editor-form{display:grid;gap:20px}.editor-form label{display:grid;gap:7px;font-size:13px;font-weight:600;color:#293a55}.editor-form b{display:none}.editor-form small{color:#c94a42;font-weight:400}.editor-form p{margin:0;padding:11px 13px;border-radius:8px;background:#f4f7ff;color:#52647d;font-size:12px;line-height:1.55}.confirm-copy{margin:0;color:#42516a;line-height:1.65;font-size:14px}
 </style>
 
 <style scoped>

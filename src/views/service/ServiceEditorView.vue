@@ -40,6 +40,8 @@ const errors = reactive<Record<string, string>>({})
 const caseOpen = ref(false)
 const previewOpen = ref(false)
 const exitDialog = ref(false)
+const inlineCaseSubmitted = ref(false)
+const inlineCaseErrors = computed(() => ({ category: inlineCase.category.split(' / ').length === 3 ? '' : '请选择三级服务分类', title: inlineCase.title.trim() ? '' : '请填写案例标题', intro: inlineCase.intro.trim() ? '' : '请填写案例介绍', cover: inlineCase.cover ? '' : '请上传案例封面' }))
 const inlineCase = reactive<Case>({ id: '', category: '', title: '', intro: '', cover: '', createdAt: '' })
 const headings = ['基础信息', '服务详情', '定价与交付', '提交预览']
 const dirty = computed(() => saved.value !== JSON.stringify(form))
@@ -184,11 +186,13 @@ function removeFaq(index: number) {
   Object.keys(errors).filter(key => key.startsWith('faq-')).forEach(key => delete errors[key])
 }
 function openCase() {
+  inlineCaseSubmitted.value = false
   Object.assign(inlineCase, { id: crypto.randomUUID(), category: form.category, title: '', intro: '', cover: '', createdAt: new Date().toISOString() })
   caseOpen.value = true
 }
 function saveInlineCase() {
-  if (inlineCase.category.split(' / ').length !== 3 || !inlineCase.title.trim() || !inlineCase.intro.trim() || !inlineCase.cover) { ElMessage.error('请完整填写案例分类、标题、介绍与封面'); return }
+  inlineCaseSubmitted.value = true
+  if (Object.values(inlineCaseErrors.value).some(Boolean)) return
   c.saveCase(inlineCase)
   if (form.caseIds.length < 6) form.caseIds.push(inlineCase.id)
   caseOpen.value = false
@@ -264,7 +268,7 @@ async function caseFile(event: Event) {
 
     <ElDialog v-model="exitDialog" title="返回服务管理" width="440px" append-to-body><p class="exit-dialog-copy">当前有未保存的修改。可以暂存草稿后返回，也可以放弃本次修改。</p><template #footer><ElButton @click="exitDialog = false">继续编辑</ElButton><ElButton @click="discardAndExit">放弃修改</ElButton><ElButton type="primary" :disabled="uploading" @click="saveAndExit"><Save :size="14" />保存草稿并返回</ElButton></template></ElDialog>
     <ElDialog v-model="previewOpen" title="客户端服务详情预览" width="min(920px, calc(100vw - 80px))" append-to-body><ServicePreview :service="form" /></ElDialog>
-    <ElDialog v-model="caseOpen" title="新建案例并关联" width="620px" append-to-body><div class="editor-grid"><label class="biz-field full">案例分类 <b class="required">*</b><ElCascader :model-value="inlineCase.category ? inlineCase.category.split(' / ') : []" :options="CATEGORY_TREE" filterable clearable placeholder="选择末级分类" @change="inlineCase.category = Array.isArray($event) ? $event.join(' / ') : ''" /></label><label class="biz-field full">标题 <b class="required">*</b><ElInput v-model="inlineCase.title" maxlength="60" show-word-limit /></label><label class="biz-field full">介绍 <b class="required">*</b><ElInput v-model="inlineCase.intro" type="textarea" :rows="3" maxlength="500" show-word-limit /></label><div class="biz-field full">封面 <b class="required">*</b><div class="case-cover-field"><MediaUploadTile :source="inlineCase.cover" label="添加案例封面" :disabled="uploading" @change="caseFile" /><small>点击图片框上传或更换封面</small></div></div></div><template #footer><ElButton @click="caseOpen = false">取消</ElButton><ElButton type="primary" :disabled="uploading" @click="saveInlineCase">保存并关联</ElButton></template></ElDialog>
+    <ElDialog v-model="caseOpen" title="新建案例并关联" width="620px" append-to-body><div class="editor-grid"><label class="biz-field full" :class="{ error: inlineCaseSubmitted && inlineCaseErrors.category }">案例分类 <b class="required">*</b><ElCascader :model-value="inlineCase.category ? inlineCase.category.split(' / ') : []" :options="CATEGORY_TREE" filterable clearable placeholder="选择末级分类" @change="inlineCase.category = Array.isArray($event) ? $event.join(' / ') : ''" /><small v-if="inlineCaseSubmitted && inlineCaseErrors.category" class="field-error">{{ inlineCaseErrors.category }}</small></label><label class="biz-field full" :class="{ error: inlineCaseSubmitted && inlineCaseErrors.title }">标题 <b class="required">*</b><ElInput v-model="inlineCase.title" maxlength="60" show-word-limit /><small v-if="inlineCaseSubmitted && inlineCaseErrors.title" class="field-error">{{ inlineCaseErrors.title }}</small></label><label class="biz-field full" :class="{ error: inlineCaseSubmitted && inlineCaseErrors.intro }">介绍 <b class="required">*</b><ElInput v-model="inlineCase.intro" type="textarea" :rows="3" maxlength="500" show-word-limit /><small v-if="inlineCaseSubmitted && inlineCaseErrors.intro" class="field-error">{{ inlineCaseErrors.intro }}</small></label><div class="biz-field full" :class="{ error: inlineCaseSubmitted && inlineCaseErrors.cover }">封面 <b class="required">*</b><div class="case-cover-field"><MediaUploadTile :source="inlineCase.cover" label="添加案例封面" :disabled="uploading" @change="caseFile" /><small>点击图片框上传或更换封面</small><small v-if="inlineCaseSubmitted && inlineCaseErrors.cover" class="field-error">{{ inlineCaseErrors.cover }}</small></div></div></div><template #footer><ElButton @click="caseOpen = false">取消</ElButton><ElButton type="primary" :disabled="uploading" @click="saveInlineCase">保存并关联</ElButton></template></ElDialog>
   </div>
 </template>
 
@@ -275,11 +279,11 @@ async function caseFile(event: Event) {
 .editor-heading{display:flex;align-items:center;gap:13px;margin-bottom:17px}
 .editor-heading-icon{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:9px;background:#eaf0ff;color:#3659c2}
 .editor-heading h1{margin:0 0 3px;font-size:22px;line-height:1.3}
-.editor-heading p{margin:0;color:#738198;font-size:12px}
-.editor-save-state{display:inline-flex;align-items:center;gap:5px;margin-left:auto;padding:5px 8px;border-radius:6px;color:#8492a5;font-size:12px;white-space:nowrap}
+.editor-heading p{margin:0;color:#596a80;font-size:12px}
+.editor-save-state{display:inline-flex;align-items:center;gap:5px;margin-left:auto;padding:5px 8px;border-radius:6px;color:#596a80;font-size:12px;white-space:nowrap}
 .editor-save-state.saved{background:#eaf7f1;color:#13835f;font-weight:700}.editor-save-state.unsaved{background:#fff5e6;color:#966322;font-weight:650}
 .editor-steps{display:flex;align-items:center;margin:0;padding:0 0 14px}
-.editor-step{display:flex;align-items:center;flex:1;min-width:0;gap:8px;padding:0;border:0;background:transparent;color:#75849a;font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
+.editor-step{display:flex;align-items:center;flex:1;min-width:0;gap:8px;padding:0;border:0;background:transparent;color:#596a80;font:inherit;font-size:12px;white-space:nowrap;cursor:pointer}
 .editor-step:last-child{flex:none}
 .editor-step-dot{display:grid;place-items:center;flex:none;width:25px;height:25px;border-radius:50%;background:#edf1f8;color:#63738c;font-size:12px;font-weight:700}
 .editor-step.active{color:#264ab2;font-weight:700}.editor-step.active .editor-step-dot{background:#3559bf;color:#fff;box-shadow:0 0 0 4px #edf2ff}
@@ -298,13 +302,13 @@ async function caseFile(event: Event) {
 .editor-group-head{margin-bottom:14px;padding-left:12px;border-left:3px solid #2cafa5}
 .editor-group-head h3{margin:0 0 3px;font-size:16px;color:#22334c}
 .editor-group-head h3 .required{font-size:13px}
-.editor-group-head p{margin:0;color:#8190a4;font-size:12px;line-height:1.5}
+.editor-group-head p{margin:0;color:#596a80;font-size:12px;line-height:1.5}
 .editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px}
 .editor-grid .full{grid-column:1/-1}
 .editor-grid :deep(.el-input),.editor-grid :deep(.el-select),.editor-grid :deep(.el-cascader),.editor-grid :deep(.el-input-number){width:100%;min-width:0}
 .editor-grid :deep(.el-select__wrapper){flex:1;min-width:0}
 .editor-media-columns{display:grid;grid-template-columns:190px minmax(0,1fr);gap:28px}
-.upload-heading{display:grid;gap:4px;margin-bottom:10px}.upload-heading strong{font-size:13px;color:#34445c}.upload-heading small{font-size:11px;color:#8492a6}
+.upload-heading{display:grid;gap:4px;margin-bottom:10px}.upload-heading strong{font-size:13px;color:#34445c}.upload-heading small{font-size:11px;color:#596a80}
 .editor-cover-upload{position:relative;display:block;width:170px;height:165px;overflow:hidden;border:1px dashed #c7d5eb;border-radius:10px;background:#f5f8fd;cursor:pointer}
 .editor-cover-upload :deep(.demo-image){height:128px;pointer-events:none}.editor-cover-upload>span{display:flex;align-items:center;justify-content:center;gap:5px;height:37px;color:#3159c0;font-size:12px;font-weight:650}
 .editor-cover-upload input,.editor-add-tile input,.case-cover-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
@@ -314,12 +318,12 @@ async function caseFile(event: Event) {
 .editor-add-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border-style:dashed;color:#4566bc;font-size:12px;font-weight:650;cursor:pointer}
 .media-remove{position:absolute;top:5px;right:5px;display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:6px;background:#fff;color:#b6423a;cursor:pointer}
 .regions-field{width:100%}.editor-page :deep(.el-cascader){max-width:100%}
-.editor-count{display:block;margin-top:7px;color:#8492a5;font-size:11px}
+.editor-count{display:block;margin-top:7px;color:#596a80;font-size:11px}
 .case-selection{display:flex;align-items:center;gap:10px}.case-selection :deep(.el-select){flex:1;min-width:0;max-width:none}
 .linked-cases{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.linked-cases span{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 8px;border-radius:6px;background:#eef3ff;color:#3458b9;font-size:11px}
 .faq-head,.spec-head,.preview-head{display:flex;align-items:center;justify-content:space-between;gap:15px}
 .faq-head>div,.spec-head>div,.preview-head>div{min-width:0}.faq-head :deep(.el-button),.spec-head :deep(.el-button),.preview-head :deep(.el-button){flex:none}
-.editor-empty-note{padding:20px;border:1px dashed #dbe4f1;border-radius:9px;background:#fbfcff;color:#8290a4;font-size:12px}
+.editor-empty-note{padding:20px;border:1px dashed #dbe4f1;border-radius:9px;background:#fbfcff;color:#596a80;font-size:12px}
 .faq-card{padding:14px 16px;margin-top:10px;border:1px solid #e0e7f1;border-radius:9px;background:#fbfcff}
 .faq-card-head{display:flex;align-items:center;gap:8px;margin-bottom:13px}.faq-card-head strong{color:#3b60bf;font-size:13px}.faq-card-head span{color:#53647d;font-size:12px;font-weight:650}
 .faq-card-actions{display:flex;gap:3px;margin-left:auto}.faq-card-actions button{display:grid;place-items:center;width:27px;height:27px;border:0;border-radius:6px;background:transparent;color:#61718a;cursor:pointer}.faq-card-actions button:hover:not(:disabled){background:#eaf0ff;color:#3358bd}.faq-card-actions button:last-child:hover{background:#fff0ef;color:#b9433a}.faq-card-actions button:disabled{opacity:.35;cursor:default}
@@ -339,14 +343,14 @@ async function caseFile(event: Event) {
 .park-select :deep(.el-checkbox.park-choice:hover){border-color:#a8bbe7;background:#f8faff}
 .park-select :deep(.el-checkbox.park-choice.is-checked){border-color:#6d8ad8;background:#f3f7ff}
 .park-select :deep(.el-checkbox__input){order:3;margin-left:auto}.park-select :deep(.el-checkbox__label){display:flex;align-items:center;gap:11px;min-width:0;padding-left:0;white-space:normal}
-.park-choice-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:8px;background:#edf2ff;color:#3b5fc0}.park-choice-copy{display:grid;gap:3px;min-width:0;text-align:left}.park-choice-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#253750;font-size:13px}.park-choice-copy small{color:#8290a4;font-size:11px}
+.park-choice-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:8px;background:#edf2ff;color:#3b5fc0}.park-choice-copy{display:grid;gap:3px;min-width:0;text-align:left}.park-choice-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#253750;font-size:13px}.park-choice-copy small{color:#596a80;font-size:11px}
 .exit-dialog-copy{margin:0;color:#5e6e85;font-size:13px;line-height:1.7}
 .editor-preview{padding:20px;border:1px solid #e1e8f2;border-radius:10px;background:#fff}
 .editor-footer{flex:none;border-top:1px solid #e4eaf3;background:#fff}.editor-footer-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1130px;min-height:65px;margin:auto;padding:10px 30px}
 .editor-footer-left,.editor-footer-right{display:flex;align-items:center;gap:8px}.editor-footer-right :deep(.el-button){margin:0;min-width:92px;height:38px;display:inline-flex;align-items:center;gap:4px;border-radius:8px}.editor-footer-right :deep(.el-button>span){display:inline-flex;align-items:center;gap:4px}
 .editor-link{display:inline-flex;align-items:center;gap:5px;padding:8px 9px;border:0;border-radius:7px;background:transparent;color:#63728a;font:inherit;font-size:12px;cursor:pointer}.editor-link:hover{background:#f1f4f9;color:#233651}.editor-link.save-link{color:#3358ba;font-weight:650}.editor-link:disabled{opacity:.5;cursor:default}
 .field-error{display:block;margin-top:5px;color:#bd3f3b;font-size:12px;font-weight:600;line-height:1.45}
-.case-cover-field{display:flex;align-items:center;gap:13px}.case-cover-field small{color:#8190a3;font-size:12px;font-weight:400}.case-cover-image{width:120px;height:90px;overflow:hidden;border:1px dashed #b9c9e7;border-radius:8px}.case-cover-upload{position:relative;display:block;cursor:pointer}.case-cover-upload :deep(.demo-image){pointer-events:none}.case-cover-upload:hover{border-color:#567bd4;background:#f4f7ff}
+.case-cover-field{display:flex;align-items:center;gap:13px}.case-cover-field small{color:#596a80;font-size:12px;font-weight:400}.case-cover-image{width:120px;height:90px;overflow:hidden;border:1px dashed #b9c9e7;border-radius:8px}.case-cover-upload{position:relative;display:block;cursor:pointer}.case-cover-upload :deep(.demo-image){pointer-events:none}.case-cover-upload:hover{border-color:#567bd4;background:#f4f7ff}
 </style>
 
 <style scoped>
@@ -358,5 +362,5 @@ async function caseFile(event: Event) {
 </style>
 
 <style scoped>
-.editor-content{max-width:var(--biz-content-width);padding-left:32px;padding-right:32px}.editor-group{border-top:0;padding:22px 0 26px}.editor-media-grid,.editor-gallery{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));align-items:start}.editor-media-grid :deep(.media-upload-tile),.media-grid-upload{width:100%}.editor-media-tile{width:100%;height:112px}.case-select-host{flex:1;min-width:0}.case-select-host :deep(.el-select){width:100%}.regions-field :deep(.el-tag),.case-selection :deep(.el-tag){max-width:210px}.faq-card{padding:11px 14px;background:#fff}.faq-card.is-open{background:#f8faff;border-color:#b7c8eb}.faq-card-head{margin-bottom:0}.faq-toggle{display:flex;flex:1;min-width:0;gap:12px;align-items:center;text-align:left;border:0;background:none;cursor:pointer;padding:0;height:28px}.faq-toggle strong{color:#34445c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.faq-toggle small{margin-left:auto;color:#687fba;font-size:12px}.faq-summary{margin:4px 0 0 30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8794a7;font-size:12px}.faq-fields{margin-top:14px;gap:10px}.faq-fields :deep(.el-textarea__inner){min-height:82px!important}.faq-add-bottom{display:flex;justify-content:center;align-items:center;gap:6px;width:100%;height:38px;margin-top:10px;border:1px dashed #cdd9ec;border-radius:8px;background:#fff;color:#355cc1;cursor:pointer}.faq-add-bottom:disabled{opacity:.5;cursor:default}.park-select :deep(.el-checkbox.park-choice){min-height:60px;padding:9px 12px}.park-choice-icon{width:28px;height:28px}
+.editor-content{max-width:var(--biz-content-width);padding-left:32px;padding-right:32px}.editor-group{border-top:0;padding:22px 0 26px}.editor-media-grid,.editor-gallery{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));align-items:start}.editor-media-grid :deep(.media-upload-tile),.media-grid-upload{width:100%}.editor-media-tile{width:100%;height:112px}.case-select-host{flex:1;min-width:0}.case-select-host :deep(.el-select){width:100%}.regions-field :deep(.el-tag),.case-selection :deep(.el-tag){max-width:210px}.faq-card{padding:11px 14px;background:#fff}.faq-card.is-open{background:#f8faff;border-color:#b7c8eb}.faq-card-head{margin-bottom:0}.faq-toggle{display:flex;flex:1;min-width:0;gap:12px;align-items:center;text-align:left;border:0;background:none;cursor:pointer;padding:0;height:28px}.faq-toggle strong{color:#34445c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.faq-toggle small{margin-left:auto;color:#687fba;font-size:12px}.faq-summary{margin:4px 0 0 30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#596a80;font-size:12px}.faq-fields{margin-top:14px;gap:10px}.faq-fields :deep(.el-textarea__inner){min-height:82px!important}.faq-add-bottom{display:flex;justify-content:center;align-items:center;gap:6px;width:100%;height:38px;margin-top:10px;border:1px dashed #cdd9ec;border-radius:8px;background:#fff;color:#355cc1;cursor:pointer}.faq-add-bottom:disabled{opacity:.5;cursor:default}.park-select :deep(.el-checkbox.park-choice){min-height:60px;padding:9px 12px}.park-choice-icon{width:28px;height:28px}
 </style>

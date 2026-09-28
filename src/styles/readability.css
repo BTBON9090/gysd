@@ -1,0 +1,51 @@
+/* Shared reading hierarchy and compact management controls. */
+:root{--text-primary:#20304a;--text-regular:#34455c;--text-secondary:#53647a;--text-placeholder:#8590a1;--el-text-color-primary:#20304a;--el-text-color-regular:#34455c;--el-text-color-secondary:#596a80;--el-text-color-placeholder:#8590a1;--form-content-width:1120px}
+.el-input__inner,.el-textarea__inner,.el-select__selected-item:not(.is-transparent){color:var(--text-regular)}
+.el-select__placeholder.is-transparent,.el-input__inner::placeholder,.el-textarea__inner::placeholder{color:var(--text-placeholder)}
+.el-overlay-dialog{display:flex;align-items:center;justify-content:center;padding:32px;box-sizing:border-box}
+.el-dialog:not(.is-fullscreen){max-width:calc(100vw - 64px)}
+.el-dialog .money-value,.biz-page .money-value,.phase-ledger .money-value,.workspace-ready .money-value{font:inherit;font-weight:700;color:inherit;font-variant-numeric:tabular-nums;white-space:nowrap}
+:is(.field.has-error,.biz-field.error,.editor-form label.has-error) :is(.el-input__wrapper,.el-select__wrapper,.el-textarea__inner){box-shadow:0 0 0 1px #c63e39 inset!important}
+:is(.field-error,.biz-field.error>small,.editor-form label.has-error>small){color:#b93832;font-size:12px;line-height:1.5}
+:is(.field.has-error,.biz-field.error) :is(.media-upload-tile,.upload-card){border-color:#c63e39}
+.shell-content .biz-page.shop-page{max-width:var(--form-content-width)}
+.biz-page.editor-page :is(.editor-content,.editor-top-inner,.editor-footer-inner){width:100%;max-width:var(--form-content-width);box-sizing:border-box}
+/* Filter bars share 32px controls; edit forms keep their comfortable 40px height. */
+:is(.list-sticky,.biz-toolbar,.list-toolbar,.park-group-head) :is(.el-input,.el-select,.el-cascader){--el-component-size:32px;--el-input-height:32px;font-size:13px}
+:is(.list-sticky,.biz-toolbar,.list-toolbar,.park-group-head) :is(.el-input__wrapper,.el-select__wrapper){min-height:32px;height:32px;padding:0 10px;border-radius:7px!important;box-sizing:border-box}
+:is(.list-sticky,.biz-toolbar,.list-toolbar,.park-group-head) .el-input__inner{height:30px;line-height:30px;font-size:13px}
+:is(.list-sticky,.biz-toolbar,.list-toolbar,.park-group-head) .el-button{height:32px;min-height:32px;padding:0 13px;font-size:13px}
+.biz-page .list-sticky{padding-top:8px}
+.biz-page .service-workspace{padding-top:4px}
+.biz-page .service-head,.biz-page .cases-head{margin-bottom:20px}
+.biz-page .service-tabs,.biz-page .order-tabs{margin:8px 0}
+.biz-page .biz-tab{padding:8px 12px;line-height:20px}
+.biz-page .order-date{align-items:center;height:32px;line-height:32px}
+.biz-page .order-date>.el-date-editor{height:32px;align-items:center}
+.biz-page .order-date>.el-date-editor .el-input__wrapper{height:32px;min-height:32px}
+.biz-page .cases-toolbar{padding-top:8px;padding-bottom:12px}
+.el-menu--popup{padding:6px!important;min-width:144px!important}
+.el-menu--popup .el-menu-item{height:34px!important;line-height:34px!important;padding:0 12px!important;margin:2px 0!important;border-radius:6px;font-size:13px}
+/* Solid primary is reserved for page/dialog submission. Row actions use quiet emphasis. */
+:is(.biz-page,.members-page) :is(.service-actions,.order-actions,.case-actions,.biz-actions,.actions) .el-button.is-text{height:28px;min-height:28px;padding:4px 10px!important;font-size:12px;font-weight:600;background:transparent;border-color:transparent;color:#3f526e}
+:is(.biz-page,.members-page) :is(.service-actions,.order-actions,.case-actions,.biz-actions,.actions) .el-button.is-text:hover{background:#edf2fa;color:#294c9e}
+:is(.biz-page,.members-page) .el-button.is-text.row-action-primary{background:#edf2ff;color:#3155b6}
+:is(.biz-page,.members-page) .el-button.is-text.row-action-primary:hover{background:#dfe8ff;color:#24469f}
+:is(.biz-page,.members-page) :is(.service-actions,.order-actions,.case-actions,.biz-actions,.actions) .el-button.is-text.el-button--danger{color:#b83c35;background:transparent}
+:is(.biz-page,.members-page) .el-button.is-text.el-button--danger:hover{background:#fff0ee}
+.biz-page .order-actions{gap:4px}
+.biz-page .service-actions{gap:4px}
+.biz-page .service-card-body{grid-template-columns:112px minmax(0,1fr) minmax(240px,25%)}
+.biz-page .service-updated{font-size:12px}
+.biz-page .order-table small{font-size:12px}
+.biz-page .order-table th{font-size:12px;font-weight:650}
+.biz-page .order-number{font-weight:700}
+.biz-page .order-table .amount-scope{font-weight:400}
+.service-preview .preview-media{grid-template-columns:repeat(auto-fit,minmax(180px,260px))}
+.service-preview .preview-media-item{height:auto;aspect-ratio:4/3}
+
+.el-input-number.has-error .el-input__wrapper,.el-textarea.has-error .el-textarea__inner{box-shadow:0 0 0 1px #c63e39 inset!important}
+.shell-content .biz-page .service-card-body{grid-template-columns:96px minmax(0,1fr) 268px}
+.biz-field:has(> .field-error) :is(.el-input__wrapper,.el-select__wrapper,.el-textarea__inner){box-shadow:0 0 0 1px #c63e39 inset!important}
+.case-form-cover:has(.case-error) .media-upload-tile{border-color:#c63e39}
+.ob.theme-light-v2 .sec-title{border-left:3px solid var(--brand);padding-left:12px}

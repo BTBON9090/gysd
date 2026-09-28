@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import ListPagination from '@/components/commerce/ListPagination.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElPagination, ElPopover, ElSelect, ElTag } from 'element-plus'
+import { ElButton, ElCascader, ElCheckbox, ElCheckboxGroup, ElDialog, ElInput, ElMessage, ElMessageBox, ElOption, ElPopover, ElSelect, ElTag } from 'element-plus'
 import { ArrowDownToLine, ArrowUpToLine, HeartHandshake, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
 import ServicePreview from '@/components/service/ServicePreview.vue'
 import DemoImage from '@/components/commerce/DemoImage.vue'
 import { CATEGORY_TREE, money, serviceStatus, STATUS_LABEL, useCommerceStore, type Service } from '@/stores/commerce'
 const c=useCommerceStore(),router=useRouter(),route=useRoute();const filter=reactive({park:String(route.query.park||''),category:'',name:''});const applied=reactive({...filter});const tab=ref('all');const page=ref(1);const selected=ref<string[]>([]);const action=ref<'publish'|'offline'>('publish');const dialog=ref(false);const target=ref<Service|null>(null);const detail=ref<Service|null>(null)
+const pageSize = 8
 const tabs=[['all','全部'],['draft','草稿'],['reviewing','审核中'],['rejected','已驳回'],['on_sale','已上架'],['offline','已下架']]
 const coverSource=(source:string)=>/^(local-image:|data:image\/|blob:|https?:\/)/.test(source)?source:''
 const aggregateStatus=(service:Service)=>serviceStatus(service,undefined,c.joinedParks.map(park=>park.id))
@@ -15,8 +17,8 @@ const aggregateTone=(service:Service)=>aggregateStatus(service)==='on_sale'?'suc
 const sales=(service:Service)=>c.data.orders.filter(order=>order.serviceId===service.id&&order.paid>0&&order.status!=='cancelled').length
 const filtered=computed(()=>c.data.services.filter(s=>(!applied.category||s.category.startsWith(applied.category))&&(!applied.name||s.name.includes(applied.name))).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)))
 function matches(s:Service,t:string){if(!applied.park)return t==='all'||serviceStatus(s,undefined,c.joinedParks.map(p=>p.id))===t;const own=s.listings[applied.park];if(t==='draft')return !own;if(!own)return false;return t==='all'||own.status===t}
-const tabRows=computed(()=>filtered.value.filter(s=>matches(s,tab.value)));const rows=computed(()=>tabRows.value.slice((page.value-1)*20,page.value*20));const count=(t:string)=>filtered.value.filter(s=>matches(s,t)).length
-watch(() => tabRows.value.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / 20))) })
+const tabRows=computed(()=>filtered.value.filter(s=>matches(s,tab.value)));const rows=computed(()=>tabRows.value.slice((page.value-1)*pageSize,page.value*pageSize));const count=(t:string)=>filtered.value.filter(s=>matches(s,t)).length
+watch(() => tabRows.value.length, length => { page.value = Math.min(page.value, Math.max(1, Math.ceil(length / pageSize))) })
 function setTab(t:string){tab.value=t;page.value=1}function query(){Object.assign(applied,filter);page.value=1}function reset(){Object.assign(filter,{park:'',category:'',name:''});tab.value='all';query()}
 function create(){if(!c.data.walletOpen){ElMessage.warning('发布服务前请先开通钱包');router.push('/wallet');return}router.push('/service/new')}
 function continueDraft(s:Service){router.push(`/service/edit/${s.id}`)}
@@ -54,12 +56,12 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
             </div>
             <div class="service-card-side">
               <div class="service-sales"><span>累计销量</span><strong>{{sales(s)}}</strong></div>
-              <div class="service-actions"><ElButton v-if="!s.published" type="primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" type="primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" plain @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton v-if="s.published" @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
+              <div class="service-actions"><ElButton v-if="!s.published" text type="primary" class="row-action-primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" text type="primary" class="row-action-primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" text @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton v-if="s.published" text @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
             </div>
           </div>
         </article>
       </div>
-      <div v-if="tabRows.length>20" class="biz-footer"><span>共 {{tabRows.length}} 项服务</span><ElPagination v-model:current-page="page" :page-size="20" :total="tabRows.length" layout="prev, pager, next" background /></div>
+      <ListPagination v-model:page="page" :page-size="pageSize" :total="tabRows.length" noun="项服务" />
     </section>
 <ElDialog v-model="dialog" :title="action==='publish'?`上架园区 · ${target?.name||''}`: `下架园区 · ${target?.name||''}`" width="560px"><p class="biz-muted">{{action==='publish'?'选择要上架的园区。已上架或审核中的园区不可重复提交。':'仅可下架已上架园区；审核中的园区不可下架。'}}</p><div class="biz-actions selection-tools"><ElButton plain @click="selected=target?eligible(target,action).map(p=>p.id):[]">全选可操作</ElButton><ElButton plain :disabled="!selected.length" @click="selected=[]">取消全选</ElButton></div><ElCheckboxGroup v-model="selected" class="park-options"><div v-for="p in c.joinedParks" :key="p.id" class="park-option"><ElCheckbox :value="p.id" :disabled="!target||!eligible(target,action).some(x=>x.id===p.id)">{{p.name}}</ElCheckbox><ElTag :type="target?.listings[p.id]?.status==='on_sale'?'success':target?.listings[p.id]?.status==='rejected'?'danger':'info'">{{target?.listings[p.id]?STATUS_LABEL[target.listings[p.id].status]:'未发布'}}</ElTag><small v-if="target?.listings[p.id]?.reason">{{target.listings[p.id].reason}} · {{target.listings[p.id].at.slice(0,19).replace('T',' ')}}</small></div></ElCheckboxGroup><template #footer><ElButton @click="dialog=false">取消</ElButton><ElButton type="primary" :disabled="!selected.length" @click="submit">{{action==='publish'?'提交上架审核':'下架所选'}}</ElButton></template></ElDialog>
 <ElDialog :model-value="Boolean(detail)" @update:model-value="detail=null" title="客户端服务详情预览" width="760px"><ServicePreview v-if="detail" :service="detail"/></ElDialog></div></template>
@@ -72,7 +74,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-section-head{margin-bottom:17px}
 .service-section-head h2{margin:0 0 3px;font-size:17px}
 .service-section-head h2 span{margin-left:6px;padding:3px 7px;border-radius:6px;background:#edf2ff;color:#3458bd;font-size:12px}
-.service-section-head p{margin:0;color:#7d899c;font-size:12px}
+.service-section-head p{margin:0;color:#596a80;font-size:12px}
 .service-filters{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px}
 .service-filter-fields{display:grid;grid-template-columns:minmax(140px,1fr) minmax(140px,1fr) minmax(150px,1.15fr);gap:10px;min-width:0}
 .service-filter-fields :deep(.el-select),.service-filter-fields :deep(.el-cascader),.service-filter-fields :deep(.el-input){width:100%;min-width:0}
@@ -80,7 +82,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-filter-actions :deep(.el-button){margin:0}
 .service-tabs{margin:19px 0 18px;gap:2px;flex-wrap:nowrap;overflow-x:auto}
 .service-tabs .biz-tab{flex:none;white-space:nowrap;padding:11px 13px}
-.service-tabs .biz-tab span{margin-left:2px;color:#8997aa;font-size:11px}
+.service-tabs .biz-tab span{margin-left:2px;color:#596a80;font-size:11px}
 .service-tabs .biz-tab.active span{color:#3153bd}
 .service-list{display:grid;gap:15px}
 .service-card{min-width:0;overflow:hidden;padding:16px 18px;border:1px solid #dfe7f1;border-radius:12px;background:#fff}
@@ -91,16 +93,16 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-identity{display:flex;align-items:center;gap:10px;min-width:0}
 .service-identity h3{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;color:#1e2e47;font-size:16px;font-weight:650;line-height:1.45}
 .service-identity :deep(.el-tag){flex:none}
-.service-category{margin:3px 0 0;color:#8290a4;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.service-category{margin:3px 0 0;color:#596a80;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .service-park-statuses{display:flex;width:100%;flex-wrap:nowrap;white-space:nowrap;gap:6px;margin-top:9px;min-width:0}
 .park-status{display:inline-flex;align-items:center;gap:5px;max-width:min(260px,100%);min-width:0;padding:4px 8px;border:1px solid #dde6f4;border-radius:6px;background:#f6f9ff;color:#52647e;font-size:11px;line-height:1.3}
 .park-status b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.park-status i{flex:none;font-style:normal;color:#9aa8b9}
+.park-status i{flex:none;font-style:normal;color:#596a80}
 .park-status>span{flex:none;color:#3157b3;font-weight:650}
 .park-status em{flex:none;color:#bb5647;font-style:normal}
 .park-status.is-on_sale{border-color:#bee9d9;background:#f1fbf7}.park-status.is-on_sale>span{color:#167c5f}
 .park-status.is-offline,.park-status.is-rejected{border-color:#f5d6c1;background:#fff8f4}.park-status.is-offline>span,.park-status.is-rejected>span{color:#ad6632}
-.service-unpublished{color:#8997a8;font-size:12px}
+.service-unpublished{color:#596a80;font-size:12px}
 .service-specs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-width:0}
 .service-spec{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;width:100%;max-width:100%;padding:5px 8px;border:1px solid #e5ebf5;border-radius:7px;background:#f8faff;font-size:11px}
 .service-spec b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a5b73;font-weight:650}
@@ -108,9 +110,9 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:12px}
 .service-actions :deep(.el-button){margin:0;min-height:30px;padding:5px 8px;border-radius:7px;font-size:11px}
 .service-actions :deep(.el-button>span){display:inline-flex;align-items:center;gap:4px}
-.service-sales{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;color:#8b99ac;font-size:11px;white-space:nowrap}
+.service-sales{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;color:#596a80;font-size:11px;white-space:nowrap}
 .service-sales strong{color:#25354d;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}
-.service-updated{display:block;margin-top:auto;padding-top:8px;color:#9aa7b8;font-size:10px}
+.service-updated{display:block;margin-top:auto;padding-top:8px;color:#596a80;font-size:10px}
 .selection-tools{margin:14px 0 4px}.selection-tools :deep(.el-button){min-height:32px;padding:5px 11px;margin:0;border-color:#d5dfef;background:#f8faff;color:#3b5da8}
 .park-options{display:grid;gap:8px;margin-top:18px}.park-option{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px;padding:10px 0;border-bottom:1px solid #edf1f5}.park-option small{grid-column:1/-1;color:#ae5a4c;font-size:12px}
 

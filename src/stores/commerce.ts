@@ -55,7 +55,7 @@ const now = () => new Date().toISOString()
 const id = () => crypto.randomUUID()
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const plusDays = (start: string, days: number) => new Date(new Date(start).getTime() + days * 86400000).toISOString()
-export const money = (n: number) => `¥${Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+export const money = (n: number) => `¥${Number(n || 0).toLocaleString('zh-CN', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 export const dateText = (s?: string) => s ? new Date(s).toLocaleString('zh-CN', { hour12: false }) : '—'
 export const STATUS_LABEL: Record<ListingStatus | OrderStatus | RefundStatus, string> = { reviewing: '审核中', rejected: '已驳回', on_sale: '已上架', offline: '已下架', pending_payment: '待支付', pending_contract: '待签约', in_service: '服务中', pending_acceptance: '待验收', completed: '已完成', cancelled: '已取消', pending: '待处理', client_confirm: '待客户确认', refunded: '已退款' }
 function defaults(parkName: string, serviceName: string, intro: string): CommerceData {

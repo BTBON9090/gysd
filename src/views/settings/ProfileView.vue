@@ -410,7 +410,7 @@ onUnmounted(stopCountdown)
 .page-intro { display:flex;align-items:center;gap:15px;margin-bottom:22px; }
 .intro-icon{display:grid;place-items:center;flex:none;width:46px;height:46px;border-radius:11px;background:#eaf0ff;color:#3659c2}
 .eyebrow { margin: 0 0 9px; color: #3656c5; font-size: 12px; font-weight: 700; }
-.eyebrow span { margin: 0 7px; color: #a9b5c7; }
+.eyebrow span { margin: 0 7px; color: #596a80; }
 .page-intro h1 { margin: 0; color: #17233b; font-size: 27px; letter-spacing: -0.025em; }
 .page-subtitle { margin: 3px 0 0; color: #586880; font-size: 14px; }
 

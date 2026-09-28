@@ -26,5 +26,5 @@ watch(() => [props.source, ...allSources.value], async (_, __, onCleanup) => {
 </template>
 
 <style scoped>
-.demo-image{display:block;width:100%;height:100%;border-radius:inherit;overflow:hidden}.demo-image-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#f2f5fb;color:#8795aa;font-size:12px;line-height:1.4}.demo-image :deep(img){cursor:zoom-in}
+.demo-image{display:block;width:100%;height:100%;border-radius:inherit;overflow:hidden}.demo-image-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#f2f5fb;color:#596a80;font-size:12px;line-height:1.4}.demo-image :deep(img){cursor:zoom-in}
 </style>

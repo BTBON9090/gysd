@@ -173,11 +173,21 @@ function onRegionChange(value: unknown) {
 
 const skillsPool = ['短视频剪辑', '企业注册', 'RPA 开发', '仓储配送', '薪税筹划', 'ISO 认证']
 
-function next() {
+async function next() {
   const errs = ob.validateStep(step.value, d)
   errors.value = errs
   if (errs.length) {
-    requestAnimationFrame(() => document.querySelector('.field.has-error, .inline-error, .submission-errors')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+    if (step.value === 5) {
+      const invalidStep = [1, 2, 3, 4].find(n => ob.validateStep(n, d).length)
+      if (invalidStep) {
+        if (props.changeMode) change.save(invalidStep)
+        else await router.push(`/onboarding/step/${invalidStep}`)
+        await nextTick()
+        errors.value = ob.validateStep(invalidStep, d)
+      }
+    }
+    await nextTick()
+    requestAnimationFrame(() => document.querySelector('.field.has-error, .inline-error')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
     return
   }
   if (props.changeMode) {
@@ -200,11 +210,6 @@ function fieldError(message: string) {
   return errors.value.includes(message)
 }
 
-function goToSubmissionError(message: string) {
-  const match = message.match(/^第 ([1-4]) 步/)
-  if (props.changeMode) change.save(match ? Number(match[1]) : 2)
-  else router.push(`/onboarding/step/${match ? Number(match[1]) : 2}`)
-}
 
 const meta = computed(() => {
   const map: Record<number, { title: string; subtitle: string; icon: typeof Building }> = {
@@ -247,6 +252,7 @@ const meta = computed(() => {
     :show-footer="true"
     @next="next"
   >
+    <template #header-actions><button class="card-demo" type="button" @click="demoFill(step)"><ScanLine :size="13" />{{ step === 5 ? '一键填满' : '演示填入' }}</button></template>
     <FilePreview
       v-model="preview.open"
       :title="preview.title"
@@ -259,17 +265,6 @@ const meta = computed(() => {
     <div v-if="step === 1" class="step-layout">
       <section class="main-col">
         <div class="card">
-          <div class="card-head">
-            <span class="card-ic tone-blue"><Building :size="16" /></span>
-            <div class="card-head-text">
-              <h2>基础信息</h2>
-              <p>完善服务商信息与联系人，便于园区审核与后续联络。</p>
-            </div>
-            <button class="card-demo" type="button" @click="demoFill(1)">
-              <ScanLine :size="13" />
-              演示填入
-            </button>
-          </div>
 
           <div class="form-grid">
             <div class="field span-2" :class="{ 'has-error': fieldError('请选择申请入驻园区') }">
@@ -360,22 +355,10 @@ const meta = computed(() => {
     <div v-else-if="step === 2" class="step-layout">
       <section class="main-col">
         <div class="card">
-          <div class="card-head">
-            <span class="card-ic tone-amber"><BadgeCheck :size="16" /></span>
-            <div class="card-head-text">
-              <h2>资质与证件</h2>
-              <p>按证件分三段上传，识别结果可手动修改。</p>
-            </div>
-            <button class="card-demo" type="button" @click="demoFill(2)">
-              <ScanLine :size="13" />
-              演示填入
-            </button>
-          </div>
 
           <!-- 1 营业执照 -->
           <section v-if="d.entityType !== 'personal'" class="doc-block">
             <header class="doc-head">
-              <span class="doc-index">01</span>
               <div class="doc-title">
                 <strong>营业执照</strong>
                 <p>上传原件或扫描件，支持一键读取</p>
@@ -407,10 +390,10 @@ const meta = computed(() => {
                     <label>统一社会信用代码 <em>*</em></label>
                     <ElInput v-model="d.creditCode" disabled />
                   </div>
-                  <div class="field" :class="{ 'has-error': fieldError('请填写营业执照法人姓名') }">
+                  <div class="field" :class="{ 'has-error': fieldError('请填写营业执照法人姓名') || fieldError('营业执照法人姓名须与身份证姓名一致') }">
                     <label>法定代表人 <em>*</em></label>
                     <ElInput v-model="d.licenseLegalPerson" placeholder="请填写" @change="ob.persist" />
-                    <span v-if="fieldError('请填写营业执照法人姓名')" class="field-error">请填写营业执照法人姓名</span>
+                    <span v-if="fieldError('请填写营业执照法人姓名')" class="field-error">请填写营业执照法人姓名</span><span v-if="fieldError('营业执照法人姓名须与身份证姓名一致')" class="field-error">营业执照法人姓名须与身份证姓名一致</span>
                   </div>
                   <div class="field">
                     <label>注册资本</label>
@@ -452,7 +435,6 @@ const meta = computed(() => {
           <!-- 2 法人身份证 -->
           <section class="doc-block">
             <header class="doc-head">
-              <span class="doc-index">{{ d.entityType === 'personal' ? '01' : '02' }}</span>
               <div class="doc-title">
                 <strong>{{ d.entityType === 'personal' ? '本人身份证' : '法人身份证' }}</strong>
                 <p>分人像面 / 国徽面上传，防止交叉</p>
@@ -535,7 +517,6 @@ const meta = computed(() => {
           <!-- 3 账户信息 -->
           <section class="doc-block">
             <header class="doc-head">
-              <span class="doc-index">{{ d.entityType === 'personal' ? '02' : '03' }}</span>
               <div class="doc-title">
                 <strong>账户信息</strong>
                 <p>可上传识别或手动填写账户信息</p>
@@ -558,10 +539,10 @@ const meta = computed(() => {
                 <span>可手动修改</span>
               </div>
               <div class="form-grid">
-                  <div class="field" :class="{ 'has-error': fieldError('请填写账户名称') }">
+                  <div class="field" :class="{ 'has-error': fieldError('请填写账户名称') || fieldError('账户名称须与主体名称一致') }">
                     <label>账户名称 <em>*</em></label>
                     <ElInput v-model="d.accountName" placeholder="与企业名称一致的户名" @change="ob.persist" />
-                    <span v-if="fieldError('请填写账户名称')" class="field-error">请填写账户名称</span>
+                    <span v-if="fieldError('请填写账户名称')" class="field-error">请填写账户名称</span><span v-if="fieldError('账户名称须与主体名称一致')" class="field-error">账户名称须与主体名称一致</span>
                   </div>
                   <div class="field" :class="{ 'has-error': fieldError('请填写开户银行') }">
                     <label>开户银行 <em>*</em></label>
@@ -597,17 +578,6 @@ const meta = computed(() => {
     <div v-else-if="step === 3" class="step-layout">
       <section class="main-col">
         <div class="card">
-          <div class="card-head">
-            <span class="card-ic tone-blue"><Handshake :size="16" /></span>
-            <div class="card-head-text">
-              <h2>产品服务</h2>
-              <p>填写商户介绍、服务范围和擅长业务领域；案例与荣誉可选填。</p>
-            </div>
-            <button class="card-demo" type="button" @click="demoFill(3)">
-              <ScanLine :size="13" />
-              演示填入
-            </button>
-          </div>
 
           <div class="form-grid">
             <div class="field span-2">
@@ -619,7 +589,7 @@ const meta = computed(() => {
               <ElInput v-model="d.merchantIntro" type="textarea" :rows="3" maxlength="5000" show-word-limit placeholder="介绍服务能力、主要客户与交付方式" @change="ob.persist" />
               <span v-if="fieldError('请填写商户介绍') || fieldError('商户介绍不能超过 5000 字')" class="field-error">{{ fieldError('请填写商户介绍') ? '请填写商户介绍' : '商户介绍不能超过 5000 字' }}</span>
             </div>
-            <div v-if="d.entityType !== 'personal'" class="field span-2" :class="{ 'has-error': fieldError('请选择员工规模') }">
+            <div v-if="d.entityType !== 'personal'" class="field employee-scale" :class="{ 'has-error': fieldError('请选择员工规模') }">
               <label>员工规模 <em>*</em></label>
               <ElSelect v-model="d.employeeScale" placeholder="请选择员工规模" style="width: 100%" @change="ob.persist">
                 <ElOption v-for="size in ['1-19人', '20-99人', '100-499人', '500人及以上']" :key="size" :label="size" :value="size" />
@@ -640,7 +610,7 @@ const meta = computed(() => {
 
             <div class="field span-2" :class="{ 'has-error': fieldError('擅长领域最多 3 个') || fieldError('请填写至少 1 个擅长领域') }">
               <label>擅长业务领域或技能类型（最多可选 3 个）<em>*</em></label>
-              <ElSelect v-model="d.skills" multiple filterable clearable :multiple-limit="3" collapse-tags :max-collapse-tags="2" collapse-tags-tooltip placeholder="搜索并选择擅长领域，最多 3 项" style="width:100%" @change="ob.persist">
+              <ElSelect v-model="d.skills" multiple filterable clearable :multiple-limit="3" placeholder="搜索并选择擅长领域，最多 3 项" style="width:100%" @change="ob.persist">
                 <ElOption v-for="skill in skillsPool" :key="skill" :label="skill" :value="skill" />
               </ElSelect>
               <span v-if="fieldError('擅长领域最多 3 个') || fieldError('请填写至少 1 个擅长领域')" class="field-error">{{ fieldError('擅长领域最多 3 个') ? '擅长领域最多 3 个' : '请填写至少 1 个擅长领域' }}</span>
@@ -691,21 +661,10 @@ const meta = computed(() => {
     <div v-else-if="step === 4" class="step-layout">
       <section class="main-col">
         <div class="card">
-          <div class="card-head">
-            <span class="card-ic tone-indigo"><FileSignature :size="16" /></span>
-            <div class="card-head-text">
-              <h2>入驻协议</h2>
-              <p>下载协议模板，盖章签字后上传两份扫描件。</p>
-            </div>
-            <button class="card-demo" type="button" @click="demoFill(4)">
-              <ScanLine :size="13" />
-              演示填入
-            </button>
-          </div>
 
           <div class="agreement-block">
             <div class="agreement-head">
-              <div><span class="agreement-kicker">协议 01</span><h3 class="sec-title">《服务商入驻合作协议》</h3></div>
+              <div><h3 class="sec-title">《服务商入驻合作协议》</h3></div>
               <div class="agr-actions">
                 <button class="template-action" type="button" @click="openPreview('服务商入驻合作协议 · 模板', '服务商入驻合作协议-模板.pdf', 'text')"><Eye :size="14" />预览模板</button>
                 <button class="template-action download" type="button" @click="downloadDemoTemplate('服务商入驻合作协议')"><Download :size="14" />下载演示模板</button>
@@ -726,7 +685,7 @@ const meta = computed(() => {
 
           <div class="agreement-block">
             <div class="agreement-head">
-              <div><span class="agreement-kicker">协议 02</span><h3 class="sec-title">《支付分账协议》</h3></div>
+              <div><h3 class="sec-title">《支付分账协议》</h3></div>
               <div class="agr-actions">
                 <button class="template-action" type="button" @click="openPreview('支付分账协议 · 模板', '支付分账协议-模板.pdf', 'text')"><Eye :size="14" />预览模板</button>
                 <button class="template-action download" type="button" @click="downloadDemoTemplate('支付分账协议')"><Download :size="14" />下载演示模板</button>
@@ -761,22 +720,8 @@ const meta = computed(() => {
     <div v-else class="step-layout">
       <section class="main-col">
         <div class="card">
-          <div class="card-head">
-            <span class="card-ic tone-blue"><ClipboardList :size="16" /></span>
-            <div class="card-head-text">
-              <h2>确认填报信息</h2>
-              <p>请核对全部内容，提交后进入园区审核。</p>
-            </div>
-            <button class="card-demo" type="button" @click="demoFill(5)">
-              <ScanLine :size="13" />
-              一键填满
-            </button>
-          </div>
 
-          <div v-if="errors.length" class="submission-errors" role="alert">
-            <strong>请先处理以下信息</strong>
-            <button v-for="error in errors" :key="error" type="button" @click="goToSubmissionError(error)">{{ error }} <span>去修改 →</span></button>
-          </div>
+
 
           <div class="entity-read summary-entity">
             <div class="entity-read-info">
@@ -826,9 +771,7 @@ const meta = computed(() => {
           <h3 class="sec-title">资质文件</h3><MerchantDocuments :draft="d" />
 
 
-          <div v-if="errors.length" class="err-inline">
-            仍有未完成项，请返回补全后再提交。
-          </div>
+
         </div>
       </section>
 
@@ -1486,38 +1429,11 @@ export default {}
   margin-right: 8px;
 }
 
-.err-banner {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: var(--status-danger-soft);
-  border: 1px solid rgba(217, 38, 34, 0.2);
-  color: var(--status-danger);
-  border-radius: var(--r-md);
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  font-size: 13px;
-}
-.err-banner ul {
-  margin: 0;
-  padding-left: 16px;
-}
-.err-inline {
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: var(--status-danger-soft);
-  color: var(--status-danger);
-  border-radius: var(--r-sm);
-  font-size: 13px;
-}
+
 .field-error { display: block; color: #ba3b33; font-size: 12px; line-height: 1.45; }
 .inline-error { margin: 9px 0 0 2px; }
 .field.has-error :deep(.el-input__wrapper),
 .field.has-error :deep(.el-select__wrapper) { box-shadow: 0 0 0 1px #d45349 inset !important; }
-.submission-errors { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin: 0 0 22px; padding: 12px 14px; border-left: 3px solid #ce483f; background: #fff8f6; }
-.submission-errors strong { margin-bottom: 3px; color: #8f302b; font-size: 13px; }
-.submission-errors button { padding: 3px 0; border: 0; background: none; color: #a8342e; font-size: 12px; text-align: left; cursor: pointer; }
-.submission-errors button span { margin-left: 7px; font-weight: 700; }
-.submission-errors button:hover { text-decoration: underline; }
 
+.employee-scale{max-width:320px}.doc-head{border-left:3px solid var(--brand);padding-left:12px}.agreement-head .sec-title{border-left:3px solid var(--brand);padding-left:12px}
 </style>

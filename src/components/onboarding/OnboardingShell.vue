@@ -126,7 +126,7 @@ function onNext() {
 
     <main class="ob-main" :class="{ 'no-steps': !showSteps }">
       <div v-if="title" class="ob-page-head">
-        <h1>{{ title }}</h1>
+        <div class="ob-title-line"><h1>{{ title }}</h1><slot name="header-actions" /></div>
         <p v-if="subtitle">{{ subtitle }}</p>
       </div>
       <slot />
@@ -467,4 +467,5 @@ function onNext() {
 .exit-link { color:var(--text-secondary); }
 .exit-link:hover { color:var(--text-primary); background:var(--bg-hover); }
 
+.ob-title-line{display:flex;align-items:center;justify-content:space-between;gap:20px}
 </style>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { User, Store, Building2, ShieldCheck, CircleAlert, ScanLine } from 'lucide-vue-next'
-import { ElButton, ElDialog, ElInput, ElMessage, ElOption, ElSelect } from 'element-plus'
+import { ElButton, ElDialog, ElInput, ElOption, ElSelect } from 'element-plus'
 import {
   useOnboardingStore,
   type EntityType,
@@ -13,6 +13,12 @@ import OnboardingShell from '@/components/onboarding/OnboardingShell.vue'
 const router = useRouter()
 const ob = useOnboardingStore()
 const errors = ref<string[]>([])
+const fieldError = (field: 'type' | 'cert' | 'name' | 'code') => errors.value.find(message => ({
+  type: /经营主体类型/, cert: /证件类型/, name: /姓名|企业名称/, code: /身份证号|信用代码|证件号/,
+}[field]).test(message)) || ''
+watch(() => [ob.draft.entityName, ob.draft.creditCode, ob.draft.certType], () => {
+  if (errors.value.length) errors.value = ob.validateEntityGate()
+})
 const gateDialog = ref(false)
 const gateMode = ref<'blocked' | 'verify'>('blocked')
 
@@ -100,7 +106,7 @@ function next() {
   const errs = ob.validateEntityGate()
   errors.value = errs
   if (errs.length) {
-    ElMessage.error(errs[0])
+    nextTick(() => document.querySelector('.field.has-error')?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
     return
   }
   // 固定样例仅用于演示“已入驻拦截”，不代表真实查询结果。
@@ -142,12 +148,6 @@ function next() {
       </template>
     </ElDialog>
 
-    <div v-if="errors.length" class="err-banner">
-      <CircleAlert :size="16" />
-      <ul>
-        <li v-for="e in errors" :key="e">{{ e }}</li>
-      </ul>
-    </div>
 
     <section class="entity-card">
       <div class="gate-head">
@@ -184,43 +184,46 @@ function next() {
       <div class="gate-form">
         <h3 class="field-label">主体核验 <em>*</em></h3>
         <div class="form-grid">
-          <div class="field">
+          <div class="field" :class="{ 'has-error': fieldError('cert') }">
             <label>证件类型 <em>*</em></label>
             <ElSelect
               :model-value="ob.draft.certType"
               placeholder="请选择证件类型"
               style="width: 100%"
-              @update:model-value="(v: CertType) => { ob.draft.certType = v; ob.persist(); errors = [] }"
+              @update:model-value="(v: CertType) => { ob.draft.certType = v; ob.persist() }"
             >
               <ElOption v-for="c in certOptions" :key="c.value" :label="c.label" :value="c.value" />
             </ElSelect>
+            <span v-if="fieldError('cert')" class="field-error" role="alert">{{ fieldError('cert') }}</span>
             <p class="field-help">
               <ShieldCheck :size="12" />
               随主体类型自动匹配，不可与主体不一致
             </p>
           </div>
 
-          <div class="field">
+          <div class="field" :class="{ 'has-error': fieldError('name') }">
             <label>{{ nameLabel }} <em>*</em></label>
             <ElInput
               v-model="ob.draft.entityName"
               :placeholder="isPersonal ? '请填写姓名' : '请填写营业执照上的企业名称'"
               clearable
-              @input="errors = []"
+
               @change="ob.persist()"
             />
+            <span v-if="fieldError('name')" class="field-error" role="alert">{{ fieldError('name') }}</span>
           </div>
 
-          <div class="field span-2">
+          <div class="field span-2" :class="{ 'has-error': fieldError('code') }">
             <label>{{ codeLabel }}（识别码） <em>*</em></label>
             <ElInput
               v-model="ob.draft.creditCode"
               :placeholder="codePlaceholder"
               clearable
               :maxlength="ob.draft.entityType === 'individual' ? 18 : 18"
-              @input="(v: string) => { ob.draft.creditCode = v.toUpperCase(); errors = [] }"
+              @input="(v: string) => { ob.draft.creditCode = v.toUpperCase() }"
               @change="ob.persist()"
             />
+            <span v-if="fieldError('code')" class="field-error" role="alert">{{ fieldError('code') }}</span>
             <p class="field-help">
               {{ isPersonal ? '18 位身份证号，末位可为 X' : ob.draft.entityType === 'individual' ? '15 位数字或 18 位统一社会信用代码，与证件一致' : '18 位数字与大写字母，与证件一致' }}
             </p>
@@ -237,22 +240,6 @@ function next() {
 </template>
 
 <style scoped>
-.err-banner {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: var(--status-danger-soft);
-  border: 1px solid rgba(217, 38, 34, 0.2);
-  color: var(--status-danger);
-  border-radius: var(--r-md);
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  font-size: 13px;
-}
-.err-banner ul {
-  margin: 0;
-  padding-left: 16px;
-}
 
 .entity-card {
   background: var(--bg-card);

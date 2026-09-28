@@ -4,7 +4,7 @@ import { Video } from 'lucide-vue-next'
 import DemoImage from './DemoImage.vue'
 import { resolveDemoImage } from '@/utils/demoMedia'
 
-const props = defineProps<{ source: string; sources?: string[] }>()
+const props = defineProps<{ source: string; sources?: string[]; fit?: 'cover' | 'contain' }>()
 const videoUrl = ref('')
 const isVideo = (source: string) => source.startsWith('local-video:') || /\.mp4(?:$|\?)/i.test(source)
 watch(() => props.source, async (source, _, onCleanup) => {
@@ -18,9 +18,9 @@ watch(() => props.source, async (source, _, onCleanup) => {
 <template>
   <video v-if="isVideo(source) && videoUrl" class="demo-video" :src="videoUrl" controls preload="metadata" />
   <div v-else-if="isVideo(source)" class="demo-video-empty"><Video :size="22" /><span>视频预览不可用</span></div>
-  <DemoImage v-else :source="source" :sources="sources" empty-text="图片预览不可用" />
+  <DemoImage v-else :fit="fit" :source="source" :sources="sources" empty-text="图片预览不可用" />
 </template>
 
 <style scoped>
-.demo-video{display:block;width:100%;height:100%;background:#152238;border-radius:inherit;object-fit:contain}.demo-video-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;height:100%;color:#8491a4;background:#f1f4f9;font-size:11px}
+.demo-video{display:block;width:100%;height:100%;background:#152238;border-radius:inherit;object-fit:contain}.demo-video-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;height:100%;color:#596a80;background:#f1f4f9;font-size:11px}
 </style>

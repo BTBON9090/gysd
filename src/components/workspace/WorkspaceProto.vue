@@ -125,7 +125,7 @@ const chain = [
   color: #16a34a;
 }
 .p-sms time {
-  color: #9ca3af;
+  color: #596a80;
   font-size: 12px;
 }
 .p-sms p {
@@ -159,7 +159,7 @@ const chain = [
 }
 .p-sub {
   font-size: 12px;
-  color: #9ca3af;
+  color: #596a80;
 }
 .p-grid {
   display: grid;
@@ -228,6 +228,6 @@ const chain = [
   margin-left: auto;
   font-style: normal;
   font-size: 12px;
-  color: #9ca3af;
+  color: #596a80;
 }
 </style>

@@ -37,6 +37,6 @@ const router = useRouter()
 .submitted-intro{max-width:500px;margin:0 auto;color:#61758a;font-size:13px;line-height:1.7}
 .submitted-flow{display:flex;align-items:center;justify-content:center;gap:13px;margin:34px 0 30px;padding:18px 20px;border:1px solid #e5ecf0;border-radius:10px;background:#fff;text-align:left}
 .submitted-flow>i{flex:1;height:1px;max-width:38px;background:#dbe5eb}
-.flow-step{display:flex;align-items:center;gap:9px;min-width:0;color:#8b9aac}.flow-step.done{color:#168263}.flow-step.current{color:#365ab6}.flow-step>span{display:grid;gap:1px}.flow-step strong{font-size:12px;white-space:nowrap}.flow-step small{font-size:10px;color:#8998a8;white-space:nowrap}
+.flow-step{display:flex;align-items:center;gap:9px;min-width:0;color:#596a80}.flow-step.done{color:#168263}.flow-step.current{color:#365ab6}.flow-step>span{display:grid;gap:1px}.flow-step strong{font-size:12px;white-space:nowrap}.flow-step small{font-size:10px;color:#596a80;white-space:nowrap}
 .submitted-actions{display:flex;align-items:center;justify-content:center;gap:10px}.submitted-actions :deep(.el-button){margin:0;min-height:38px}.submitted-actions :deep(.el-button>span){display:inline-flex;align-items:center;gap:6px}
 </style>

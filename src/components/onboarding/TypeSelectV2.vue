@@ -71,7 +71,7 @@ const steps = ['核验经营主体', '填写入驻资料', '提交园区审核',
 .type-option.active { background: #fff; color: #2445ab; box-shadow: 0 2px 8px rgba(38, 68, 132, .08); font-weight: 700; }
 .type-option span { flex: 1; }
 .type-option small { font-size: 11px; font-weight: 600; color: #1b9a8f; }
-.type-option small.demo { color: #8a96a9; }
+.type-option small.demo { color: #596a80; }
 .type-detail { min-height: 390px; padding: 28px 34px 30px; border: 1px solid #e4e9f2; border-radius: 14px; background: #fff; box-shadow: 0 7px 26px rgba(29, 47, 83, .04); }
 .detail-top { display: flex; justify-content: space-between; align-items: flex-start; }
 .detail-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 13px; color: #405fce; background: #eaf0ff; }
@@ -85,7 +85,7 @@ const steps = ['核验经营主体', '填写入驻资料', '提交园区审核',
 .demo-note { display: inline-flex; margin: 24px 0; padding: 9px 12px; border-radius: 7px; background: #f4f6fa; color: #637188; font-size: 12px; }
 .apply-button { display: inline-flex; align-items: center; justify-content: center; gap: 25px; height: 42px; padding: 0 17px; border: 0; border-radius: 8px; background: #3755c4; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 10px rgba(55, 85, 196, .16); }
 .apply-button:hover:not(:disabled) { background: #2945b2; }
-.apply-button:disabled { background: #e8ecf3; color: #748197; box-shadow: none; cursor: not-allowed; }
+.apply-button:disabled { background: #e8ecf3; color: #596a80; box-shadow: none; cursor: not-allowed; }
 .existing-hint { margin: 19px 0 0; color: #69768b; font-size: 12.5px; }
 
 </style>

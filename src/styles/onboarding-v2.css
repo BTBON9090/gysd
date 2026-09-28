@@ -142,7 +142,7 @@
 .ob.theme-light-v2 .el-input__wrapper:focus-within,
 .ob.theme-light-v2 .el-select__wrapper:focus-within { box-shadow: 0 0 0 3px #e4ebff, 0 0 0 1.5px #4565d0 inset !important; }
 .ob.theme-light-v2 .el-input__inner::placeholder,
-.ob.theme-light-v2 .el-textarea__inner::placeholder { color: #738199; }
+.ob.theme-light-v2 .el-textarea__inner::placeholder { color: #596a80; }
 .ob.theme-light-v2 .el-input__inner,
 .ob.theme-light-v2 .el-textarea__inner { color: #20304c; }
 .ob.theme-light-v2 .el-select__input:focus,

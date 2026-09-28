@@ -505,6 +505,8 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       if (!d.bankName.trim()) errs.push('请填写开户银行')
       if (!d.bankBranch.trim()) errs.push('请填写开户支行')
       if (!d.bankAccount.trim()) errs.push('请填写账号')
+      if (d.accountName.trim() && d.accountName.trim() !== d.entityName.trim()) errs.push('账户名称须与主体名称一致')
+      if (d.entityType !== 'personal' && d.licenseLegalPerson.trim() && d.legalPerson.trim() && d.licenseLegalPerson.trim() !== d.legalPerson.trim()) errs.push('营业执照法人姓名须与身份证姓名一致')
     }
     if (step === 3) {
       if (!d.serviceCities.length) errs.push('请至少选择 1 个服务范围城市')
@@ -523,8 +525,6 @@ export const useOnboardingStore = defineStore('onboarding', () => {
         const e = validateStep(s, target)
         if (e.length) errs.push(`第 ${s} 步：${e[0]}`)
       }
-      if (d.accountName.trim() && d.accountName.trim() !== d.entityName.trim()) errs.push('账户名称须与主体名称一致')
-      if (d.entityType !== 'personal' && d.licenseLegalPerson.trim() && d.legalPerson.trim() && d.licenseLegalPerson.trim() !== d.legalPerson.trim()) errs.push('营业执照法人姓名须与身份证姓名一致')
     }
     return errs
   }

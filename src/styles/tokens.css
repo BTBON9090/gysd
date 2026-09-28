@@ -242,7 +242,7 @@ button {
 .subject-popper .el-select-dropdown__item.is-selected { background: #eef2ff; }
 .subject-option { position: relative; display: grid; gap: 3px; padding-right: 58px; }
 .subject-option strong { overflow: hidden; color: #233551; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.subject-option small { color: #758299; font-size: 11px; font-variant-numeric: tabular-nums; }
+.subject-option small { color: #596a80; font-size: 11px; font-variant-numeric: tabular-nums; }
 .subject-state { position: absolute; right: 0; top: 4px; padding: 3px 6px; border-radius: 5px; background: #eef2ff; color: #3656c5; font-size: 10px; font-weight: 700; }
 .subject-state.reviewing { background: #fff3df; color: #91580e; }
 .subject-state.rejected { background: #fff0ed; color: #a93c34; }
@@ -380,11 +380,11 @@ button {
 html,body,#app{min-width:0;width:100%;overflow:hidden}
 
 /* Desktop dialog frame: only the body scrolls; actions remain visible. */
-.el-dialog:not(.is-fullscreen){display:flex;flex-direction:column;max-height:calc(100dvh - 64px);margin:32px auto!important;padding:0!important;border-radius:12px!important;overflow:hidden}
+.el-dialog:not(.is-fullscreen){display:flex;flex-direction:column;max-height:calc(100dvh - 64px);margin:0!important;align-self:center;flex:0 1 auto;height:auto;padding:0!important;border-radius:12px!important;overflow:hidden}
 .el-dialog__header{flex:none;padding:22px 24px 16px!important;margin:0!important;border-bottom:1px solid #edf0f5}
 .el-dialog__title{font-size:18px!important;font-weight:700!important;line-height:26px!important;color:#20304a}
 .el-dialog__headerbtn{top:16px!important;right:16px!important}
-.el-dialog__body{min-height:0;overflow:auto;padding:20px 24px!important;scrollbar-gutter:stable}
+.el-dialog__body{flex:0 1 auto;min-height:0;overflow:auto;padding:20px 24px!important;scrollbar-gutter:stable}
 .el-dialog__footer{flex:none;padding:16px 24px!important;border-top:1px solid #edf0f5;background:#fff}
 .el-dialog__footer .el-button+.el-button{margin-left:8px}
 .el-message-box__content{display:block!important}
