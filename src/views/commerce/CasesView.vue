@@ -66,7 +66,7 @@ async function remove(item: Case) {
 
 <template>
   <div class="biz-page cases-page">
-    <header class="biz-head cases-head"><div class="cases-heading"><span class="cases-heading-icon"><BookOpen :size="24" /></span><div><h1>案例管理 <span class="cases-count">{{ c.data.cases.length }}</span></h1></div></div><ElButton type="primary" @click="open()"><Plus :size="15" /> 创建案例</ElButton></header>
+    <header class="biz-head cases-head"><div class="cases-heading"><span class="cases-heading-icon"><BookOpen :size="24" /></span><div><h1>案例管理</h1></div></div><ElButton type="primary" @click="open()"><Plus :size="15" /> 创建案例</ElButton></header>
 
     <section class="cases-content">
       <div class="cases-toolbar list-sticky"><div class="cases-filters"><ElCascader :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" /><ElInput v-model="filter.keyword" clearable placeholder="搜索案例标题或介绍" @keyup.enter="apply"><template #prefix><Search :size="15" /></template></ElInput></div><div class="cases-filter-actions"><ElButton type="primary" @click="apply">查询</ElButton><ElButton @click="reset">重置</ElButton></div></div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Images, UsersRound } from 'lucide-vue-next'
+import { Images, Store, UsersRound } from 'lucide-vue-next'
 import type { Shop } from '@/stores/commerce'
 import DemoImage from './DemoImage.vue'
 
@@ -9,7 +9,7 @@ defineProps<{ shop: Shop }>()
 <template>
   <div class="shop-preview">
     <div class="shop-preview-identity">
-      <div class="shop-preview-logo"><DemoImage :source="shop.logo" empty-text="店铺 Logo" /></div>
+      <div class="shop-preview-logo"><DemoImage v-if="shop.logo" :source="shop.logo" /><div v-else class="default-shop-avatar" role="img" aria-label="默认店铺头像"><Store :size="32" :stroke-width="1.5" /></div></div>
       <div class="shop-preview-copy"><h2>{{ shop.name || '店铺名称' }}</h2></div>
     </div>
     <section class="shop-preview-section"><h3>店铺介绍</h3><p class="shop-intro">{{ shop.intro || '暂无店铺介绍' }}</p></section>
@@ -20,6 +20,7 @@ defineProps<{ shop: Shop }>()
 
 <style scoped>
 .shop-preview{color:#263651}.shop-preview-identity{display:flex;align-items:center;gap:20px;padding:22px 24px;border:1px solid #dbe5f4;border-radius:12px;background:#f5f8ff}.shop-preview-logo{width:76px;height:76px;flex:none;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #e0e8f4}.shop-preview-copy{min-width:0}.shop-preview-label{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#3458bd}.shop-preview-copy h2{margin:5px 0 2px;font-size:20px;line-height:1.35}.shop-preview-copy p{margin:0;color:#596a80;font-size:12px}.shop-preview-section{padding:23px 0;border-bottom:1px solid #e8edf5}.shop-preview-section:last-child{border-bottom:0}.shop-preview-section h3{margin:0;font-size:15px}.shop-intro{max-width:770px;white-space:pre-wrap;line-height:1.8;font-size:14px;margin:12px 0 0}.shop-preview-title{display:flex;align-items:center;gap:9px;color:#3759b9}.shop-preview-title h3{color:#263651}.shop-preview-title span{margin-left:auto;color:#596a80;font-size:12px}.shop-preview-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}.shop-preview-photo{aspect-ratio:4/3;overflow:hidden;border:1px solid #e2e9f3;border-radius:9px;background:#f2f5fa}.shop-preview-empty{margin:12px 0 0;color:#596a80;font-size:13px}
+.default-shop-avatar{display:grid;place-items:center;width:100%;height:100%;background:#edf2fc;color:#5673ad}
 </style>
 
 <style scoped>

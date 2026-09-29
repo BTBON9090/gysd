@@ -29,7 +29,7 @@ const router = useRouter()
 
 <style scoped>
 .submitted-page{display:grid;place-items:start center;min-height:100%;padding-top:58px}
-.submitted-card{width:min(760px,100%);padding:42px 48px 38px;border:1px solid #dfeae5;border-radius:16px;background:linear-gradient(155deg,#f2fbf7 0%,#fff 58%);text-align:center}
+.submitted-card{width:min(760px,100%);padding:42px 48px 38px;border:0;border-radius:0;background:none;text-align:center}
 .submitted-icon{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 17px;border-radius:16px;background:#dff4e9;color:#13845f}
 .submitted-kicker{color:#13845f;font-size:12px;font-weight:750;letter-spacing:.08em}
 .submitted-card h1{margin:7px 0 8px;color:#1c3440;font-size:25px;line-height:1.35}
