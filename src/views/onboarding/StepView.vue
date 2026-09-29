@@ -16,6 +16,7 @@ import {
   ElButton,
   ElCascader,
   ElCheckbox,
+  ElDatePicker,
   ElInput,
   ElMessage,
   ElOption,
@@ -371,7 +372,7 @@ const meta = computed(() => {
               v-model="d.licenseUploaded"
               title="点击上传营业执照"
               hint="JPG / PNG / PDF"
-              ocr-label="演示识别回填"
+              ocr-label="识别并回填"
               @ocr="ob.fillDemoLicense(d)"
               @preview="(u?: string, n?: string) => openPreview('营业执照', n || 'license-front.png', 'image', u || '')"
             @upload="(file?: File) => saveDocument('license', file)" @remove="removeDocument('license')" />
@@ -403,20 +404,22 @@ const meta = computed(() => {
                     <label>企业类型</label>
                     <ElInput v-model="d.enterpriseType" placeholder="请填写" @change="ob.persist" />
                   </div>
-                  <div class="field">
-                    <label>成立日期</label>
-                    <ElInput v-model="d.foundDate" placeholder="YYYY/MM/DD" @change="ob.persist" />
+                  <div class="field date-pair">
+                    <div class="date-half">
+                      <label>成立日期</label>
+                      <ElDatePicker v-model="d.foundDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" :editable="false" placeholder="成立日期" @change="ob.persist" />
+                    </div>
+                    <div class="date-half">
+                      <label>发照日期</label>
+                      <ElDatePicker v-model="d.issueDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" :editable="false" placeholder="发照日期" @change="ob.persist" />
+                    </div>
                   </div>
-                  <div class="field">
-                    <label>发照日期</label>
-                    <ElInput v-model="d.issueDate" placeholder="YYYY/MM/DD" @change="ob.persist" />
-                  </div>
-                  <div class="field">
+                  <div class="field span-2">
                     <label>营业期限 <em>*</em></label>
                     <div class="range-row">
-                      <ElInput v-model="d.validFrom" placeholder="起" @change="ob.persist" />
+                      <ElDatePicker v-model="d.validFrom" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" :editable="false" placeholder="开始日期" @change="ob.persist" />
                       <span>至</span>
-                      <ElInput v-model="d.validTo" placeholder="止" :disabled="d.validForever" @change="ob.persist" />
+                      <ElDatePicker v-model="d.validTo" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" :editable="false" placeholder="结束日期" :disabled="d.validForever" @change="ob.persist" />
                       <ElCheckbox v-model="d.validForever" @change="ob.persist">长期有效</ElCheckbox>
                     </div>
                   </div>
@@ -450,7 +453,7 @@ const meta = computed(() => {
                 hint="带照片一面"
                 face="portrait"
                 compact
-                ocr-label="演示识别回填"
+                ocr-label="识别并回填"
                 @ocr="ob.fillDemoId(d)"
                 @preview="(u?: string, n?: string) => openPreview('身份证 · 人像面', n || 'id-portrait.png', 'image', u || '')"
               @upload="(file?: File) => saveDocument('idFront', file)" @remove="removeDocument('idFront')" />
@@ -460,7 +463,7 @@ const meta = computed(() => {
                 hint="带国徽一面"
                 face="emblem"
                 compact
-                ocr-label="演示识别回填"
+                ocr-label="识别并回填"
                 @ocr="ob.fillDemoId(d)"
                 @preview="(u?: string, n?: string) => openPreview('身份证 · 国徽面', n || 'id-emblem.png', 'image', u || '')"
               @upload="(file?: File) => saveDocument('idBack', file)" @remove="removeDocument('idBack')" />
@@ -492,7 +495,7 @@ const meta = computed(() => {
                 </div>
                 <div class="field">
                   <label>出生日期</label>
-                  <ElInput v-model="d.idBirth" placeholder="YYYY/MM/DD" @change="ob.persist" />
+                  <ElDatePicker v-model="d.idBirth" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" :editable="false" placeholder="出生日期" @change="ob.persist" />
                 </div>
                 <div class="field">
                   <label>签发机关</label>
@@ -501,9 +504,9 @@ const meta = computed(() => {
                 <div class="field span-2">
                   <label>有效期</label>
                   <div class="range-row">
-                    <ElInput v-model="d.idValidFrom" placeholder="起" @change="ob.persist" />
+                    <ElDatePicker v-model="d.idValidFrom" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" :editable="false" placeholder="开始日期" @change="ob.persist" />
                     <span>至</span>
-                    <ElInput v-model="d.idValidTo" placeholder="止" @change="ob.persist" />
+                    <ElDatePicker v-model="d.idValidTo" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" :editable="false" placeholder="结束日期" @change="ob.persist" />
                   </div>
                 </div>
                 <div class="field span-2">
@@ -529,7 +532,7 @@ const meta = computed(() => {
               v-model="d.bankUploaded"
               title="点击上传开户许可证 / 基本户"
               hint="JPG / PNG / PDF"
-              ocr-label="演示识别回填"
+              ocr-label="识别并回填"
               @ocr="ob.fillDemoBank(d)"
               @preview="(u?: string, n?: string) => openPreview('开户许可 / 基本户', n || 'bank-license.png', 'image', u || '')"
             @upload="(file?: File) => saveDocument('bank', file)" @remove="removeDocument('bank')" />
@@ -1220,11 +1223,37 @@ export default {}
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .range-row > span {
   color: var(--text-placeholder);
   font-size: 13px;
+  flex: none;
+}
+.range-row :deep(.el-input) {
+  flex: 1;
+  min-width: 0;
+}
+.range-row :deep(.el-checkbox) {
+  flex: none;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.date-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.date-pair .date-half {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.date-pair .date-half label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .tag-picker {
@@ -1436,4 +1465,5 @@ export default {}
 .field.has-error :deep(.el-select__wrapper) { box-shadow: 0 0 0 1px #d45349 inset !important; }
 
 .employee-scale{max-width:320px}.doc-head{border-left:3px solid var(--brand);padding-left:12px}.agreement-head .sec-title{border-left:3px solid var(--brand);padding-left:12px}
+.date-pair{grid-column:1/-1}.field :deep(.el-date-editor.el-input){width:100%;min-width:0}.range-row :deep(.el-date-editor.el-input){flex:1;width:0;min-width:0}.range-row :deep(.el-input__wrapper){padding-inline:10px}
 </style>

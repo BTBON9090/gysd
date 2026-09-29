@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ListPagination from '@/components/commerce/ListPagination.vue'
 import { computed, ref, watch } from 'vue'
 import { ElButton, ElInput, ElMessage, ElMessageBox, ElTag } from 'element-plus'
 import { ArrowUpRight, Building2, Check, ClipboardList, ExternalLink, MapPin, MapPinned, MessageSquareText, Plus, Search, Store } from 'lucide-vue-next'
@@ -50,14 +49,14 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
           <p class="park-meta"><MapPin :size="14" /> {{ park.address }}</p>
           <p class="park-date">入驻时间 {{ park.joinedAt?.slice(0, 10) || '—' }}</p>
           <div class="park-stats">
-            <button type="button" @click="go('service', park.id)"><span><Store :size="14" />已上架服务</span><strong>{{ count(park.id, 'service') }}</strong><ArrowUpRight :size="13" class="stat-arrow" /></button>
-            <button type="button" @click="go('order', park.id)"><span><ClipboardList :size="14" />订单</span><strong>{{ count(park.id, 'order') }}</strong><ArrowUpRight :size="13" class="stat-arrow" /></button>
-            <button type="button" @click="go('review', park.id)"><span><MessageSquareText :size="14" />评价</span><strong>{{ count(park.id, 'review') }}</strong><ArrowUpRight :size="13" class="stat-arrow" /></button>
+            <button type="button" @click="go('service', park.id)"><strong>{{ count(park.id, 'service') }}</strong><span><Store :size="14" />已上架服务</span><ArrowUpRight :size="13" class="stat-arrow" /></button>
+            <button type="button" @click="go('order', park.id)"><strong>{{ count(park.id, 'order') }}</strong><span><ClipboardList :size="14" />订单</span><ArrowUpRight :size="13" class="stat-arrow" /></button>
+            <button type="button" @click="go('review', park.id)"><strong>{{ count(park.id, 'review') }}</strong><span><MessageSquareText :size="14" />评价</span><ArrowUpRight :size="13" class="stat-arrow" /></button>
           </div>
           <footer><ElButton text type="primary" @click="client(park.id)">查看园区客户端 <ExternalLink :size="14" /></ElButton></footer>
         </article>
       </div>
-    <ListPagination v-model:page="joinedPage" :page-size="9" :total="c.joinedParks.length" noun="个已加入园区" /></section>
+    </section>
 
     <section class="park-group available-group">
       <div class="park-group-head"><div><h2>可申请园区 <span>{{ c.availableParks.length }}</span></h2><p>选择园区并申请加入，加入后即可发布服务。</p></div><ElInput v-model="keyword" clearable placeholder="搜索园区名称或地址" @input="page = 1"><template #prefix><Search :size="15" /></template></ElInput></div>
@@ -69,7 +68,6 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
           <footer><ElButton type="primary" @click="join(park.id, park.name)"><Plus :size="14" /> 申请加入</ElButton><ElButton text @click="client(park.id)">查看园区客户端 <ExternalLink :size="14" /></ElButton></footer>
         </article>
       </div>
-      <ListPagination v-model:page="page" :page-size="9" :total="available.length" noun="个园区" />
     </section>
   </div>
 </template>

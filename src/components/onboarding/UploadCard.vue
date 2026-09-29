@@ -22,7 +22,7 @@ const props = withDefaults(
     fileName: '',
     face: 'none',
     compact: false,
-    ocrLabel: '演示识别回填',
+    ocrLabel: '识别并回填',
     showOcr: true,
   },
 )
@@ -50,7 +50,7 @@ watch(() => props.document, async document => {
 onBeforeUnmount(() => { if (timer) clearInterval(timer) })
 
 const done = computed(() => props.modelValue || phase.value === 'done')
-const displayFile = computed(() => fileNameLive.value || props.fileName || (done.value ? '已上传文件 · 演示状态' : ''))
+const displayFile = computed(() => fileNameLive.value || props.fileName || (done.value ? '已上传文件' : ''))
 const isImage = computed(() => /\.(png|jpe?g|gif|webp|bmp)$/i.test(displayFile.value))
 const faceIcon = computed(() => (props.face === 'emblem' ? Landmark : UserRound))
 
@@ -117,11 +117,6 @@ function onRemove() {
 
 <template>
   <div class="uc" :class="{ done, compact, uploading: phase === 'uploading' }">
-    <button v-if="showOcr" class="uc-ocr" type="button" @click="emit('ocr')">
-      <ScanLine :size="13" />
-      {{ ocrLabel }}
-    </button>
-
     <div class="uc-row">
       <input ref="inputEl" class="uc-input" type="file" accept="image/*,.pdf" @change="pickReal" />
       <button class="uc-drop" type="button" :title="done ? '点击预览文件' : '选择文件'" @click="done ? onPreview() : inputEl?.click()">
@@ -163,6 +158,11 @@ function onRemove() {
         <button v-else type="button" class="uc-go" disabled>…</button>
       </div>
     </div>
+
+    <button v-if="showOcr" class="uc-ocr" type="button" @click="emit('ocr')">
+      <ScanLine :size="13" />
+      {{ ocrLabel }}
+    </button>
   </div>
 </template>
 
@@ -182,7 +182,7 @@ function onRemove() {
   gap: 5px;
   height: 28px;
   padding: 0 10px;
-  margin-bottom: 10px;
+  margin-top: 10px;
   border: 1px solid var(--border-light);
   border-radius: 8px;
   background: var(--bg-muted);

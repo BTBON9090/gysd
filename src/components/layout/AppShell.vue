@@ -10,6 +10,7 @@ const route = useRoute()
 const acc = useAcceptanceStore()
 const sideCollapsed = ref(false)
 const mainRef = ref<HTMLElement | null>(null)
+const formRoute = computed(() => ['onboarding-entity','onboarding-step','onboarding-progress','shop-info','service-new','service-edit','service-submitted','order-detail','invoice-open','merchant','merchant-change','settings'].includes(String(route.name)))
 const pageTitle = computed(() => (route.meta.title as string) || '工作台')
 const bizRoute = computed(() => ['/park','/shop','/service','/order','/aftersale','/invoice','/wallet','/review'].some(prefix => route.path === prefix || route.path.startsWith(`${prefix}/`)))
 watch(() => route.path, async () => {
@@ -24,7 +25,7 @@ watch(() => route.path, async () => {
     <div class="shell-body">
       <SideNav v-model:collapsed="sideCollapsed" />
       <main ref="mainRef" class="shell-main" :data-state="acc.dataState">
-        <div class="shell-content"><BizStateView v-if="bizRoute && acc.dataState !== 'ready'" />
+        <div class="shell-content" :class="{ 'is-form-page': formRoute }"><BizStateView v-if="bizRoute && acc.dataState !== 'ready'" />
         <router-view v-else v-slot="{ Component }">
           <transition name="page" mode="out-in">
             <component :is="Component" :key="`${route.path}:${route.query.demo || ''}`" :page-title="pageTitle" />
@@ -72,6 +73,7 @@ watch(() => route.path, async () => {
   opacity: 0;
   transform: translateY(-2px);
 }
+.shell-content.is-form-page{min-width:800px}
 </style>
 
 <style scoped>

@@ -43,18 +43,18 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
       <div v-else class="service-list">
         <article v-for="s in rows" :key="s.id" class="service-card">
           <div class="service-card-body">
-            <button type="button" class="service-cover" :aria-label="`查看${s.name||'服务'}详情`" @click="detail=s"><DemoImage :source="coverSource(s.cover)" empty-text="无封面" /></button>
+            <button type="button" class="service-cover" :aria-label="`查看${s.name||'服务'}详情`" @click="detail=s"><DemoImage fit="contain" :source="coverSource(s.cover)" empty-text="无封面" /></button>
             <div class="service-card-content">
-              <div class="service-identity"><h3 :title="s.name"><button type="button" @click="detail=s">{{s.name||'未命名草稿'}}</button></h3><ElTag :type="aggregateTone(s)" effect="light">{{aggregateLabel(s)}}</ElTag></div>
-              <p class="service-category" :title="s.category">{{s.category||'未选择分类'}}</p>
+              <div class="service-identity"><h3 :title="s.name"><button type="button" :title="s.name" @click="detail=s">{{s.name||'未命名草稿'}}</button></h3><ElTag :type="aggregateTone(s)" effect="light">{{aggregateLabel(s)}}</ElTag></div>
               <div class="service-park-statuses">
-                <template v-for="p in c.joinedParks.slice(0,2)" :key="p.id"><ElPopover v-if="s.listings[p.id]?.status==='rejected'" trigger="click" placement="bottom-start" :width="300"><template #reference><button type="button" class="park-status is-rejected actionable"><b>{{p.name}}</b><i>·</i><span class="reject-label">已驳回</span></button></template><strong>园区审核未通过</strong><p class="reject-reason">{{ s.listings[p.id]?.reason || '请核对服务资料并重新提交。' }}</p><small>{{ s.listings[p.id]?.at.slice(0,19).replace('T',' ') }}</small></ElPopover><span v-else class="park-status" :class="`is-${s.listings[p.id]?.status||'draft'}`" :title="p.name"><b>{{p.name}}</b><i>·</i><span>{{s.listings[p.id]?STATUS_LABEL[s.listings[p.id].status]:'未发布'}}</span><em v-if="s.listings[p.id]?.forced">运营下架</em></span></template>
-                <ElPopover v-if="c.joinedParks.length>2" trigger="click" placement="bottom-start" :width="330"><template #reference><button type="button" class="park-overflow">更多园区 {{ c.joinedParks.length-2 }}</button></template><div class="park-overflow-list"><div v-for="p in c.joinedParks.slice(2)" :key="p.id"><strong>{{ p.name }}</strong><span :class="{ rejected: s.listings[p.id]?.status==='rejected' }">{{ s.listings[p.id] ? STATUS_LABEL[s.listings[p.id].status] : '未发布' }}</span><small v-if="s.listings[p.id]?.status==='rejected'">{{ s.listings[p.id]?.reason || '请核对服务资料并重新提交。' }}</small></div></div></ElPopover><span v-if="!c.joinedParks.length" class="service-unpublished">尚未加入园区</span>
+                <template v-for="p in c.joinedParks.slice(0,2)" :key="p.id"><ElPopover v-if="s.listings[p.id]?.status==='rejected'" trigger="hover" :show-after="180" placement="bottom-start" :width="300"><template #reference><button type="button" class="park-status is-rejected actionable"><b>{{p.name}}</b><i>·</i><span class="reject-label">已驳回</span></button></template><strong>园区审核未通过</strong><p class="reject-reason">{{ s.listings[p.id]?.reason || '请核对服务资料并重新提交。' }}</p><small>{{ s.listings[p.id]?.at.slice(0,19).replace('T',' ') }}</small></ElPopover><span v-else class="park-status" :class="`is-${s.listings[p.id]?.status||'draft'}`" :title="p.name"><b>{{p.name}}</b><i>·</i><span>{{s.listings[p.id]?STATUS_LABEL[s.listings[p.id].status]:'未发布'}}</span><em v-if="s.listings[p.id]?.forced">运营下架</em></span></template>
+                <ElPopover v-if="c.joinedParks.length>2" trigger="click" placement="bottom-start" :width="330"><template #reference><button type="button" class="park-overflow">更多园区 +{{ c.joinedParks.length-2 }}</button></template><div class="park-overflow-list"><div v-for="p in c.joinedParks.slice(2)" :key="p.id"><strong>{{ p.name }}</strong><span :class="{ rejected: s.listings[p.id]?.status==='rejected' }">{{ s.listings[p.id] ? STATUS_LABEL[s.listings[p.id].status] : '未发布' }}</span><small v-if="s.listings[p.id]?.status==='rejected'">{{ s.listings[p.id]?.reason || '请核对服务资料并重新提交。' }}</small></div></div></ElPopover><span v-if="!c.joinedParks.length" class="service-unpublished">尚未加入园区</span>
               </div>
               <div class="service-specs"><span v-for="(spec,index) in s.specs" :key="index" class="service-spec"><b>{{spec.name||`规格 ${index+1}`}}</b><strong>{{spec.price>0?`${money(spec.price)} / ${spec.unit}`:'价格待设置'}}</strong></span><span v-if="!s.specs.length" class="service-unpublished">尚未设置规格</span></div>
               <small class="service-updated">更新 {{s.updatedAt.slice(0,10)}}</small>
             </div>
             <div class="service-card-side">
+              <div class="service-features" :title="s.category">{{s.category||'未选择分类'}}</div>
               <div class="service-sales"><span>累计销量</span><strong>{{sales(s)}}</strong></div>
               <div class="service-actions"><ElButton v-if="!s.published" text type="primary" class="row-action-primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" text type="primary" class="row-action-primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" text @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton v-if="s.published" text @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
             </div>
@@ -90,9 +90,10 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .service-cover{width:112px;height:112px;overflow:hidden;border:1px solid #e3e9f2;border-radius:9px;background:#f7f9fd}
 .service-card-content{min-width:0}
 .service-card-side{display:flex;flex-direction:column;min-width:0;padding-left:0;border-left:0}
-.service-identity{display:flex;align-items:center;gap:10px;min-width:0}
-.service-identity h3{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;color:#1e2e47;font-size:16px;font-weight:650;line-height:1.45}
+.service-identity{width:100%;display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:nowrap}
+.service-identity h3{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;color:#1e2e47;font-size:16px;font-weight:650;line-height:1.45;flex:0 1 auto}
 .service-identity :deep(.el-tag){flex:none}
+.service-features{margin:0;color:#596a80;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 .service-category{margin:3px 0 0;color:#596a80;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .service-park-statuses{display:flex;width:100%;flex-wrap:nowrap;white-space:nowrap;gap:6px;margin-top:9px;min-width:0}
 .park-status{display:inline-flex;align-items:center;gap:5px;max-width:min(260px,100%);min-width:0;padding:4px 8px;border:1px solid #dde6f4;border-radius:6px;background:#f6f9ff;color:#52647e;font-size:11px;line-height:1.3}
@@ -117,6 +118,8 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 .park-options{display:grid;gap:8px;margin-top:18px}.park-option{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px;padding:10px 0;border-bottom:1px solid #edf1f5}.park-option small{grid-column:1/-1;color:#ae5a4c;font-size:12px}
 
 .service-cover{width:96px;height:96px;padding:0;cursor:pointer}.service-cover :deep(.demo-image){pointer-events:none}.service-identity h3 button{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}.service-identity h3 button:hover{color:#3158bd}.park-overflow{flex:none;padding:5px 9px;border:1px solid #dce5f4;border-radius:6px;background:#f7f9fe;color:#3659b8;font-size:11px;cursor:pointer}.park-overflow-list{display:grid;gap:0}.park-overflow-list>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px;padding:9px 0;border-bottom:1px solid #edf1f7;font-size:12px}.park-overflow-list>div:last-child{border-bottom:0}.park-overflow-list strong{overflow-wrap:anywhere;color:#41536e}.park-overflow-list span{color:#57709b}.park-overflow-list span.rejected{color:#bd443d}.park-overflow-list small{grid-column:1/-1;color:#a75a54;line-height:1.5}
+
+.service-identity h3{flex:0 1 auto;min-width:0;max-width:100%}.service-identity h3 button{width:100%}.service-card-body{column-gap:24px}.service-features{margin-bottom:12px}.service-sales{margin-bottom:12px}.service-actions{margin-top:auto}.service-cover{width:112px;height:84px;aspect-ratio:4/3}.park-overflow{display:inline-flex;align-items:center;justify-content:center;height:22px;box-sizing:border-box;padding:0 7px;line-height:20px;font-family:inherit;white-space:nowrap}
 </style>
 
 <style scoped>
