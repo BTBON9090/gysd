@@ -47,6 +47,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
   const dockPosition = ref(initialDockPosition())
   const dataState = ref<PageDataState>('ready')
   const entryStatus = ref<EntryStatus>(localStorage.getItem('gysd-demo-entry-status') === 'approved' ? 'approved' : 'pending')
+  const largeSalesDemo = ref(false)
   const compareMode = ref(false)
   const issues = ref<AcceptanceIssue[]>([])
   const annotateMode = ref(false)
@@ -100,6 +101,7 @@ export const useAcceptanceStore = defineStore('acceptance', () => {
     dockPosition,
     dataState,
     entryStatus,
+    largeSalesDemo,
     compareMode,
     issues,
     annotateMode,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ArrowRight, Building2, Factory, Handshake, ShoppingBag, Truck } from 'lucide-vue-next'
+import { ArrowRight, Factory, Handshake, ShoppingBag, Truck } from 'lucide-vue-next'
 
 const emit = defineEmits<{ start: [] }>()
 const types = [
@@ -20,9 +20,8 @@ const steps = ['核验经营主体', '填写入驻资料', '提交园区审核',
       <div>
         <p class="eyebrow">供应商入驻</p>
         <h1>选择入驻类型</h1>
-        <p>本期开放服务商入驻。其余类型仅作布局演示，名称与申请规则待 PRD 确认。</p>
+
       </div>
-      <div class="head-mark"><Building2 :size="18" /> 园区供应商服务</div>
     </header>
 
     <div class="selection-layout">

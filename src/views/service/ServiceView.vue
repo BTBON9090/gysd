@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAcceptanceStore } from '@/stores/acceptance'
 import ListPagination from '@/components/commerce/ListPagination.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -8,13 +9,14 @@ import ServicePreview from '@/components/service/ServicePreview.vue'
 import DemoImage from '@/components/commerce/DemoImage.vue'
 import { CATEGORY_TREE, money, serviceStatus, STATUS_LABEL, useCommerceStore, type Service } from '@/stores/commerce'
 const c=useCommerceStore(),router=useRouter(),route=useRoute();const filter=reactive({park:String(route.query.park||''),category:'',name:''});const applied=reactive({...filter});const tab=ref('all');const page=ref(1);const selected=ref<string[]>([]);const action=ref<'publish'|'offline'>('publish');const dialog=ref(false);const target=ref<Service|null>(null);const detail=ref<Service|null>(null)
+const acc = useAcceptanceStore()
 const pageSize = 8
 const tabs=[['all','全部'],['draft','草稿'],['reviewing','审核中'],['rejected','已驳回'],['on_sale','已上架'],['offline','已下架']]
 const coverSource=(source:string)=>/^(local-image:|data:image\/|blob:|https?:\/)/.test(source)?source:''
 const aggregateStatus=(service:Service)=>serviceStatus(service,undefined,c.joinedParks.map(park=>park.id))
 const aggregateLabel=(service:Service)=>aggregateStatus(service)==='draft'?'草稿':aggregateStatus(service)==='on_sale'?'在售':STATUS_LABEL[aggregateStatus(service) as keyof typeof STATUS_LABEL]
 const aggregateTone=(service:Service)=>aggregateStatus(service)==='on_sale'?'success':aggregateStatus(service)==='rejected'?'danger':aggregateStatus(service)==='reviewing'?'warning':'info'
-const sales=(service:Service)=>c.data.orders.filter(order=>order.serviceId===service.id&&order.paid>0&&order.status!=='cancelled').length
+const sales=(service:Service)=>acc.largeSalesDemo && service.id === c.data.services[0]?.id ? 123456 : c.data.orders.filter(order=>order.serviceId===service.id&&order.paid>0&&order.status!=='cancelled').length
 const filtered=computed(()=>c.data.services.filter(s=>(!applied.category||s.category.startsWith(applied.category))&&(!applied.name||s.name.includes(applied.name))).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)))
 function matches(s:Service,t:string){if(!applied.park)return t==='all'||serviceStatus(s,undefined,c.joinedParks.map(p=>p.id))===t;const own=s.listings[applied.park];if(t==='draft')return !own;if(!own)return false;return t==='all'||own.status===t}
 const tabRows=computed(()=>filtered.value.filter(s=>matches(s,tab.value)));const rows=computed(()=>tabRows.value.slice((page.value-1)*pageSize,page.value*pageSize));const count=(t:string)=>filtered.value.filter(s=>matches(s,t)).length
@@ -32,7 +34,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 <template>
   <div class="biz-page service-page">
     <header class="biz-head service-head">
-      <div class="service-heading"><span class="service-heading-icon"><HeartHandshake :size="24" /></span><div><h1>服务管理</h1><p>按园区查看审核和上架状态，维护服务内容。</p></div></div>
+      <div class="service-heading"><span class="service-heading-icon"><HeartHandshake :size="24" /></span><div><h1>服务管理</h1></div></div>
       <ElButton type="primary" @click="create"><Plus :size="15" /> 发布服务</ElButton>
     </header>
     <section class="service-workspace">
@@ -55,7 +57,7 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
             </div>
             <div class="service-card-side">
               <div class="service-features" :title="s.category">{{s.category||'未选择分类'}}</div>
-              <div class="service-sales"><span>累计销量</span><strong>{{sales(s)}}</strong></div>
+              <div class="service-sales"><span>累计销量</span><strong :title="`累计销量 ${sales(s).toLocaleString('zh-CN')}`">{{sales(s) >= 10000 ? `${(sales(s) / 10000).toFixed(1)}万` : sales(s).toLocaleString('zh-CN')}}</strong></div>
               <div class="service-actions"><ElButton v-if="!s.published" text type="primary" class="row-action-primary" @click="continueDraft(s)"><Pencil :size="14" />继续发布</ElButton><ElButton v-else-if="eligible(s,'publish').length" text type="primary" class="row-action-primary" @click="operate(s,'publish')"><ArrowUpToLine :size="14" />上架</ElButton><ElButton v-if="eligible(s,'offline').length" text @click="operate(s,'offline')"><ArrowDownToLine :size="14" />下架</ElButton><ElButton v-if="s.published" text @click="edit(s)"><Pencil :size="14" />编辑</ElButton><ElButton text type="danger" @click="remove(s)"><Trash2 :size="14" />删除</ElButton></div>
             </div>
           </div>
@@ -129,4 +131,9 @@ async function remove(s:Service){if(c.data.orders.some(o=>o.serviceId===s.id)){E
 
 <style scoped>
 .service-park-statuses{margin-top:7px;gap:5px}.park-status{height:22px;box-sizing:border-box;padding:0 7px;line-height:20px;font-size:11px;white-space:nowrap}.service-specs{margin-top:5px;gap:8px}.service-spec{height:22px;box-sizing:border-box;padding:0 2px;border:0;background:transparent;line-height:22px;font-size:11px}.service-spec+.service-spec{padding-left:10px;border-left:1px solid #e2e8f1;border-radius:0}
+</style>
+
+<style scoped>
+.service-sales strong{font-size:16px;line-height:24px;font-family:inherit;font-variant-numeric:tabular-nums}
+.service-identity :deep(.el-tag){box-sizing:border-box;height:20px;min-height:20px;padding:0 6px;font-size:11px;line-height:18px;border-radius:4px}
 </style>

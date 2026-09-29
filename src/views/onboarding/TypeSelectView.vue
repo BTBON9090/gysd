@@ -32,7 +32,6 @@ function openApplication(id: string) {
       <header class="intro">
         <p class="eyebrow">供应商入驻</p>
         <h1>申请成为园区服务商</h1>
-        <p>完成主体核验与入驻资料填写后，提交园区运营审核。您可以暂存草稿，并在提交后查询进度。</p>
       </header>
 
       <section class="service-card">

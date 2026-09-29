@@ -8,6 +8,7 @@ import { CATEGORY_TREE, dateText, money, STATUS_LABEL, useCommerceStore, type Or
 
 import { orderStages, outstanding, STAGE_LABEL } from '@/utils/orderStages'
 
+const advancedFilters = ref(false)
 const c = useCommerceStore()
 const router = useRouter()
 const route = useRoute()
@@ -53,17 +54,17 @@ function act(o: Order) { if (c.activeRefund(o.id)) router.push({ path: '/order/'
 
 <template>
   <div class="biz-page order-page">
-    <header class="biz-head order-head"><span class="order-head-icon"><ClipboardList :size="24" /></span><div><h1>订单管理</h1><p>查看来自已加入园区的订单，按交易阶段处理合同、交付与验收。</p></div><span class="order-total">共 <strong>{{ c.data.orders.length }}</strong> 笔订单</span></header>
+    <header class="biz-head order-head"><span class="order-head-icon"><ClipboardList :size="24" /></span><div><h1>订单管理</h1></div><span class="order-total">共 <strong>{{ c.data.orders.length }}</strong> 笔订单</span></header>
     <div v-if="!c.data.walletOpen" class="biz-empty"><h3>开通钱包后查看订单</h3><p>交易数据将在支付平台开户后解锁。</p><ElButton type="primary" @click="router.push('/wallet')">前往我的钱包</ElButton></div>
     <template v-else>
       <div class="order-sticky list-sticky">
         <div class="order-filters">
           <ElSelect v-model="filter.park" clearable placeholder="全部已加入园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :value="p.id" :label="p.name" /></ElSelect>
-          <ElCascader :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" />
+          <ElCascader v-if="advancedFilters" class="advanced-category" :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" />
           <ElInput v-model="filter.name" clearable placeholder="服务名称" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput>
           <ElInput v-model="filter.id" clearable placeholder="订单号" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput>
-          <div class="order-date"><span>下单时间</span><ElDatePicker :editable="false" v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><b>至</b><ElDatePicker :editable="false" v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div>
-          <div class="order-filter-actions"><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div>
+          <div v-if="advancedFilters" class="order-date"><span>下单时间</span><ElDatePicker :editable="false" v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><b>至</b><ElDatePicker :editable="false" v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div>
+          <div class="order-filter-actions"><ElButton text @click="advancedFilters = !advancedFilters">{{ advancedFilters ? '收起筛选' : '更多筛选' }}{{ [filter.category, filter.from || filter.to].filter(Boolean).length ? `（${[filter.category, filter.from || filter.to].filter(Boolean).length}）` : '' }}</ElButton><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div>
         </div>
         <div class="biz-tabs order-tabs"><button v-for="[key, label] in tabs" :key="key" class="biz-tab" :class="{ active: tab === key }" @click="tab = key; page = 1">{{ label }} <span>{{ count(key) }}</span></button></div>
       </div>
@@ -92,4 +93,8 @@ function act(o: Order) { if (c.activeRefund(o.id)) router.push({ path: '/order/'
 
 <style scoped>
 .order-table th,.order-table td{padding-left:10px;padding-right:10px}.order-table td:last-child{padding-right:14px}.order-actions{gap:6px}.order-actions :deep(.el-button){white-space:nowrap}.amount-scope{font-size:10px;font-weight:400;color:#596a80}.order-table .phase-due{margin-top:0;color:#596a80;font-size:10px}.phase-ledger-link{border:0;background:none;padding:6px 0 0;color:#365cc1;font-size:11px;cursor:pointer}.phase-ledger h3{margin:0;font-size:15px;color:#263954}.phase-ledger p{margin:6px 0 14px;font-size:12px;color:#596a80}.phase-ledger table{width:100%;border-collapse:collapse;font-size:12px}.phase-ledger td,.phase-ledger th{padding:10px 6px;text-align:right;border-bottom:1px solid #e7edf5;white-space:nowrap}.phase-ledger td:first-child,.phase-ledger th:first-child{text-align:left;white-space:normal}.phase-ledger th{background:#f7f9fc;font-size:11px;font-weight:500}.phase-ledger strong{font-size:12px;font-weight:600}.phase-ledger small{display:block;font-size:11px;color:#596a80;margin-top:5px}.phase-ledger .ledger-refund{padding:10px;margin:12px 0 6px;background:#fff4ed;color:#a46636;border-radius:6px}
+</style>
+
+<style scoped>
+.order-filters{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(180px,1fr) auto}.order-filters>.el-select{grid-column:1;grid-row:1}.order-filters>.el-input{grid-row:1}.order-filter-actions{grid-column:4;grid-row:1}.advanced-category{grid-column:1;grid-row:2}.order-date{grid-column:2 / -1;grid-row:2}
 </style>

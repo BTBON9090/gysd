@@ -25,7 +25,7 @@ const basic = computed(() => [
   ['申请入驻园区', d.value.park], ['入驻身份', '服务商'],
   ['服务商名称', d.value.serviceName], ['所属行业', d.value.industry],
   ['联系人姓名', d.value.contactName], ['联系人手机号', d.value.contactMobile],
-  ['联系人职位', d.value.contactTitle], ['注册手机号', d.value.mobile], ['邮箱', d.value.email],
+  ['注册手机号', d.value.mobile], ['邮箱', d.value.email],
 ])
 const qualifications = computed(() => [
   ...(d.value.entityType !== 'personal' ? [
@@ -52,7 +52,7 @@ const services = computed(() => [
 
 <template>
   <div class="biz-page archive-page">
-    <header class="biz-head archive-head"><span class="archive-head-icon"><Building2 :size="24" /></span><div><h1>商户管理</h1><p>查看入驻档案，发起资料变更。</p></div><ElButton v-if="changeStatus === 'draft' || changeStatus === 'rejected'" @click="cancelChange">取消变更</ElButton><ElButton type="primary" :disabled="changeStatus === 'reviewing'" @click="edit"><FilePenLine :size="15" /> {{ changeStatus === 'reviewing' ? '变更审核中' : changeStatus === 'rejected' ? '变更驳回，重新提交' : changeStatus === 'draft' ? '继续编辑' : '编辑档案' }}</ElButton></header>
+    <header class="biz-head archive-head"><span class="archive-head-icon"><Building2 :size="24" /></span><div><h1>商户管理</h1></div><ElButton v-if="changeStatus === 'draft' || changeStatus === 'rejected'" @click="cancelChange">取消变更</ElButton><ElButton type="primary" :disabled="changeStatus === 'reviewing'" @click="edit"><FilePenLine :size="15" /> {{ changeStatus === 'reviewing' ? '变更审核中' : changeStatus === 'rejected' ? '变更驳回，重新提交' : changeStatus === 'draft' ? '继续编辑' : '编辑档案' }}</ElButton></header>
     <div class="subject"><span class="subject-symbol">商</span><div><strong>{{ d.entityName || '当前主体' }}</strong><p>{{ d.creditCode || '识别码待完善' }}　·　{{ d.park || '园区待完善' }}</p></div><ElTag type="success" effect="light">已通过</ElTag></div>
     <p v-if="changeStatus === 'reviewing'" class="change-state">变更资料正在审核，以下仍为当前生效档案。</p><p v-if="changeStatus === 'rejected'" class="change-state rejected">{{ change.current()?.reason || '变更已驳回，请核对后重新提交。' }}</p>
     <nav class="tabs" aria-label="商户档案页签">

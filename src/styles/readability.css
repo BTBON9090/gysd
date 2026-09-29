@@ -72,3 +72,14 @@
 .shell-content .biz-page .biz-empty>p:last-child{margin-bottom:0}
 .shell-content .service-page .service-identity{width:100%;min-width:0}
 .shell-content .service-page .service-cover{width:112px;height:84px;aspect-ratio:4/3}
+
+/* Date values have a predictable length; keep controls compact and aligned. */
+.shell-content .field .el-date-editor.el-input{width:180px;max-width:100%;flex:none}
+.shell-content .range-row{display:flex;align-items:center;gap:10px}
+.shell-content .range-row .el-date-editor.el-input{flex:0 1 180px;width:180px;min-width:140px}
+.shell-content .range-row .el-checkbox{height:40px;margin:0;align-self:center;display:inline-flex;align-items:center}
+.shell-content .range-row .el-checkbox__label{line-height:20px}
+.shell-content .service-identity .el-tag{height:20px;padding:0 6px;font-size:11px;border-radius:4px;line-height:18px}
+.shell-content .service-sales strong{font-size:16px;line-height:24px;font-variant-numeric:tabular-nums}
+
+.case-picker-popper .el-select-dropdown__item{height:auto;min-height:90px;padding:12px 32px 12px 12px;max-width:680px}.case-picker-popper .el-select-dropdown__list{max-width:680px}

@@ -17,7 +17,6 @@ const park = computed(() => sessionStorage.getItem('gysd-demo-customer-park') ||
       <span class="icon"><Building2 :size="25" /></span>
       <p class="eyebrow">切换园区客户</p>
       <h1>{{ park || '暂无关联园区' }}</h1>
-      <p>已从供应商端进入园区客户视角。供应商端会话仍保留，可以随时返回。</p>
       <div class="notice">当前仓库仅包含供应商端，未配置园区客户端地址与 SSO 接口。正式环境将根据登录来源园区或注册园区跳转到对应客户端。</div>
       <ElButton type="primary" @click="router.push('/workspace')"><ArrowLeft :size="16" /> 返回供应商端</ElButton>
     </div>

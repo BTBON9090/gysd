@@ -11,7 +11,8 @@ export interface Case { id: string; category: string; title: string; intro: stri
 export interface Spec { name: string; point: string; price: number; unit: string; startDays: number; dayType: string; deliveryDays: number; standard: string }
 export interface Service { id: string; category: string; name: string; intro: string; cover: string; regions: string[]; media: string[]; detail: string; guarantee: string; images: string[]; caseIds: string[]; faqs: { question: string; answer: string }[]; taxRate: number; specs: Spec[]; listings: Record<string, { status: ListingStatus; forced?: boolean; reason?: string; at: string }>; updatedAt: string; published: boolean }
 export interface OrderStage { id: string; name: string; amount: number; paid: number; refunded: number; paymentMethod?: string; paymentAt?: string; payDueAt?: string; dueAt?: string; status: 'pending' | 'in_progress' | 'pending_acceptance' | 'accepted' | 'rejected'; standard: string; files: string[]; note: string; submittedAt?: string; acceptedAt?: string; feedback?: string }
-export interface Order { id: string; serviceId: string; serviceName: string; parkId: string; category: string; customer: string; amount: number; paid: number; fileResources?: Record<string, string>; stages?: OrderStage[]; contactName?: string; contactPhone?: string; deliverySnapshot?: string; specSnapshot?: Spec; quantity?: number; customerRequest?: string; requestAttachments?: string[]; paymentAt?: string; contractUploadedAt?: string; contractConfirmedAt?: string; status: OrderStatus; createdAt: string; contractFile: string; contractState: 'none' | 'waiting' | 'rejected' | 'confirmed'; deliverables: string[]; deliveryNote: string; acceptanceAt: string; completedAt: string; afterSaleEnd: string; shareRate: number; afterSaleDays: number; refunded: number; settlement: 'waiting' | 'settled' }
+export interface ContractEvent { at: string; step: string; actor: string; result: string; file?: string; source?: string }
+export interface Order { settlementAmount?: number; contractHistory?: ContractEvent[]; id: string; serviceId: string; serviceName: string; parkId: string; category: string; customer: string; amount: number; paid: number; fileResources?: Record<string, string>; stages?: OrderStage[]; contactName?: string; contactPhone?: string; deliverySnapshot?: string; specSnapshot?: Spec; quantity?: number; customerRequest?: string; requestAttachments?: string[]; paymentAt?: string; contractUploadedAt?: string; contractConfirmedAt?: string; status: OrderStatus; createdAt: string; contractFile: string; contractState: 'none' | 'waiting' | 'rejected' | 'confirmed'; deliverables: string[]; deliveryNote: string; acceptanceAt: string; completedAt: string; afterSaleEnd: string; shareRate: number; afterSaleDays: number; refunded: number; settlement: 'waiting' | 'settled' }
 export interface Refund { allocations?: Record<string,number>; stageId?: string; updatedAt?: string; history?: { at: string; text: string }[]; id: string; orderId: string; requested: number; agreed: number; reason: string; status: RefundStatus; decision: 'close' | 'continue'; note: string; createdAt: string }
 export interface Invoice { id: string; kind: 'customer' | 'platform'; orderIds: string[]; amounts?: Record<string,number>; parkId: string; amount: number; number: string; file: string; status: 'issued' | 'issuing' | 'failed' | 'returned' | 'returning'; title: string; email: string; subjectType?: string; ticketType?: string; taxId?: string; address?: string; phone?: string; bank?: string; account?: string; createdAt: string }
 export interface Review { id: string; orderId: string; parkId: string; direction: 'to_supplier' | 'to_customer'; score: number; content: string; anonymous: boolean; images: string[]; followup: boolean; createdAt: string }
@@ -131,8 +132,8 @@ export const useCommerceStore = defineStore('commerce', () => {
   const ob = useOnboardingStore()
   const key = computed(() => `gysd-commerce-${ob.activeId}`)
   const fallback = () => defaults(ob.draft.park, ob.draft.serviceName || ob.draft.entityName, ob.draft.merchantIntro)
-  const data = ref<CommerceData>(read(key.value, demoData(fallback())))
-  watch(key, () => { data.value = read(key.value, demoData(fallback())); initializeComplexExample(); refreshTimedTransitions() })
+  const data = ref<CommerceData>(read(key.value, { ...demoData(fallback()), shop: fallback().shop }))
+  watch(key, () => { data.value = read(key.value, { ...demoData(fallback()), shop: fallback().shop }); initializeComplexExample(); refreshTimedTransitions() })
   watch(() => ob.draft.park, (name) => {
     if (!name || data.value.services.length || data.value.orders.length || data.value.parks.length !== 1) return
     const old = data.value.parks[0]
@@ -143,6 +144,10 @@ export const useCommerceStore = defineStore('commerce', () => {
   watch(() => ob.draft.serviceName, (name) => { if (name && !data.value.shop.name) data.value.shop.name = name })
   watch(() => ob.draft.merchantIntro, (intro) => { if (intro && !data.value.shop.intro) data.value.shop.intro = intro })
   watch(data, () => localStorage.setItem(key.value, JSON.stringify(data.value)), { deep: true })
+  watch(() => data.value.orders.map(o => [o.id, o.status, o.paid, o.refunded, o.shareRate].join(':')).join('|'), () => {
+    // Demo settlement response; real integrations supply this amount from the server.
+    for (const o of data.value.orders) if (['completed', 'cancelled'].includes(o.status)) o.settlementAmount = Math.round(Math.max(0, o.paid - o.refunded) * (1 - o.shareRate / 100) * 100) / 100
+  }, { immediate: true })
   const joinedParks = computed(() => data.value.parks.filter(p => p.joinedAt))
   const availableParks = computed(() => PARK_OPTIONS.filter(p => !data.value.parks.some(item => item.id === p.id || item.name === p.name)))
   const activeRefund = (orderId: string) => data.value.refunds.find(r => r.orderId === orderId && ['pending', 'client_confirm', 'rejected'].includes(r.status))
@@ -165,8 +170,8 @@ export const useCommerceStore = defineStore('commerce', () => {
     const order: Order = { id: `DD${Date.now()}${Math.floor(Math.random()*10000).toString().padStart(4,'0')}`, serviceId, serviceName: s.name, parkId, category: s.category, customer: '园区企业客户（演示）', amount: s.specs[0]?.price || 0, paid: status === 'pending_payment' ? 0 : s.specs[0]?.price || 0, deliverySnapshot: s.specs[0] ? `一次性付款 · 支付后 ${s.specs[0].startDays} ${s.specs[0].dayType}开始 · ${s.specs[0].deliveryDays} 天交付` : '按订单约定交付', specSnapshot: s.specs[0] ? { ...s.specs[0] } : undefined, quantity: 1, paymentAt: status === 'pending_payment' ? '' : now(), status, createdAt: now(), contractFile: '', contractState: 'none', deliverables: [], deliveryNote: '', acceptanceAt: '', completedAt: '', afterSaleEnd: '', shareRate: 10, afterSaleDays: 7, refunded: 0, settlement: 'waiting' }
     data.value.orders.unshift(order); return order
   }
-  function submitContract(orderId: string, file: string) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.status !== 'pending_contract' || !['none','rejected'].includes(o.contractState) || activeRefund(o.id)) return false; o.contractFile = file; o.contractState = 'waiting'; o.contractUploadedAt = now(); return true }
-  function confirmContract(orderId: string, approved: boolean) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.contractState !== 'waiting' || activeRefund(o.id)) return false; o.contractState = approved ? 'confirmed' : 'rejected'; if (approved) { o.status = 'in_service'; o.contractConfirmedAt = now() } return true }
+  function submitContract(orderId: string, file: string) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.status !== 'pending_contract' || !['none','rejected'].includes(o.contractState) || activeRefund(o.id)) return false; o.contractFile = file; o.contractState = 'waiting'; o.contractUploadedAt = now(); (o.contractHistory ||= []).push({ at: o.contractUploadedAt, step: '上传合同', actor: ob.draft.contactName || '供应商', result: '待客户确认', file }); return true }
+  function confirmContract(orderId: string, approved: boolean) { const o = data.value.orders.find(x => x.id === orderId); if (!o || o.contractState !== 'waiting' || activeRefund(o.id)) return false; o.contractState = approved ? 'confirmed' : 'rejected'; (o.contractHistory ||= []).push({ at: now(), step: '客户审核', actor: o.contactName || '客户', result: approved ? '确认通过' : '驳回', file: o.contractFile, source: o.fileResources?.[o.contractFile] }); if (approved) { o.status = 'in_service'; o.contractConfirmedAt = now() } return true }
   function payOrderStage(orderId: string) {
     const o = data.value.orders.find(x => x.id === orderId)
     if (!o || ['cancelled','completed'].includes(o.status) || activeRefund(o.id)) return false
@@ -272,7 +277,7 @@ export const useCommerceStore = defineStore('commerce', () => {
     const sample = demoData(fallback())
     const current = data.value
     for (const park of sample.parks) if (!current.parks.some(item => item.id === park.id || item.name === park.name)) current.parks.push(park)
-    if (!current.shop.savedAt) current.shop = sample.shop
+    // Shop media is only filled by the explicit full-demo reset; never overwrite first-entry details.
     const appendMissing = <T extends { id: string }>(target: T[], examples: T[]) => {
       const present = new Set(target.map(item => item.id))
       for (const item of examples) if (!present.has(item.id)) target.push(item)

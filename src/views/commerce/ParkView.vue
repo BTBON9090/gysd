@@ -35,18 +35,18 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
     <header class="biz-head park-head">
       <div class="park-heading">
         <span class="park-heading-icon"><MapPinned :size="25" :stroke-width="1.9" /></span>
-        <div><h1>我的园区</h1><p>从已加入园区查看业务进展，也可申请加入其他园区。</p></div>
+        <div><h1>我的园区</h1></div>
       </div>
       <div class="park-overview"><span><b>{{ c.joinedParks.length }}</b> 已加入</span><i></i><span><b>{{ c.availableParks.length }}</b> 可申请</span></div>
     </header>
 
     <section class="park-group joined-group">
-      <div class="park-group-head"><div><h2>已加入园区 <span>{{ c.joinedParks.length }}</span></h2><p>下方数据为各园区累计记录，点击数字可查看明细。</p></div></div>
+      <div class="park-group-head"><div><h2>已加入园区 <span>{{ c.joinedParks.length }}</span></h2></div></div>
       <div class="park-grid">
         <article v-for="park in joinedPageParks" :key="park.id" class="park-card joined-card">
           <div class="park-card-top"><span class="park-card-icon"><Building2 :size="21" /></span><ElTag type="success" effect="light"><Check :size="13" /> 已入驻</ElTag></div>
           <h3>{{ park.name }}</h3>
-          <p class="park-meta"><MapPin :size="14" /> {{ park.address }}</p>
+
           <p class="park-date">入驻时间 {{ park.joinedAt?.slice(0, 10) || '—' }}</p>
           <div class="park-stats">
             <button type="button" @click="go('service', park.id)"><strong>{{ count(park.id, 'service') }}</strong><span><Store :size="14" />已上架服务</span><ArrowUpRight :size="13" class="stat-arrow" /></button>
@@ -59,12 +59,12 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
     </section>
 
     <section class="park-group available-group">
-      <div class="park-group-head"><div><h2>可申请园区 <span>{{ c.availableParks.length }}</span></h2><p>选择园区并申请加入，加入后即可发布服务。</p></div><ElInput v-model="keyword" clearable placeholder="搜索园区名称或地址" @input="page = 1"><template #prefix><Search :size="15" /></template></ElInput></div>
+      <div class="park-group-head"><div><h2>可申请园区 <span>{{ c.availableParks.length }}</span></h2></div><ElInput v-model="keyword" clearable placeholder="搜索园区名称或地址" @input="page = 1"><template #prefix><Search :size="15" /></template></ElInput></div>
       <div v-if="!available.length" class="biz-empty"><h3>{{ keyword ? '暂无匹配园区' : '暂无可申请园区' }}</h3><p>{{ keyword ? '试试其他园区名称或地址。' : '当前没有更多可申请园区。' }}</p></div>
       <div v-else class="park-grid">
         <article v-for="park in pageParks" :key="park.id" class="park-card available-card">
           <div class="park-card-top"><span class="park-card-icon"><MapPin :size="20" /></span><span class="available-label">开放申请</span></div>
-          <h3>{{ park.name }}</h3><p class="park-meta"><MapPin :size="14" /> {{ park.address }}</p>
+          <h3>{{ park.name }}</h3>
           <footer><ElButton type="primary" @click="join(park.id, park.name)"><Plus :size="14" /> 申请加入</ElButton><ElButton text @click="client(park.id)">查看园区客户端 <ExternalLink :size="14" /></ElButton></footer>
         </article>
       </div>
@@ -91,4 +91,12 @@ function client(parkId: string) { router.push({ path: '/customer-demo', query: {
 
 <style scoped>
 .park-page .joined-group{order:1;margin-top:0;padding-top:20px;border-top:0}.park-page .available-group{order:2;margin-top:24px;padding-top:24px}.park-grid,.joined-group .park-grid:has(> :only-child){grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:16px}.joined-card{padding:20px}.park-card h3{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.park-stats button{display:flex;flex-direction:column;align-items:flex-start;gap:9px}.park-stats button>span{display:flex;align-items:center;gap:4px;font-size:11px;margin:0}.park-stats strong{font-size:24px}.park-stats{padding:16px 0;margin-top:16px}.available-group .park-grid{grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:12px}.available-card{padding:15px 16px;background:#fafbfd;position:relative}.available-card .park-card-top{display:none}.available-card h3{font-size:13px}.available-card .park-meta{margin-top:6px}.available-card footer{margin-top:14px;gap:4px}.available-card footer :deep(.el-button){font-size:12px}.available-card footer :deep(.el-button--primary:not(.is-text)){height:28px;padding:0 10px}
+</style>
+
+<style scoped>
+.park-group-head h2{display:flex;align-items:center;gap:8px}.park-group-head h2 span{margin:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;height:22px}.park-stats{border:0;padding:14px 0 4px;margin-top:10px}.park-stats button+button{border-left:0}.park-card{padding:18px}.joined-card .park-stats{border-bottom:0}
+</style>
+
+<style scoped>
+.park-stats button{border-right:0}
 </style>

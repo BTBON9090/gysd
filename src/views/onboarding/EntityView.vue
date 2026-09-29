@@ -128,22 +128,21 @@ function next() {
 <template>
   <OnboardingShell
     title="供应商入驻"
-    subtitle="核验主体信息：证件类型、名称与识别码通过后，才能进入填写流程。"
     :show-steps="false"
     :show-footer="true"
     :step="0"
     @next="next"
   >
     <ElDialog v-model="gateDialog" class="ob-gate-dialog" width="min(480px, 92vw)" align-center :show-close="false" :close-on-click-modal="false" :append-to-body="true">
-      <div class="gate-modal-icon" :class="gateMode"><CircleAlert v-if="gateMode === 'blocked'" :size="23" /><ShieldCheck v-else :size="23" /></div>
-      <span class="gate-modal-eyebrow">主体状态查询 · 前端演示</span>
-      <h2>{{ gateMode === 'blocked' ? '该主体已入驻' : '主体可继续申请' }}</h2>
-      <p class="gate-modal-desc">{{ gateMode === 'blocked' ? '该主体已有入驻记录，请联系管理员开通账号。' : '演示环境将模拟企业二要素认证。通过后主体名称与证件号码将锁定。' }}</p>
+      <div class="gate-modal-heading"><div class="gate-modal-icon" :class="gateMode"><CircleAlert v-if="gateMode === 'blocked'" :size="23" /><ShieldCheck v-else :size="23" /></div>
+
+      <h2>{{ gateMode === 'blocked' ? '该主体已入驻' : '主体核验通过' }}</h2></div>
+      <p v-if="gateMode === 'blocked'" class="gate-modal-desc">该主体已有入驻记录，请联系管理员开通账号。</p>
       <div class="gate-modal-subject"><span>当前主体</span><strong>{{ ob.draft.entityName }}</strong><small>{{ ob.draft.creditCode }}</small></div>
       <template #footer>
         <div class="gate-modal-actions">
           <ElButton v-if="gateMode === 'verify'" @click="gateDialog = false">返回修改</ElButton>
-          <ElButton type="primary" @click="onGatePrimary">{{ gateMode === 'verify' ? '模拟认证通过' : '知道了' }}</ElButton>
+          <ElButton type="primary" @click="onGatePrimary">{{ gateMode === 'verify' ? '继续填写' : '知道了' }}</ElButton>
         </div>
       </template>
     </ElDialog>
@@ -153,7 +152,7 @@ function next() {
       <div class="gate-head">
         <div class="card-head-text">
         <h2 class="field-label">主体类型 <em>*</em></h2>
-          <p class="gate-hint">选择主体后核验证件与识别信息，校验通过才可进入填写。</p>
+
         </div>
         <button class="card-demo" type="button" @click="fillDemo">
           <ScanLine :size="13" />
@@ -175,7 +174,7 @@ function next() {
           </span>
           <strong>{{ o.label }}</strong>
           <small>{{ o.desc }}</small>
-          <span class="eo-cert">证件：{{ o.cert === 'business_license' ? '营业执照' : o.cert === 'individual_license' ? '个体工商户营业执照' : '身份证' }}</span>
+          <span class="eo-cert">{{ o.id === 'personal' ? '所需材料：本人身份证、收款账户' : o.id === 'individual' ? '所需材料：营业执照、经营者身份证、开户证明' : '所需材料：营业执照、法人身份证、开户证明' }}</span>
         </button>
       </div>
 
@@ -187,7 +186,7 @@ function next() {
           <div class="field" :class="{ 'has-error': fieldError('cert') }">
             <label>证件类型 <em>*</em></label>
             <ElSelect
-              :model-value="ob.draft.certType"
+              :model-value="ob.draft.certType" disabled
               placeholder="请选择证件类型"
               style="width: 100%"
               @update:model-value="(v: CertType) => { ob.draft.certType = v; ob.persist() }"
@@ -195,10 +194,7 @@ function next() {
               <ElOption v-for="c in certOptions" :key="c.value" :label="c.label" :value="c.value" />
             </ElSelect>
             <span v-if="fieldError('cert')" class="field-error" role="alert">{{ fieldError('cert') }}</span>
-            <p class="field-help">
-              <ShieldCheck :size="12" />
-              随主体类型自动匹配，不可与主体不一致
-            </p>
+
           </div>
 
           <div class="field" :class="{ 'has-error': fieldError('name') }">
@@ -224,15 +220,11 @@ function next() {
               @change="ob.persist()"
             />
             <span v-if="fieldError('code')" class="field-error" role="alert">{{ fieldError('code') }}</span>
-            <p class="field-help">
-              {{ isPersonal ? '18 位身份证号，末位可为 X' : ob.draft.entityType === 'individual' ? '15 位数字或 18 位统一社会信用代码，与证件一致' : '18 位数字与大写字母，与证件一致' }}
-            </p>
+
           </div>
         </div>
 
-        <p class="gate-note">
-          核验通过后进入 5 步向导。企业和个体工商户的主体名称、证件号码将锁定；个人可返回本页修改。
-        </p>
+
       </div>
 
     </section>
@@ -430,4 +422,8 @@ function next() {
 .gate-modal-subject small { color: #627087; font-size: 12px; letter-spacing: .01em; }
 .gate-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .gate-modal-actions .el-button { min-width: 88px; border-radius: 8px; height: 37px; font-size: 12.5px; }
+</style>
+
+<style scoped>
+.gate-modal-heading{display:flex;align-items:center;gap:12px}.gate-modal-heading .gate-modal-icon{margin:0;flex:none}.gate-modal-heading h2{margin:0;font-size:20px}.eo-cert{line-height:1.6;color:#596a80}
 </style>

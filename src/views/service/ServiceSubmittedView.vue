@@ -10,9 +10,8 @@ const router = useRouter()
   <div class="biz-page submitted-page">
     <section class="submitted-card">
       <div class="submitted-icon"><CircleCheck :size="34" :stroke-width="1.8" /></div>
-      <span class="submitted-kicker">提交完成</span>
+
       <h1>服务已提交，等待园区审核</h1>
-      <p class="submitted-intro">所选园区将分别审核服务。审核通过后，该园区的客户即可看到并购买。</p>
       <div class="submitted-flow" aria-label="服务发布进度">
         <div class="flow-step done"><CircleCheck :size="18" /><span><strong>提交成功</strong><small>资料已送达园区</small></span></div>
         <i />

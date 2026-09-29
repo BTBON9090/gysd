@@ -48,7 +48,6 @@ function review(result: 'rejected' | 'approved') {
       <header class="page-intro">
         <p class="eyebrow">服务商入驻 <span>/</span> 进度查询</p>
         <h1>入驻进度查询</h1>
-        <p class="page-subtitle">查看申请状态、审核意见和下一步操作。</p>
       </header>
 
       <section class="status-stage">
@@ -96,7 +95,7 @@ function review(result: 'rejected' | 'approved') {
       </div>
 
       <section v-if="ob.status === 'reviewing'" class="demo-panel">
-        <div><span class="demo-mark">演示工具</span><strong>模拟园区运营审核结果</strong><p>仅修改本地演示状态，用于查看驳回重提与通过后的页面。</p></div>
+
         <div class="demo-actions"><ElButton @click="review('rejected')"><RotateCcw :size="14" /> 模拟驳回</ElButton><ElButton @click="review('approved')"><CheckCircle2 :size="14" /> 模拟通过</ElButton></div>
       </section>
     </div>
@@ -118,4 +117,8 @@ function review(result: 'rejected' | 'approved') {
 .timeline{list-style:none;margin:0;padding:1px 0 0 5px}.timeline li{position:relative;margin:0;padding:0 0 15px 18px;border-left:1px solid #dce4ee}.timeline li:last-child{padding-bottom:0;border-left-color:transparent}.timeline-dot{position:absolute;left:-5px;top:4px;width:9px;height:9px;border-radius:50%;background:#3656c5}.timeline li.rejected .timeline-dot{background:#ce483f}.timeline li.approved .timeline-dot{background:#12946d}.event-head{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.event-head strong{color:#20304a;font-size:13px}.event-head time{flex:none;color:#596a80;font-size:11px}.event-actor{margin:4px 0 0;color:#65738a;font-size:12px}.event-opinion{margin:5px 0 0;color:#46566e;font-size:12px;line-height:1.5}.no-events{display:flex;gap:9px;align-items:center;color:#596a80;font-size:13px;padding:2px 0}
 .demo-panel{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:35px;padding:0}.demo-panel strong{margin-left:8px;color:#34425a;font-size:13px}.demo-panel p{margin:5px 0 0;color:#68778e;font-size:12px}.demo-mark{padding:2px 5px;border-radius:4px;background:#f0f3f8;color:#69778b;font-size:10px}.demo-actions{display:flex;gap:7px;flex:none}.demo-actions :deep(.el-button){height:34px;border-radius:7px}
 
+</style>
+
+<style scoped>
+.demo-panel{justify-content:flex-end;margin-top:20px}.timeline{padding-left:0}.timeline li{border:0;padding-left:24px}.timeline li:not(:last-child)::before{content:"";position:absolute;left:4px;top:9px;bottom:-4px;width:1px;background:#dce4ee}.timeline-dot{left:0;top:4px;width:9px;height:9px}
 </style>

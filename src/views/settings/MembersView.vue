@@ -99,7 +99,7 @@ function confirmAction() {
   <div class="members-page">
     <header class="page-head">
       <div class="head-row"><span class="member-heading-icon"><UsersRound :size="24" /></span>
-        <div><h1>成员管理</h1><p>管理当前已通过主体的管理员账号。</p></div>
+        <div><h1>成员管理</h1></div>
       </div>
     </header>
 

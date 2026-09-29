@@ -127,7 +127,7 @@ function onNext() {
     <main class="ob-main" :class="{ 'no-steps': !showSteps }">
       <div v-if="title" class="ob-page-head">
         <div class="ob-title-line"><h1>{{ title }}</h1><slot name="header-actions" /></div>
-        <p v-if="subtitle">{{ subtitle }}</p>
+
       </div>
       <slot />
     </main>

@@ -330,10 +330,7 @@ const meta = computed(() => {
               <ElInput v-model="d.contactMobile" maxlength="11" placeholder="11 位手机号" @change="ob.persist" />
               <span v-if="fieldError('请填写正确的联系人手机号')" class="field-error">请填写正确的联系人手机号</span>
             </div>
-            <div class="field">
-              <label>联系人职位</label>
-              <ElInput v-model="d.contactTitle" placeholder="选填，如 市场负责人" @change="ob.persist" />
-            </div>
+
             <div class="field" :class="{ 'has-error': fieldError('请填写正确邮箱') }">
               <label>邮箱 <em>*</em></label>
               <ElInput v-model="d.email" placeholder="接收入驻结果通知" @change="ob.persist" />
@@ -572,7 +569,7 @@ const meta = computed(() => {
         <div class="tip-card">
           <strong><CircleAlert :size="14" /> 本步说明</strong>
           <h4>需要哪些材料？</h4>
-          <p>上传营业执照、法人身份证与开户证明；可点「读取」一键演示回填，再手工核对。</p>
+          <p>上传营业执照、法人身份证与开户证明，识别后请核对信息。</p>
         </div>
       </aside>
     </div>
@@ -608,7 +605,7 @@ const meta = computed(() => {
               <label>服务范围 <em>*</em></label>
               <ElCascader :model-value="selectedRegions" :options="regionOptions" :props="{ multiple: true, emitPath: true }" filterable clearable collapse-tags :max-collapse-tags="regionTagLimit" collapse-tags-tooltip placeholder="搜索并选择省 / 市，可多选" style="width:100%" @change="onRegionChange" />
               <span v-if="fieldError('请至少选择 1 个服务范围城市')" class="field-error">请至少选择 1 个服务范围城市</span>
-              <span class="field-help">当前仅加载演示省市；正式版接入 PRD 附录 A 指定的中台通用地区接口。</span>
+
             </div>
 
             <div class="field span-2" :class="{ 'has-error': fieldError('擅长领域最多 3 个') || fieldError('请填写至少 1 个擅长领域') }">
@@ -617,7 +614,7 @@ const meta = computed(() => {
                 <ElOption v-for="skill in skillsPool" :key="skill" :label="skill" :value="skill" />
               </ElSelect>
               <span v-if="fieldError('擅长领域最多 3 个') || fieldError('请填写至少 1 个擅长领域')" class="field-error">{{ fieldError('擅长领域最多 3 个') ? '擅长领域最多 3 个' : '请填写至少 1 个擅长领域' }}</span>
-              <span class="field-help">当前仅为演示字典样例；完整选项以 PRD 附录 A 的字典表为准。</span>
+
             </div>
 
             <div class="field span-2">
@@ -714,7 +711,7 @@ const meta = computed(() => {
         <div class="tip-card">
           <strong><CircleAlert :size="14" /> 本步说明</strong>
           <h4>协议要点</h4>
-          <p>请分别下载并上传两份盖章扫描件。当前模板为前端演示占位，正式协议正文待业务方配置。</p>
+          <p>请分别上传两份盖章扫描件。</p>
         </div>
       </aside>
     </div>
@@ -755,7 +752,7 @@ const meta = computed(() => {
             <div><span class="k">联系人手机号</span><span class="v">{{ d.contactMobile || '—' }}</span></div>
             <div><span class="k">员工规模</span><span class="v">{{ d.employeeScale || '不适用' }}</span></div>
             <div><span class="k">商户介绍</span><span class="v">{{ d.merchantIntro || '—' }}</span></div>
-            <div><span class="k">联系人</span><span class="v">{{ d.contactName || '—' }} {{ d.contactTitle }}</span></div>
+            <div><span class="k">联系人</span><span class="v">{{ d.contactName || '—' }}</span></div>
             <div><span class="k">邮箱</span><span class="v">{{ d.email || '—' }}</span></div>
             <div><span class="k">服务范围</span><span class="v">{{ d.serviceCities.join('、') || '—' }}</span></div>
             <div><span class="k">擅长领域</span><span class="v">{{ d.skills.join('、') || '—' }}</span></div>
@@ -771,7 +768,7 @@ const meta = computed(() => {
             <div><span class="k">银行账号</span><span class="v">{{ maskAccount(d.bankAccount) }}</span></div>
           </div>
 
-          <h3 class="sec-title">资质文件</h3><MerchantDocuments :draft="d" />
+          <h3 class="sec-title">资质文件</h3><MerchantDocuments :draft="d" group="allQualifications" /><h3 class="sec-title">入驻协议</h3><MerchantDocuments :draft="d" group="basic" />
 
 
 
@@ -1465,5 +1462,5 @@ export default {}
 .field.has-error :deep(.el-select__wrapper) { box-shadow: 0 0 0 1px #d45349 inset !important; }
 
 .employee-scale{max-width:320px}.doc-head{border-left:3px solid var(--brand);padding-left:12px}.agreement-head .sec-title{border-left:3px solid var(--brand);padding-left:12px}
-.date-pair{grid-column:1/-1}.field :deep(.el-date-editor.el-input){width:100%;min-width:0}.range-row :deep(.el-date-editor.el-input){flex:1;width:0;min-width:0}.range-row :deep(.el-input__wrapper){padding-inline:10px}
+.date-pair{grid-column:1/-1}.field :deep(.el-date-editor.el-input){width:180px;max-width:100%;min-width:0}.range-row :deep(.el-date-editor.el-input){flex:0 1 180px;width:180px;min-width:140px}.range-row :deep(.el-input__wrapper){padding-inline:10px}
 </style>

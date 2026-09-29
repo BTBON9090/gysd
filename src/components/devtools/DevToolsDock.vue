@@ -278,7 +278,7 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
           </section>
 
           <section class="sec">
-            <h3><Wand2 :size="13" /> 交易场景模拟</h3>
+            <h3><Wand2 :size="13" /> 交易场景模拟</h3><ElButton size="small" @click="acc.largeSalesDemo = !acc.largeSalesDemo; panelGo('/service')">{{ acc.largeSalesDemo ? '恢复实际销量' : '查看大销量示例（123456）' }}</ElButton>
             <p class="demo-hint">各目录首次打开已有示例。下方可补齐缺失样例，或模拟园区、客户和财务动作。</p>
             <div class="demo-grid"><ElButton size="small" type="primary" @click="fillCommerceExamples">补齐各目录示例</ElButton><ElButton size="small" @click="resetCommerce">清空当前主体数据</ElButton></div>
             <div class="demo-grid"><ElButton size="small" @click="commerce.data.walletOpen = !commerce.data.walletOpen">钱包：{{commerce.data.walletOpen?'已开户':'未开户'}}</ElButton></div>

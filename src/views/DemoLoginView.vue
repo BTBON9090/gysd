@@ -16,7 +16,6 @@ function resume() { session.resume(); router.replace(useAcceptanceStore().entryS
       <img src="/zqyq-logo-all.png" alt="万联易达集团" />
       <span class="state"><ShieldCheck :size="17" /> 已退出供应商端</span>
       <h1>重新进入演示</h1>
-      <p>本项目仅为前端演示，暂未接入手机号登录与数据中台。点击下方按钮恢复本机演示会话；入驻草稿与演示数据会保留。</p>
       <ElButton type="primary" @click="resume">继续体验 <ArrowRight :size="16" /></ElButton>
     </div>
   </main>

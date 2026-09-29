@@ -6,7 +6,7 @@ import type { OnboardingDraft } from '@/stores/onboarding'
 import { resolveDemoImage } from '@/utils/demoMedia'
 import DemoImage from '@/components/commerce/DemoImage.vue'
 import FilePreview from './FilePreview.vue'
-const props = defineProps<{ draft: OnboardingDraft; group?: 'qualifications' | 'account' | 'services' | 'basic' }>()
+const props = defineProps<{ draft: OnboardingDraft; group?: 'qualifications' | 'account' | 'services' | 'basic' | 'allQualifications' }>()
 const files = computed(() => [
   { key: 'license', title: '营业执照', group: 'qualifications', uploaded: props.draft.licenseUploaded, show: props.draft.entityType !== 'personal' },
   { key: 'idFront', title: '身份证 · 人像面', group: 'qualifications', uploaded: props.draft.idFront, show: true },
@@ -15,7 +15,7 @@ const files = computed(() => [
   { key: 'extra', title: '补充资质', group: 'services', uploaded: !!props.draft.extraCerts, show: true },
   { key: 'coop', title: '服务商入驻合作协议', group: 'basic', uploaded: props.draft.coopUploaded, show: true },
   { key: 'split', title: '支付分账协议', group: 'basic', uploaded: props.draft.splitUploaded, show: true },
-].filter(file => file.show && (!props.group || file.group === props.group)).map(file => ({ ...file, document: props.draft.documents?.[file.key] })))
+].filter(file => file.show && (!props.group || (props.group === 'allQualifications' ? file.group !== 'basic' : file.group === props.group))).map(file => ({ ...file, document: props.draft.documents?.[file.key] })))
 const preview = ref({ open: false, title: '', fileName: '', src: '', kind: 'image' as 'image' | 'pdf' | 'text' })
 async function open(file: typeof files.value[number]) {
   if (!file.document) return
@@ -28,7 +28,7 @@ async function open(file: typeof files.value[number]) {
   <div class="merchant-documents">
     <button v-for="file in files" :key="file.key" type="button" class="document-card" :disabled="!file.document" @click="open(file)">
       <div class="document-thumb"><DemoImage v-if="file.document && /\.(png|jpe?g|webp)$/i.test(file.document.name)" :source="file.document.source" /><FileText v-else :size="24" /><span v-if="file.document"><Eye :size="14" /> 预览</span></div>
-      <strong>{{ file.title }}</strong><small>{{ file.document?.name || (file.uploaded ? '已上传 · 演示记录无原文件' : '未上传') }}</small>
+      <strong>{{ file.title }}</strong><small>{{ file.document?.name || (file.uploaded ? '已上传' : '未上传') }}</small>
     </button>
   </div>
   <FilePreview v-model="preview.open" :title="preview.title" :file-name="preview.fileName" :kind="preview.kind" :src="preview.src" />

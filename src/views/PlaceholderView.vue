@@ -14,7 +14,6 @@ const title = computed(() => (route.meta.title as string) || '功能页')
         <Construction :size="28" stroke-width="1.6" />
       </span>
       <h1>{{ title }}</h1>
-      <p>该模块将在后续迭代中交付。当前版本（V1）聚焦工作台与导航壳层的体验打磨。</p>
       <router-link class="ph-link" to="/workspace">返回工作台</router-link>
     </div>
   </div>

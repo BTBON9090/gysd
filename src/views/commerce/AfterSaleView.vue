@@ -46,7 +46,7 @@ watch(() => route.query.refund, value => { if (typeof value !== 'string') return
 
 <template>
   <div class="biz-page">
-    <header class="biz-head"><div><h1>售后管理</h1><p>处理客户发起的退款，查看改价确认与退款结果。</p></div></header>
+    <header class="biz-head"><div><h1>售后管理</h1></div></header>
     <div v-if="!c.data.walletOpen" class="biz-empty"><h3>开通钱包后查看售后</h3><ElButton type="primary" @click="router.push('/wallet')">前往我的钱包</ElButton></div>
     <template v-else>
       <div class="biz-toolbar"><ElSelect v-model="filter.park" clearable placeholder="全部来源园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :value="p.id" :label="p.name" /></ElSelect><ElCascader :model-value="filter.category?filter.category.split(' / '):[]" :options="CATEGORY_TREE" :props="{checkStrictly:true}" clearable filterable placeholder="全部分类" @change="filter.category=Array.isArray($event)?$event.join(' / '):''" /><ElInput v-model="filter.service" placeholder="服务名称" clearable /><ElInput v-model="filter.order" placeholder="订单号" clearable /><ElInput v-model="filter.refund" placeholder="退款单号" clearable /><div class="date-filter"><span>申请时间</span><ElDatePicker :editable="false" v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><span>至</span><ElDatePicker :editable="false" v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div>

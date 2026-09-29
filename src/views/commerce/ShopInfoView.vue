@@ -58,23 +58,23 @@ function cancelEdit() { Object.assign(form, visibleShop(c.data.shop)); editing.v
 <template>
   <div class="biz-page shop-page">
     <header class="biz-head shop-head">
-      <div class="shop-heading"><span class="shop-heading-icon"><Store :size="24" /></span><div><h1>店铺资料</h1><p>完善店铺形象，资料将用于园区客户端的服务详情。</p></div></div>
+      <div class="shop-heading"><span class="shop-heading-icon"><Store :size="24" /></span><div><h1>店铺资料</h1></div></div>
       <div class="biz-actions"><template v-if="editing"><ElButton @click="previewVisible = true"><Eye :size="15" /> 预览效果</ElButton><ElButton v-if="c.data.shop.savedAt" @click="cancelEdit">取消编辑</ElButton><ElButton type="primary" :disabled="uploading" @click="save">保存资料</ElButton></template><ElButton v-else type="primary" @click="edit"><Pencil :size="15" /> 编辑资料</ElButton></div>
     </header>
 
     <template v-if="editing">
-      <section class="shop-edit-section"><div class="shop-section-head"><div><h2>店铺识别</h2><p>名称和 Logo 会出现在服务详情的店铺信息中。</p></div></div>
+      <section class="shop-edit-section">
         <div class="shop-identity-form"><div class="logo-field"><span class="shop-label">店铺 Logo <small>选填 · 图片 ≤5MB</small></span><MediaUploadTile :source="form.logo" label="添加 Logo" :disabled="uploading" @change="addFiles($event, 'logo')" /><button v-if="form.logo" type="button" class="text-action" @click="form.logo = ''">移除 Logo</button></div><label class="biz-field shop-name" :class="{ error: errors.name }"><span>店铺名称 <b class="required">*</b></span><ElInput v-model="form.name" maxlength="60" show-word-limit placeholder="填写店铺名称" @input="errors.name = ''" /><small v-if="errors.name">{{ errors.name }}</small></label></div>
       </section>
 
-      <section class="shop-edit-section"><div class="shop-section-head"><div><h2>店铺介绍</h2><p>写清楚服务方向与团队优势，方便客户快速了解。</p></div></div><label class="biz-field" :class="{ error: errors.intro }"><span>介绍内容 <b class="required">*</b></span><ElInput v-model="form.intro" type="textarea" :rows="5" maxlength="500" show-word-limit placeholder="介绍店铺服务内容和擅长领域" @input="errors.intro = ''" /><small v-if="errors.intro">{{ errors.intro }}</small></label></section>
+      <section class="shop-edit-section"><label class="biz-field" :class="{ error: errors.intro }"><span>介绍内容 <b class="required">*</b></span><ElInput v-model="form.intro" type="textarea" :rows="3" maxlength="500" show-word-limit placeholder="介绍店铺服务内容和擅长领域" @input="errors.intro = ''" /><small v-if="errors.intro">{{ errors.intro }}</small></label></section>
 
-      <section class="shop-edit-section"><div class="shop-section-head"><div><h2>展示图片</h2><p>图片会按上传顺序展示。点击缩略图可放大查看。</p></div></div>
-        <div v-for="group in galleries" :key="group.key" class="shop-gallery-group"><div class="gallery-heading"><div><h3>{{ group.title }}</h3><p>{{ group.hint }}</p></div><span>{{ form[group.key].length }} / 6</span></div><div class="gallery-grid"><div v-for="(source, index) in form[group.key]" :key="source" class="gallery-tile"><DemoImage :source="source" :sources="form[group.key]" :empty-text="`图片 ${index + 1}`" /><button type="button" class="remove-photo" title="移除图片" @click="form[group.key].splice(index, 1)"><Trash2 :size="14" /></button></div><MediaUploadTile v-if="form[group.key].length < 6" label="添加图片" multiple :disabled="uploading" @change="addFiles($event, group.key)" /></div></div>
+      <section class="shop-edit-section">
+        <div v-for="group in galleries" :key="group.key" class="shop-gallery-group"><div class="gallery-heading"><div><h3>{{ group.title }}</h3></div><span>{{ form[group.key].length }} / 6</span></div><div class="gallery-grid"><div v-for="(source, index) in form[group.key]" :key="source" class="gallery-tile"><DemoImage :source="source" :sources="form[group.key]" :empty-text="`图片 ${index + 1}`" /><button type="button" class="remove-photo" title="移除图片" @click="form[group.key].splice(index, 1)"><Trash2 :size="14" /></button></div><MediaUploadTile v-if="form[group.key].length < 6" label="添加图片" multiple :disabled="uploading" @change="addFiles($event, group.key)" /></div></div>
       </section>
-      <div class="shop-bottom-actions"><ElButton @click="previewVisible = true"><Eye :size="15" /> 预览效果</ElButton><ElButton v-if="c.data.shop.savedAt" @click="cancelEdit">取消编辑</ElButton><ElButton type="primary" :disabled="uploading" @click="save">保存资料</ElButton></div>
+
     </template>
-    <div v-else class="shop-saved"><div class="saved-heading"><div><h2>店铺展示效果</h2><p>点击图片可查看大图；编辑后保存会更新此预览。</p></div><span>最近保存 {{ c.data.shop.savedAt?.slice(0, 10) }}</span></div><ShopPreview :shop="savedPreview" /></div>
+    <div v-else class="shop-saved"><div class="saved-heading"><span>最近保存 {{ c.data.shop.savedAt?.slice(0, 10) }}</span></div><ShopPreview :shop="savedPreview" /></div>
 
     <ElDialog v-model="previewVisible" title="店铺展示预览" width="min(860px, 90vw)" append-to-body><ShopPreview :shop="form" /><template #footer><ElButton @click="previewVisible = false">返回编辑</ElButton></template></ElDialog>
   </div>
@@ -101,3 +101,9 @@ function cancelEdit() { Object.assign(form, visibleShop(c.data.shop)); editing.v
 <style scoped>
 .shop-section-head{padding-left:12px;border-left:3px solid #2cafa5}.gallery-grid{grid-template-columns:repeat(auto-fill,160px)}
 </style>
+
+<style scoped>
+.shop-head{margin-bottom:18px}.shop-edit-section{padding:12px 0}.shop-section-head{margin-bottom:10px}.shop-section-head h2{font-size:14px}.shop-identity-form{grid-template-columns:140px 1fr;gap:18px;align-items:center}.shop-name{margin-top:0}.logo-field :deep(.media-upload-tile){width:72px;height:64px}.logo-field .shop-label small{display:block;font-size:11px}.gallery-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:8px}.gallery-tile{width:100%;height:auto;aspect-ratio:4/3}.gallery-grid :deep(.media-upload-tile){width:100%;height:auto;aspect-ratio:4/3}.shop-gallery-group{padding:10px 0}.saved-heading{justify-content:flex-end;margin-bottom:10px}
+</style>
+
+<style scoped>.shop-edit-section{padding:12px 0}.gallery-tile,.gallery-grid :deep(.media-upload-tile){height:90px;aspect-ratio:auto}.gallery-heading h3{font-size:13px}.shop-label{font-size:13px}.shop-identity-form{grid-template-columns:140px 1fr}.shop-gallery-group{border-top:0;padding:8px 0}</style>

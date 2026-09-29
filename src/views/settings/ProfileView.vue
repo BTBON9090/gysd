@@ -18,7 +18,7 @@ import {
   ElTag,
 } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { Camera, KeyRound, Lock, LogOut, Smartphone, Trash2, UserRound } from 'lucide-vue-next'
+import { Camera, KeyRound, LogOut, Smartphone, Trash2, UserRound } from 'lucide-vue-next'
 import { useProfileStore } from '@/stores/profile'
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useSessionStore } from '@/stores/session'
@@ -243,7 +243,7 @@ onUnmounted(stopCountdown)
 
 <template>
   <div class="profile-page">
-    <header class="page-intro"><span class="intro-icon"><UserRound :size="24" /></span><div><h1>个人信息</h1><p class="page-subtitle">维护头像、姓名与登录密码；注册园区、当前商户与当前角色为只读信息。</p></div></header>
+    <header class="page-intro"><span class="intro-icon"><UserRound :size="24" /></span><div><h1>个人信息</h1></div></header>
 
     <div class="card-grid">
       <!-- 个人资料 -->
@@ -355,7 +355,7 @@ onUnmounted(stopCountdown)
         <ElFormItem label="确认新密码" prop="confirm">
           <ElInput v-model="pwdForm.confirm" type="password" show-password placeholder="请再次输入新密码" autocomplete="new-password" />
         </ElFormItem>
-        <p class="form-note"><Lock :size="12" /> 演示环境：仅在本机保存密码摘要，不连接数据中台。</p>
+
       </ElForm>
       <template #footer>
         <ElButton @click="pwdVisible = false">取消</ElButton>
@@ -390,7 +390,7 @@ onUnmounted(stopCountdown)
         <ElFormItem v-else label="登录密码">
           <ElInput v-model="mobileForm.password" type="password" show-password placeholder="请输入当前登录密码" />
         </ElFormItem>
-        <p class="form-note">演示环境会在页面提示验证码，不发送真实短信。</p>
+
       </ElForm>
       <template #footer>
         <ElButton @click="closeMobile">取消</ElButton>

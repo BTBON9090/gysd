@@ -15,7 +15,7 @@ const hasWalletUrl = computed(() => Boolean(walletUrl))
 <template>
   <div class="biz-page wallet-page">
     <header class="biz-head wallet-head">
-      <div class="wallet-heading"><span class="wallet-heading-icon"><WalletCards :size="24" /></span><div><h1>我的钱包</h1><p>在当前工作台查看支付平台钱包，并完成开户与资金操作。</p></div></div>
+      <div class="wallet-heading"><span class="wallet-heading-icon"><WalletCards :size="24" /></span><div><h1>我的钱包</h1></div></div>
       <ElTag :type="c.data.walletOpen ? 'success' : 'warning'" effect="light">{{ c.data.walletOpen ? '已开户' : '未开户' }}</ElTag>
     </header>
 
