@@ -21,8 +21,8 @@ watch(() => [props.source, ...allSources.value], async (_, __, onCleanup) => {
 </script>
 
 <template>
-  <ElImage v-if="url" class="demo-image" :src="url" :fit="fit" :preview-src-list="gallery" :initial-index="Math.max(0, gallery.indexOf(url))" preview-teleported />
-  <div v-else class="demo-image demo-image-empty"><ImageIcon :size="23" :stroke-width="1.6" /><span>{{ source ? '旧图片需重新上传' : emptyText }}</span></div>
+  <ElImage v-if="url" class="demo-image" :src="url" :fit="fit" :preview-src-list="gallery" :initial-index="Math.max(0, gallery.indexOf(url))" preview-teleported @error="url = ''" />
+  <div v-else class="demo-image demo-image-empty"><ImageIcon :size="23" :stroke-width="1.6" /><span>{{ source ? '图片不可用，请重新上传' : emptyText }}</span></div>
 </template>
 
 <style scoped>

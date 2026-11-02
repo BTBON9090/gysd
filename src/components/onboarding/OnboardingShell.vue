@@ -34,6 +34,7 @@ const step = computed(() => props.step ?? 0)
 const stepItems = computed(() =>
   STEPS.map((s) => ({
     ...s,
+    label: s.n === 3 && ob.draft.supplierType === 'procurement' ? '经营信息' : s.label,
     status:
       step.value === 0
         ? 'wait'

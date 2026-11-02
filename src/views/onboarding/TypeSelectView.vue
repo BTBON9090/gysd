@@ -10,9 +10,10 @@ const router = useRouter()
 const ob = useOnboardingStore()
 const acc = useAcceptanceStore()
 
-function start() {
+function start(type: 'service' | 'procurement' = 'service') {
   if (ob.entityVerified || ob.draft.entityName || ob.status !== 'draft') ob.createApplication()
-  ob.draft.supplierType = 'service'
+  ob.draft.supplierType = type
+  ob.persist()
   acc.setEntryStatus('pending')
   router.push('/onboarding/entity')
 }
@@ -41,7 +42,7 @@ function openApplication(id: string) {
             <span class="kicker">本期开放</span>
             <h2>服务商入驻</h2>
             <p>为园区企业提供企业服务，按流程提交主体、资质、产品服务和协议资料。</p>
-            <button class="primary-action" type="button" @click="start">
+            <button class="primary-action" type="button" @click="start()">
               申请入驻
               <ArrowRight :size="18" />
             </button>

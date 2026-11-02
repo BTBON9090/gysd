@@ -14,7 +14,7 @@ const state = computed(() => ({
   draft: { label: '待提交', title: '入驻资料待提交', summary: '资料尚未提交审核，继续填写后可进入园区运营审核。', icon: FileClock },
   reviewing: { label: '审核中', title: '入驻申请审核中', summary: '申请已提交，园区运营正在核验。审核期间资料只读，不可取消入驻。', icon: Clock3 },
   rejected: { label: '已驳回', title: '入驻申请已驳回', summary: '请依据下方审核意见修改资料，完成后重新提交。', icon: X },
-  approved: { label: '已通过', title: '入驻审核已通过', summary: '服务商入驻已完成，可以在左侧导航继续使用供应商工作台。', icon: Check },
+  approved: { label: '已通过', title: '入驻审核已通过', summary: '入驻已完成，可以在左侧导航继续使用供应商工作台。', icon: Check },
 }[ob.status]))
 
 function resume() {
@@ -46,14 +46,13 @@ function review(result: 'rejected' | 'approved') {
   <OnboardingShell :show-steps="false" :show-footer="false">
     <div class="progress-page" :class="ob.status">
       <header class="page-intro">
-        <p class="eyebrow">服务商入驻 <span>/</span> 进度查询</p>
+        <p class="eyebrow">{{ ob.supplierLabel }}入驻 <span>/</span> 进度查询</p>
         <h1>入驻进度查询</h1>
       </header>
 
       <section class="status-stage">
         <div class="status-symbol"><component :is="state.icon" :size="30" :stroke-width="2" /></div>
         <div class="status-content">
-          <span class="status-label"><span class="status-dot" />{{ state.label }}</span>
           <h2>{{ state.title }}</h2>
           <p>{{ state.summary }}</p>
           <div v-if="ob.status === 'rejected' && ob.events[0]?.opinion" class="opinion">
@@ -76,7 +75,7 @@ function review(result: 'rejected' | 'approved') {
           <dl class="facts">
             <div><dt>主体名称</dt><dd>{{ ob.draft.entityName || '—' }}</dd></div>
             <div><dt>申请园区</dt><dd>{{ ob.draft.park || '—' }}</dd></div>
-            <div><dt>入驻身份</dt><dd>服务商</dd></div>
+            <div><dt>入驻身份</dt><dd>{{ ob.supplierLabel }}</dd></div>
             <div><dt>证件号码</dt><dd>{{ ob.draft.creditCode || '—' }}</dd></div>
           </dl>
         </section>
@@ -110,7 +109,7 @@ function review(result: 'rejected' | 'approved') {
 .page-intro{margin-bottom:25px}.eyebrow{margin:0 0 9px;color:#3656c5;font-size:12px;font-weight:700}.eyebrow span{margin:0 7px;color:#596a80}.page-intro h1{margin:0;color:#17233b;font-size:27px;letter-spacing:-.025em}.page-subtitle{margin:7px 0 0;color:#586880;font-size:14px}
 .status-stage{display:flex;gap:23px;align-items:flex-start;padding:30px 34px;border:0;border-radius:16px;background:linear-gradient(130deg,var(--state-soft) 0%,#fff 78%)}
 .status-symbol{width:53px;height:53px;display:grid;place-items:center;flex:none;border-radius:12px;background:var(--state);color:#fff}
-.status-content{flex:1;min-width:0}.status-label{display:inline-flex;align-items:center;gap:7px;color:var(--state-dark);font-size:12px;font-weight:750}.status-dot{width:7px;height:7px;border-radius:50%;background:var(--state)}.status-content h2{margin:8px 0 7px;color:var(--state-dark);font-size:25px;line-height:1.35;letter-spacing:-.02em}.status-content>p{margin:0;color:#40516b;font-size:14px;line-height:1.65}.status-actions{display:flex;gap:9px;margin-top:20px}.status-actions :deep(.el-button){height:37px;border-radius:8px}.status-actions :deep(svg){margin-left:4px}
+.status-content{flex:1;min-width:0}.status-content h2{margin:8px 0 7px;color:var(--state-dark);font-size:25px;line-height:1.35;letter-spacing:-.02em}.status-content>p{margin:0;color:#40516b;font-size:14px;line-height:1.65}.status-actions{display:flex;gap:9px;margin-top:20px}.status-actions :deep(.el-button){height:37px;border-radius:8px}.status-actions :deep(svg){margin-left:4px}
 .opinion{max-width:670px;margin-top:19px;padding:14px 16px;background:rgba(255,255,255,.8);border-radius:10px}.opinion strong{display:block;color:var(--state-dark);font-size:12px}.opinion p{margin:5px 0 0;color:#633e3a;font-size:13px;line-height:1.6}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:38px;margin-top:32px}.detail-section{min-width:0}.detail-section h2{margin:0 0 15px;color:#1b2b45;font-size:16px;font-weight:750}
 .facts{margin:0}.facts div{display:grid;grid-template-columns:83px minmax(0,1fr);gap:10px;padding:7px 0;font-size:13px;line-height:1.5}.facts dt{color:#62718a}.facts dd{margin:0;color:#20304a;font-weight:550;overflow-wrap:anywhere}

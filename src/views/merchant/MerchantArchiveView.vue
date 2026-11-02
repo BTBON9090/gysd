@@ -22,7 +22,7 @@ const mask = (value: string) => value ? value.replace(/(\d{4})\d+(\d{4})/, '$1 *
 const basic = computed(() => [
   ['经营主体', d.value.entityName], ['统一社会信用代码（识别码）', d.value.creditCode],
   ['主体类型', ob.entityLabel], ['证件类型', ob.certLabel],
-  ['申请入驻园区', d.value.park], ['入驻身份', '服务商'],
+  ['申请入驻园区', d.value.park], ['入驻身份', d.value.supplierType === 'procurement' ? '集采供应商' : '服务商'],
   ['服务商名称', d.value.serviceName], ['所属行业', d.value.industry],
   ['联系人姓名', d.value.contactName], ['联系人手机号', d.value.contactMobile],
   ['注册手机号', d.value.mobile], ['邮箱', d.value.email],
@@ -47,6 +47,7 @@ const services = computed(() => [
   ['员工规模', d.value.employeeScale], ['服务范围', d.value.serviceCities.join('、')],
   ['擅长业务领域或技能类型', d.value.skills.join('、')], ['商户介绍', d.value.merchantIntro],
   ['案例与荣誉', d.value.caseDesc], ['补充资质附件', d.value.extraCerts],
+  ...(d.value.supplierType === 'procurement' ? [['主营类目', (d.value.businessCategories || []).join('、')], ['经营品牌', (d.value.brands || []).map(b => `${b.name}（${b.nature}）`).join('、')]] : []),
 ])
 </script>
 

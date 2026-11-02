@@ -1,0 +1,6 @@
+const allowed = new Set(['P','DIV','BR','STRONG','B','EM','I','U','UL','OL','LI','IMG'])
+export function safeProductHtml(html:string){const doc=new DOMParser().parseFromString(html,'text/html');function clean(node:Node){for(const child of Array.from(node.childNodes)){if(child.nodeType===Node.COMMENT_NODE){child.remove();continue}if(child instanceof HTMLElement){if(!allowed.has(child.tagName)){child.replaceWith(doc.createTextNode(child.textContent||''));continue}const src=child.tagName==='IMG'?child.getAttribute('src'):null;for(const attr of Array.from(child.attributes))child.removeAttribute(attr.name);if(child.tagName==='IMG'){if(!src||!/^data:image\/(png|jpeg|webp);base64,/i.test(src)){child.remove();continue}child.setAttribute('src',src);child.setAttribute('alt','商品详情图片')}clean(child)}}}clean(doc.body);return doc.body.innerHTML}
+
+export function hasProductDetail(html:string){const doc=new DOMParser().parseFromString(safeProductHtml(html),'text/html');return !!doc.body.textContent?.trim()||!!doc.body.querySelector('img')}
+
+export function productDetailTextLength(html:string){const doc=new DOMParser().parseFromString(safeProductHtml(html),'text/html');return (doc.body.textContent||'').length}

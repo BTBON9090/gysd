@@ -2,9 +2,10 @@
 import { computed, ref } from 'vue'
 import { ArrowRight, Factory, Handshake, ShoppingBag, Truck } from 'lucide-vue-next'
 
-const emit = defineEmits<{ start: [] }>()
+const emit = defineEmits<{ start: [type: 'service' | 'procurement'] }>()
 const types = [
   { id: 'service', label: '服务商', icon: Handshake, available: true },
+  { id: 'procurement', label: '集采供应商', icon: ShoppingBag, available: true },
   { id: 'manufacture-demo', label: '制造类', icon: Factory, available: false },
   { id: 'trade-demo', label: '贸易类', icon: ShoppingBag, available: false },
   { id: 'logistics-demo', label: '物流类', icon: Truck, available: false },
@@ -39,14 +40,14 @@ const steps = ['核验经营主体', '填写入驻资料', '提交园区审核',
           <span class="status-chip" :class="{ muted: !current.available }">{{ current.available ? '本期可申请' : '设计演示 · 未开放' }}</span>
         </div>
         <h2>{{ current.label }}入驻</h2>
-        <p class="detail-desc">{{ current.available ? '面向园区企业提供企业服务。按流程提交主体信息、资质证件、产品服务和入驻协议，由园区运营审核。' : '此类型用于展示多类型入口的布局与切换。具体类型名称、申请条件、字段和流程均待业务定义。' }}</p>
+        <p class="detail-desc">{{ current.available ? selected === 'procurement' ? '面向园区企业提供商品供货，提交主体、资质、经营信息与入驻协议。' : '面向园区企业提供企业服务。按流程提交主体信息、资质证件、产品服务和入驻协议，由园区运营审核。' : '此类型用于展示多类型入口的布局与切换。具体类型名称、申请条件、字段和流程均待业务定义。' }}</p>
 
         <div v-if="current.available" class="detail-flow">
           <span v-for="(label, index) in steps" :key="label"><b>{{ String(index + 1).padStart(2, '0') }}</b>{{ label }}</span>
         </div>
         <div v-else class="demo-note">视觉占位，不会创建申请或进入服务商表单。</div>
 
-        <button class="apply-button" type="button" :disabled="!current.available" @click="emit('start')">
+        <button class="apply-button" type="button" :disabled="!current.available" @click="emit('start', selected as 'service' | 'procurement')">
           {{ current.available ? '申请入驻' : '待业务定义' }} <ArrowRight v-if="current.available" :size="17" />
         </button>
       </section>

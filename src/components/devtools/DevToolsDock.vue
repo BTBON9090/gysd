@@ -20,6 +20,8 @@ import DragHandle from '@/components/devtools/DragHandle.vue'
 import { ElButton, ElMessage, ElMessageBox, ElSwitch } from 'element-plus'
 
 const acc = useAcceptanceStore()
+const ob = useOnboardingStore()
+const toolTab = ref<'view' | 'onboarding' | 'scenarios' | 'issues'>('view')
 const commerce = useCommerceStore()
 const merchantChange = useMerchantChangeStore()
 const demoService = ref('')
@@ -173,15 +175,17 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
         <header class="panel-head">
           <div class="panel-title">
             <Wrench :size="14" />
-            <strong>版本切换 · 验收工具</strong>
+            <strong>验收工具</strong>
           </div>
           <ElButton text circle size="small" aria-label="关闭面板" @click="acc.panelOpen = false">
             <X :size="14" />
           </ElButton>
         </header>
 
+        <div class="tool-tabs" aria-label="验收工具分类"><button v-for="item in [{id:'view',label:'页面预览'},{id:'onboarding',label:'入驻流程'},{id:'scenarios',label:'业务模拟'},{id:'issues',label:'问题记录'}]" :key="item.id" type="button" :class="{active:toolTab===item.id}" @click="toolTab=item.id as typeof toolTab">{{ item.label }}</button></div>
         <div class="panel-body">
-          <section class="sec">
+          <p class="tool-intro">{{ toolTab === 'view' ? '切换页面外观与数据状态，仅用于查看演示效果。' : toolTab === 'onboarding' ? '快速填写入驻资料或切换入驻视角。' : toolTab === 'scenarios' ? '模拟业务动作，数据仅保存在当前浏览器。' : '记录并复制验收中发现的问题。' }}</p>
+          <section v-show="toolTab === 'view'" class="sec">
             <h3><Layers :size="13" /> 设计版本</h3>
             <div class="version-list">
               <button
@@ -202,7 +206,7 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             </div>
           </section>
 
-          <section class="sec">
+          <section v-show="toolTab === 'view'" class="sec">
             <h3>页面状态</h3>
             <div class="seg" role="tablist" aria-label="数据状态">
               <button
@@ -220,7 +224,7 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             </div>
           </section>
 
-          <section class="sec">
+          <section v-show="toolTab === 'onboarding'" class="sec">
             <h3>入驻状态</h3>
             <div class="seg" role="tablist" aria-label="入驻状态">
               <button
@@ -254,7 +258,7 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             </ElButton>
           </section>
 
-          <section class="sec">
+          <section v-show="toolTab === 'onboarding'" class="sec">
             <h3><Wand2 :size="13" /> 演示填表</h3>
             <ElButton size="small" style="width: 100%" type="primary" round @click="fillAllDemo">
               一键填满入驻表单
@@ -265,19 +269,20 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             <p class="demo-hint">自动填入演示数据，可跳过手工录入；每张表单卡片右上角也有「演示填入」。</p>
           </section>
 
-          <section class="sec">
+          <section v-show="toolTab === 'scenarios' && ob.draft.supplierType !== 'procurement'" class="sec">
             <h3><Wand2 :size="13" /> 发布服务流程</h3>
             <p class="demo-hint">空表单用于验收必填反馈；填入示例后可直接跳到任一步，检查预览和提交。</p>
             <div class="demo-grid"><ElButton size="small" @click="publishScenario('blank')">空白发布</ElButton><ElButton size="small" type="primary" @click="publishScenario(1)">填满并开始</ElButton></div>
             <div class="demo-grid publish-steps"><ElButton v-for="n in publishSteps" :key="n" size="small" @click="publishScenario(n)">跳到第 {{ n }} 步</ElButton></div>
           </section>
 
-          <section class="sec">
+          <section v-if="toolTab === 'scenarios' && ob.draft.supplierType === 'procurement'" class="sec"><h3>集采业务演示</h3><p class="demo-hint">商品和订单页面提供演示填入；在列表页可查看数据与空状态。</p><div class="demo-grid"><ElButton size="small" @click="panelGo('/product')">打开商品管理</ElButton><ElButton size="small" @click="panelGo('/procurement/orders')">打开订单管理</ElButton></div></section>
+          <section v-show="toolTab === 'scenarios'" class="sec">
             <h3><Wand2 :size="13" /> 商户档案变更</h3>
             <div class="demo-grid"><ElButton size="small" @click="panelGo('/merchant/change')">打开变更向导</ElButton><ElButton size="small" :disabled="merchantChange.current()?.status !== 'reviewing'" @click="merchantChange.review('approved')">模拟审核通过</ElButton><ElButton size="small" :disabled="merchantChange.current()?.status !== 'reviewing'" @click="merchantChange.review('rejected')">模拟审核驳回</ElButton></div>
           </section>
 
-          <section class="sec">
+          <section v-show="toolTab === 'scenarios' && ob.draft.supplierType !== 'procurement'" class="sec">
             <h3><Wand2 :size="13" /> 交易场景模拟</h3><ElButton size="small" @click="acc.largeSalesDemo = !acc.largeSalesDemo; panelGo('/service')">{{ acc.largeSalesDemo ? '恢复实际销量' : '查看大销量示例（123456）' }}</ElButton>
             <p class="demo-hint">各目录首次打开已有示例。下方可补齐缺失样例，或模拟园区、客户和财务动作。</p>
             <div class="demo-grid"><ElButton size="small" type="primary" @click="fillCommerceExamples">补齐各目录示例</ElButton><ElButton size="small" @click="resetCommerce">清空当前主体数据</ElButton></div>
@@ -292,7 +297,7 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             <div class="demo-grid"><ElButton size="small" @click="invoiceCallback('issued')">平台票成功</ElButton><ElButton size="small" @click="invoiceCallback('failed')">平台票失败</ElButton><ElButton size="small" @click="invoiceCallback('returned')">平台退票</ElButton></div>
           </section>
 
-          <section class="sec">
+          <section v-show="toolTab === 'view'" class="sec">
             <h3><GitCompare :size="13" /> 分屏对比</h3>
             <div class="switch-row">
               <span>
@@ -307,7 +312,7 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
             </div>
           </section>
 
-          <section class="sec">
+          <section v-show="toolTab === 'issues'" class="sec">
             <h3><ListChecks :size="13" /> 验收清单 <em>{{ issueCount }}</em></h3>
             <form class="issue-form" @submit.prevent="submitIssue">
               <input
@@ -362,6 +367,8 @@ export default { components: { WorkspaceProto } }
 </script>
 
 <style scoped>
+.tool-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:8px 10px 0}.tool-tabs button{border:0;border-bottom:2px solid transparent;padding:8px 2px;background:none;color:#65758c;font-size:12px;cursor:pointer}.tool-tabs button.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:700}.tool-intro{margin:0;color:#5e6f87;font-size:12px;line-height:1.55}
+
 .dock {
   position: fixed;
   z-index: 90;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ListPagination from '@/components/commerce/ListPagination.vue'
+import ListStatusTabs from '@/components/commerce/ListStatusTabs.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElDialog, ElInput, ElMessage, ElOption, ElRate, ElSelect, ElSwitch, ElTag } from 'element-plus'
@@ -58,7 +59,7 @@ function submit() {
     <template v-else>
       <div class="review-summary"><span>客户评价综合评分</span><strong>{{ score }}</strong><span>{{ incoming.length }} 条客户评价</span><small>暂无评价时，对外展示默认 5.0 分</small></div>
       <div class="biz-toolbar"><ElSelect v-model="park" clearable placeholder="全部园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :value="p.id" :label="p.name" /></ElSelect><span v-if="route.query.order" class="biz-muted">订单 {{ route.query.order }}</span><ElButton v-if="route.query.order" @click="router.push('/review')">查看全部</ElButton></div>
-      <div class="biz-tabs"><button v-for="[key, label] in tabs" :key="key" class="biz-tab" :class="{active:tab===key}" @click="tab=key">{{ label }} {{ count(key) }}</button></div>
+      <ListStatusTabs v-model="tab" :items="tabs" :count="count" />
       <div v-if="!rows.length" class="biz-empty"><h3>暂无匹配的评价订单</h3><p>订单完成后会出现在评价中心。</p></div>
       <div v-else class="biz-list"><article v-for="o in rows" :key="o.id" class="biz-list-item review-order">
         <header class="review-order-head"><div><p class="biz-muted">{{ dateText(o.completedAt || o.createdAt) }} · {{ c.joinedParks.find(p=>p.id===o.parkId)?.name }}</p><h3>{{ o.serviceName }}</h3><span class="biz-muted">订单 {{ o.id }}</span></div><ElTag :type="hasInitial(o.id,'to_customer') && hasInitial(o.id,'to_supplier')?'success':'info'">{{ hasInitial(o.id,'to_customer') && hasInitial(o.id,'to_supplier')?'双方已评':!hasInitial(o.id,'to_customer')?'待我评价':'待客户评价' }}</ElTag></header>

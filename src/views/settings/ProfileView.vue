@@ -42,10 +42,18 @@ const merchantName = computed(() => ob.entityVerified ? ob.draft.entityName : '�
 
 /* ===== 头像与姓名：本地保存 ===== */
 const nameDraft = ref(profile.name)
+const nameEditing = ref(false)
+const nameInputRef = ref<HTMLInputElement | null>(null)
 const nameDirty = computed(() => {
   const next = nameDraft.value.trim()
   return next.length > 0 && next !== profile.name
 })
+
+function startEditName() {
+  nameDraft.value = profile.name
+  nameEditing.value = true
+  nextTick(() => nameInputRef.value?.focus())
+}
 
 function pickAvatar() {
   fileRef.value?.click()
@@ -90,14 +98,12 @@ function removeAvatar() {
 }
 
 function saveName() {
-  if (!nameDirty.value) return
-  profile.setName(nameDraft.value)
+  if (nameDirty.value) {
+    profile.setName(nameDraft.value)
+    ElMessage.success('姓名已保存')
+  }
   nameDraft.value = profile.name
-  ElMessage.success('姓名已保存')
-}
-
-function resetName() {
-  nameDraft.value = profile.name
+  nameEditing.value = false
 }
 
 /* ===== 密码：≥8 位且含字母与数字（PRD §6.8.1） ===== */
@@ -261,27 +267,34 @@ onUnmounted(stopCountdown)
             <span class="avatar-mask"><Camera :size="17" /></span>
           </button>
           <div class="avatar-meta">
-            <strong>头像</strong>
-            <p>支持 JPG / PNG，建议 1:1，不超过 5MB。</p>
+            <input
+              v-if="nameEditing"
+              ref="nameInputRef"
+              v-model="nameDraft"
+              class="avatar-name-input"
+              maxlength="20"
+              placeholder="请输入姓名"
+              @keyup.enter="saveName"
+              @blur="saveName"
+            />
+            <strong
+              v-else
+              class="avatar-name"
+              title="点击编辑姓名"
+              @click="startEditName"
+            >{{ profile.name }}</strong>
             <div class="avatar-actions">
               <ElButton size="small" @click="pickAvatar">更换头像</ElButton>
               <ElButton v-if="profile.avatar" size="small" text @click="removeAvatar">
                 <Trash2 :size="13" /> 恢复默认
               </ElButton>
             </div>
+            <p>支持 JPG / PNG，建议 1:1，不超过 5MB。</p>
           </div>
           <input ref="fileRef" class="sr-only" type="file" accept="image/*" @change="onAvatarChange" />
         </div>
 
         <dl class="facts">
-          <div class="fact">
-            <dt>姓名</dt>
-            <dd class="fact-edit">
-              <ElInput v-model="nameDraft" maxlength="20" placeholder="请输入姓名" @keyup.enter="saveName" />
-              <ElButton type="primary" size="small" :disabled="!nameDirty" @click="saveName">保存</ElButton>
-              <ElButton v-if="nameDirty" size="small" text @click="resetName">取消</ElButton>
-            </dd>
-          </div>
           <div class="fact">
             <dt>注册园区</dt>
             <dd>
@@ -402,6 +415,7 @@ onUnmounted(stopCountdown)
 
 <style scoped>
 .profile-page {
+  min-width: 800px;
   max-width: var(--biz-content-width, 1190px);
   margin: 0 auto;
   padding: var(--sp-page-y) var(--sp-page-x) 28px;
@@ -439,10 +453,10 @@ onUnmounted(stopCountdown)
 .avatar-row {
   display: flex;
   gap: 18px;
-  align-items: center;
-  padding: 16px 18px;
-  border-radius: var(--r-lg);
-  background: var(--bg-muted);
+  align-items: flex-start;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   margin-bottom: 20px;
 }
 .avatar-btn {
@@ -472,8 +486,21 @@ onUnmounted(stopCountdown)
 }
 .avatar-btn:hover .avatar-mask,
 .avatar-btn:focus-visible .avatar-mask { opacity: 1; }
-.avatar-meta strong { display: block; color: var(--text-primary); font-size: 14px; }
-.avatar-meta p { margin: 4px 0 10px; color: var(--text-placeholder); font-size: 12.5px; }
+.avatar-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.avatar-name { color: var(--text-primary); font-size: 16px; font-weight: 650; cursor: pointer; line-height: 1.4; }
+.avatar-name:hover { color: var(--brand); }
+.avatar-name-input {
+  width: 220px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+}
+.avatar-name-input:focus { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
+.avatar-meta p { margin: 0; color: var(--text-placeholder); font-size: 12.5px; }
 .avatar-actions { display: flex; gap: 8px; align-items: center; }
 .avatar-actions :deep(svg) { margin-right: 4px; }
 

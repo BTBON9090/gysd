@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import ListPagination from '@/components/commerce/ListPagination.vue'
+import ListStatusTabs from '@/components/commerce/ListStatusTabs.vue'
+import AdvancedListFilterBar from '@/components/commerce/AdvancedListFilterBar.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElCascader, ElDatePicker, ElInput, ElOption, ElPopover, ElSelect, ElTag } from 'element-plus'
@@ -58,15 +60,14 @@ function act(o: Order) { if (c.activeRefund(o.id)) router.push({ path: '/order/'
     <div v-if="!c.data.walletOpen" class="biz-empty"><h3>开通钱包后查看订单</h3><p>交易数据将在支付平台开户后解锁。</p><ElButton type="primary" @click="router.push('/wallet')">前往我的钱包</ElButton></div>
     <template v-else>
       <div class="order-sticky list-sticky">
-        <div class="order-filters">
-          <ElSelect v-model="filter.park" clearable placeholder="全部已加入园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :value="p.id" :label="p.name" /></ElSelect>
-          <ElCascader v-if="advancedFilters" class="advanced-category" :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" />
-          <ElInput v-model="filter.name" clearable placeholder="服务名称" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput>
-          <ElInput v-model="filter.id" clearable placeholder="订单号" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput>
-          <div v-if="advancedFilters" class="order-date"><span>下单时间</span><ElDatePicker :editable="false" v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><b>至</b><ElDatePicker :editable="false" v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div>
-          <div class="order-filter-actions"><ElButton text @click="advancedFilters = !advancedFilters">{{ advancedFilters ? '收起筛选' : '更多筛选' }}{{ [filter.category, filter.from || filter.to].filter(Boolean).length ? `（${[filter.category, filter.from || filter.to].filter(Boolean).length}）` : '' }}</ElButton><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div>
-        </div>
-        <div class="biz-tabs order-tabs"><button v-for="[key, label] in tabs" :key="key" class="biz-tab" :class="{ active: tab === key }" @click="tab = key; page = 1">{{ label }} <span>{{ count(key) }}</span></button></div>
+        <AdvancedListFilterBar v-model:expanded="advancedFilters" :advanced-count="[filter.category, filter.from || filter.to].filter(Boolean).length" @query="query" @reset="reset">
+          <template #first><ElSelect v-model="filter.park" clearable placeholder="全部已加入园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :value="p.id" :label="p.name" /></ElSelect></template>
+          <template #second><ElInput v-model="filter.name" clearable placeholder="服务名称" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput></template>
+          <template #third><ElInput v-model="filter.id" clearable placeholder="订单号" @keyup.enter="query"><template #prefix><Search :size="14" /></template></ElInput></template>
+          <template #advanced-first><ElCascader :model-value="filter.category ? filter.category.split(' / ') : []" :options="CATEGORY_TREE" :props="{ checkStrictly: true }" clearable filterable placeholder="全部服务分类" @change="filter.category = Array.isArray($event) ? $event.join(' / ') : ''" /></template>
+          <template #advanced-date><div class="order-date"><span>下单时间</span><ElDatePicker :editable="false" v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><b>至</b><ElDatePicker :editable="false" v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div></template>
+        </AdvancedListFilterBar>
+        <ListStatusTabs :model-value="tab" :items="tabs" :count="count" @update:model-value="tab=$event; page=1" />
       </div>
       <div v-if="!rows.length" class="biz-empty"><h3>{{ c.data.orders.length ? '暂无符合条件的订单' : '暂无订单' }}</h3><p>{{ c.data.orders.length ? '调整筛选条件或查看其他状态。' : '客户下单后，订单会显示在这里。' }}</p><ElButton v-if="hasFilter" @click="reset">清空筛选</ElButton></div>
       <div v-else class="order-table-wrap"><table class="order-table"><colgroup><col style="width:15%" /><col style="width:19%" /><col style="width:13%" /><col style="width:18%" /><col style="width:16%" /><col style="width:9%" /><col style="width:10%" /></colgroup><thead><tr><th>订单 / 下单时间</th><th>服务信息</th><th>来源园区</th><th>履约方式 / 进度</th><th class="align-right">整单金额汇总</th><th>订单状态</th><th class="align-right">操作</th></tr></thead><tbody>

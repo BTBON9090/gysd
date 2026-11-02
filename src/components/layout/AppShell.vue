@@ -5,14 +5,16 @@ import TopBar from './TopBar.vue'
 import SideNav from './SideNav.vue'
 import BizStateView from './BizStateView.vue'
 import { useAcceptanceStore } from '@/stores/acceptance'
+import { useOnboardingStore } from '@/stores/onboarding'
 
 const route = useRoute()
 const acc = useAcceptanceStore()
+const onboarding = useOnboardingStore()
 const sideCollapsed = ref(false)
 const mainRef = ref<HTMLElement | null>(null)
-const formRoute = computed(() => ['onboarding-entity','onboarding-step','onboarding-progress','shop-info','service-new','service-edit','service-submitted','order-detail','invoice-open','merchant','merchant-change','settings'].includes(String(route.name)))
+const formRoute = computed(() => ['onboarding-entity','onboarding-step','onboarding-progress','shop-info','service-new','service-edit','product-new','product-edit','service-submitted','order-detail','invoice-open','merchant','merchant-change','settings'].includes(String(route.name)))
 const pageTitle = computed(() => (route.meta.title as string) || '工作台')
-const bizRoute = computed(() => ['/park','/shop','/service','/order','/aftersale','/invoice','/wallet','/review'].some(prefix => route.path === prefix || route.path.startsWith(`${prefix}/`)))
+const bizRoute = computed(() => ['/park','/shop','/service','/order','/aftersale','/invoice','/wallet','/review','/procurement','/product'].some(prefix => route.path === prefix || route.path.startsWith(`${prefix}/`)))
 watch(() => route.path, async () => {
   await nextTick()
   if (mainRef.value) mainRef.value.scrollTop = 0
@@ -28,7 +30,7 @@ watch(() => route.path, async () => {
         <div class="shell-content" :class="{ 'is-form-page': formRoute }"><BizStateView v-if="bizRoute && acc.dataState !== 'ready'" />
         <router-view v-else v-slot="{ Component }">
           <transition name="page" mode="out-in">
-            <component :is="Component" :key="`${route.path}:${route.query.demo || ''}`" :page-title="pageTitle" />
+            <component :is="Component" :key="`${onboarding.activeId}:${route.path}:${route.query.demo || ''}`" :page-title="pageTitle" />
           </transition>
         </router-view></div>
       </main>

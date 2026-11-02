@@ -209,7 +209,7 @@ function next() {
             <span v-if="fieldError('name')" class="field-error" role="alert">{{ fieldError('name') }}</span>
           </div>
 
-          <div class="field span-2" :class="{ 'has-error': fieldError('code') }">
+          <div class="field" :class="{ 'has-error': fieldError('code') }">
             <label>{{ codeLabel }}（识别码） <em>*</em></label>
             <ElInput
               v-model="ob.draft.creditCode"

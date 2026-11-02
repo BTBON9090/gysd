@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Eye,
   Download,
+  Tag,
 } from 'lucide-vue-next'
 import {
   ElButton,
@@ -31,6 +32,7 @@ import { useAcceptanceStore } from '@/stores/acceptance'
 import OnboardingShell from '@/components/onboarding/OnboardingShell.vue'
 import UploadCard from '@/components/onboarding/UploadCard.vue'
 import FilePreview from '@/components/onboarding/FilePreview.vue'
+import ProcurementBusiness from '@/components/onboarding/ProcurementBusiness.vue'
 
 const props = defineProps<{ changeMode?: boolean }>()
 const route = useRoute()
@@ -240,6 +242,7 @@ const meta = computed(() => {
       icon: ClipboardList,
     },
   }
+  if (step.value === 3 && d.supplierType === 'procurement') return { ...map[3], title: '经营信息', subtitle: '填写主营类目、品牌、资质与仓储运营信息。' }
   return map[step.value]
 })
 </script>
@@ -300,11 +303,11 @@ const meta = computed(() => {
             </div>
 
             <div class="field span-2 section-label">
-              <h3>服务商信息</h3>
+              <h3>{{ d.supplierType === 'procurement' ? '供应商信息' : '服务商信息' }}</h3>
             </div>
 
             <div class="field" :class="{ 'has-error': fieldError('请填写服务商名称') }">
-              <label>服务商名称 <em>*</em></label>
+              <label>{{ d.supplierType === 'procurement' ? '供应商名称' : '服务商名称' }} <em>*</em></label>
               <ElInput v-model="d.serviceName" placeholder="请填写对外展示名称" @change="ob.persist" />
               <span v-if="fieldError('请填写服务商名称')" class="field-error">请填写服务商名称</span>
             </div>
@@ -577,7 +580,8 @@ const meta = computed(() => {
     <!-- ===== Step 3 产品服务 ===== -->
     <div v-else-if="step === 3" class="step-layout">
       <section class="main-col">
-        <div class="card">
+        <ProcurementBusiness v-if="d.supplierType === 'procurement'" :draft="d" :errors="errors" @change="ob.persist" />
+        <div v-if="d.supplierType !== 'procurement'" class="card">
 
           <div class="form-grid">
             <div class="field span-2">
@@ -648,7 +652,7 @@ const meta = computed(() => {
         </div>
       </section>
 
-      <aside class="side-col">
+      <aside v-if="d.supplierType !== 'procurement'" class="side-col">
         <div class="tip-card">
           <strong><CircleAlert :size="14" /> 本步说明</strong>
           <h4>如何写好案例？</h4>
@@ -746,18 +750,36 @@ const meta = computed(() => {
 
           <h3 class="sec-title">账号与身份</h3>
           <div class="summary-grid">
-            <div><span class="k">服务商名称</span><span class="v">{{ d.serviceName || '—' }}</span></div>
+            <div><span class="k">{{ d.supplierType === 'procurement' ? '供应商名称' : '服务商名称' }}</span><span class="v">{{ d.serviceName || '—' }}</span></div>
             <div><span class="k">所属行业</span><span class="v">{{ d.industry || '—' }}</span></div>
             <div><span class="k">注册手机号</span><span class="v">{{ d.mobile || '—' }}</span></div>
             <div><span class="k">联系人手机号</span><span class="v">{{ d.contactMobile || '—' }}</span></div>
-            <div><span class="k">员工规模</span><span class="v">{{ d.employeeScale || '不适用' }}</span></div>
-            <div><span class="k">商户介绍</span><span class="v">{{ d.merchantIntro || '—' }}</span></div>
+            <div v-if="d.supplierType !== 'procurement'"><span class="k">员工规模</span><span class="v">{{ d.employeeScale || '不适用' }}</span></div>
+            <div v-if="d.supplierType !== 'procurement'"><span class="k">商户介绍</span><span class="v">{{ d.merchantIntro || '—' }}</span></div>
             <div><span class="k">联系人</span><span class="v">{{ d.contactName || '—' }}</span></div>
             <div><span class="k">邮箱</span><span class="v">{{ d.email || '—' }}</span></div>
-            <div><span class="k">服务范围</span><span class="v">{{ d.serviceCities.join('、') || '—' }}</span></div>
-            <div><span class="k">擅长领域</span><span class="v">{{ d.skills.join('、') || '—' }}</span></div>
+            <div v-if="d.supplierType !== 'procurement'"><span class="k">服务范围</span><span class="v">{{ d.serviceCities.join('、') || '—' }}</span></div>
+            <div v-if="d.supplierType !== 'procurement'"><span class="k">擅长领域</span><span class="v">{{ d.skills.join('、') || '—' }}</span></div>
           </div>
 
+          <template v-if="d.supplierType === 'procurement'">
+            <h3 class="sec-title">经营信息</h3>
+            <div class="summary-business"><h4>主营类目</h4><p>{{ d.businessCategories.join('、') || '—' }}</p>
+              <h4>品牌信息 <small>{{ d.brands.length }} 个</small></h4>
+              <div v-for="b in d.brands" :key="b.id" class="summary-business-item brand-summary">
+                <div class="brand-summary-title"><span><Tag :size="15" /></span><strong>{{ b.name }}</strong></div>
+                <dl class="brand-summary-facts">
+                  <div><dt>英文名称 / 首字母</dt><dd>{{ b.english || '—' }} / {{ b.initial || '—' }}</dd></div>
+                  <div><dt>品牌性质</dt><dd>{{ b.nature || '—' }}</dd></div>
+                  <div><dt>服务区域</dt><dd>{{ b.areas.join('、') || '—' }}</dd></div>
+                  <div><dt>{{ b.nature.includes('代理商') ? '代理授权证明' : '商标注册证' }}</dt><dd>{{ b.documentName || '—' }}</dd></div>
+                  <div><dt>有效期</dt><dd>{{ b.validFrom }} 至 {{ b.forever ? '长期' : b.validTo }}</dd></div>
+                </dl>
+              </div>
+              <h4>经营资质</h4><p v-if="!d.businessQualifications.length">未添加</p><div v-for="q in d.businessQualifications" :key="q.id" class="summary-business-item"><strong>{{ q.type }}</strong><p>{{ q.documentName }} · {{ q.validFrom }} 至 {{ q.forever ? '长期' : q.validTo }}</p></div>
+              <h4>仓储运营</h4><div class="summary-grid"><div><span class="k">工程师数量</span><span class="v">{{ d.engineerCount == null ? '—' : `${d.engineerCount} 人` }}</span></div><div><span class="k">车辆数量</span><span class="v">{{ d.vehicleCount == null ? '—' : `${d.vehicleCount} 辆` }}</span></div><div><span class="k">仓库地址</span><span class="v">{{ d.warehouseAddresses.length ? d.warehouseAddresses.map(w => [w.province,w.city,w.district,w.detail].filter(Boolean).join(' ')).join('；') : '未添加' }}</span></div></div>
+            </div>
+          </template>
           <h3 class="sec-title">资质与账户信息</h3>
           <div class="summary-grid">
             <div v-if="d.entityType !== 'personal'"><span class="k">营业执照法人</span><span class="v">{{ d.licenseLegalPerson || '—' }}</span></div>
@@ -1463,4 +1485,10 @@ export default {}
 
 .employee-scale{max-width:320px}.doc-head{border-left:3px solid var(--brand);padding-left:12px}.agreement-head .sec-title{border-left:3px solid var(--brand);padding-left:12px}
 .date-pair{grid-column:1/-1}.field :deep(.el-date-editor.el-input){width:180px;max-width:100%;min-width:0}.range-row :deep(.el-date-editor.el-input){flex:0 1 180px;width:180px;min-width:140px}.range-row :deep(.el-input__wrapper){padding-inline:10px}
+</style>
+
+<style scoped>.summary-business h4{font-size:14px;margin:20px 0 8px;color:#293b57}.summary-business h4 small{font-weight:400;color:#718096}.summary-business p{margin:5px 0;color:#52647d;font-size:13px}.summary-business-item{padding:14px 16px;margin:8px 0;border:1px solid #e2e9f2;border-radius:8px}.summary-business-item strong{font-size:14px}.summary-business-item .summary-grid{margin-top:10px}</style>
+
+<style scoped>
+.brand-summary{padding:0;overflow:hidden}.brand-summary-title{display:flex;align-items:center;gap:9px;padding:10px 14px;background:#f7f9fd;border-bottom:1px solid #e7edf5}.brand-summary-title span{display:grid;place-items:center;width:27px;height:27px;background:#eaf0ff;color:#3b63d3;border-radius:6px}.brand-summary-title strong{font-size:14px;color:#20324e}.brand-summary-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 20px;margin:0;padding:12px 14px}.brand-summary-facts>div{display:grid;grid-template-columns:105px minmax(0,1fr);gap:8px;align-items:start;font-size:13px;line-height:1.5}.brand-summary-facts dt{color:#75849a}.brand-summary-facts dd{margin:0;color:#263954;overflow-wrap:anywhere}
 </style>

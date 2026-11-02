@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell, ChevronDown, LogOut, User, PanelLeftClose, PanelLeftOpen, Building2, Plus } from 'lucide-vue-next'
-import { ElBadge, ElButton, ElDialog, ElDropdown, ElDropdownItem, ElDropdownMenu, ElMessageBox, ElOption, ElSelect } from 'element-plus'
+import { ElBadge, ElButton, ElDialog, ElDropdown, ElDropdownItem, ElDropdownMenu, ElMessage, ElMessageBox, ElOption, ElSelect } from 'element-plus'
 import { useAcceptanceStore } from '@/stores/acceptance'
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useProfileStore } from '@/stores/profile'
@@ -27,6 +27,23 @@ const customerDialog = ref(false)
 const customerPark = ref('')
 const displayStatus = (item: {id:string;status:string}) => item.id === ob.activeId && acc.entryStatus === 'approved' ? '已通过' : statusLabels[item.status as keyof typeof statusLabels]
 function switchApplication(id: string) {
+  if (id === '__procurement_demo__') {
+    const existing = ob.applications.find(item => item.draft.supplierType === 'procurement' && item.status === 'approved')
+    if (existing) { switchApplication(existing.id); return }
+    ob.createApplication()
+    ob.draft.supplierType = 'procurement'
+    ob.draft.entityName = '集采供应商（演示）'
+    ob.draft.creditCode = '91310000MA1FL8X21C'
+    ob.draft.serviceName = '集采供应商（演示）'
+    ob.fillDemoAll()
+    if (!ob.submit()) { acc.setEntryStatus('pending'); ElMessage.warning('集采演示资料需要补充后提交'); router.push('/onboarding/step/5'); return }
+    ob.simulateReview('approved')
+    acc.setEntryStatus('approved')
+    acc.setDataState('ready')
+    ElMessage.success('已进入集采供应商演示')
+    router.push('/product')
+    return
+  }
   if (id === '__new__') {
     ob.createApplication()
     acc.setEntryStatus('pending')
@@ -36,7 +53,7 @@ function switchApplication(id: string) {
   const retainPreview = id === ob.activeId && acc.entryStatus === 'approved'
   if (!ob.selectApplication(id)) return
   acc.setEntryStatus(ob.status === 'approved' || retainPreview ? 'approved' : 'pending')
-  if (acc.entryStatus === 'approved') router.push('/park')
+  if (acc.entryStatus === 'approved') router.push(ob.draft.supplierType === 'procurement' ? '/product' : '/park')
   else if (ob.status === 'reviewing' || ob.status === 'rejected') router.push('/onboarding/progress')
   else router.push(ob.entityVerified ? `/onboarding/step/${Math.max(1, ob.maxStep)}` : '/onboarding/entity')
 }
@@ -87,10 +104,11 @@ async function logout() {
         <span>切换供应商</span>
         <ElSelect :model-value="ob.activeId" class="supplier-select" popper-class="subject-popper" aria-label="切换主体" @change="switchApplication">
           <ElOption v-if="!ob.entityVerified" :value="ob.activeId" label="个人账号 · 新申请" />
-          <ElOption v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id" :label="`${item.draft.entityName} · ${displayStatus(item)}`">
+          <ElOption v-if="!ob.applications.some(a => a.draft.supplierType === 'procurement' && a.status === 'approved')" value="__procurement_demo__" label="进入集采供应商演示"><div class="subject-new"><Plus :size="15" /> 进入集采供应商演示</div></ElOption>
+          <ElOption v-for="item in ob.applications.filter(a => a.entityVerified)" :key="item.id" :value="item.id" :label="`${item.draft.entityName} · ${item.draft.supplierType === 'procurement' ? '集采供应商' : '服务商'} · ${displayStatus(item)}`">
             <div class="subject-option">
               <strong>{{ item.draft.entityName }}</strong>
-              <small>管理员 · {{ item.draft.creditCode || '主体信息待完善' }}</small>
+              <small>{{ item.draft.supplierType === 'procurement' ? '集采供应商' : '服务商' }} · 管理员 · {{ item.draft.creditCode || '主体信息待完善' }}</small>
               <span class="subject-state" :class="item.status">{{ displayStatus(item) }}</span>
             </div>
           </ElOption>
@@ -166,7 +184,7 @@ async function logout() {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 18px;
   margin-left: auto;
 }
 

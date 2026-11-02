@@ -34,7 +34,7 @@ export function saveDemoVideo(file: File): Promise<string> { return saveDemoFile
 
 export async function resolveDemoImage(source: string): Promise<string> {
   if (!source) return ''
-  if (!source.startsWith(PREFIX) && !source.startsWith(VIDEO_PREFIX) && !source.startsWith(DOCUMENT_PREFIX)) return /^(data:image\/|blob:|https?:\/)/.test(source) ? source : ''
+  if (!source.startsWith(PREFIX) && !source.startsWith(VIDEO_PREFIX) && !source.startsWith(DOCUMENT_PREFIX)) return /^(data:image\/|blob:|https?:\/|\/(?!\/))/.test(source) ? source : ''
   const cached = urlCache.get(source)
   if (cached) return cached
   const db = await openDb()

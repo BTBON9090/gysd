@@ -2,10 +2,15 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export type EntityType = 'personal' | 'individual' | 'enterprise'
-export type SupplierType = 'service'
+export type SupplierType = 'service' | 'procurement'
+export interface BrandApplication { name: string; english: string; initial: string; image: string; imageName: string; description: string; status: 'pending' | 'approved' | 'rejected' }
+export interface BusinessQualification { id: string; type: string; document: string; documentName: string; validFrom: string; validTo: string; forever: boolean }
+export interface WarehouseAddress { id: string; province: string; city: string; district: string; detail: string }
+export interface BrandInfo { id: string; name: string; english: string; initial: string; nature: string; areas: string[]; document: string; documentName: string; validFrom: string; validTo: string; forever: boolean }
 export type CertType = 'business_license' | 'individual_license' | 'id_card'
 
 export const SUPPLIER_TYPES: { id: SupplierType; label: string; desc: string; enabled: boolean }[] = [
+  { id: 'procurement', label: '集采供应商', desc: '商品采购与供货', enabled: true },
   { id: 'service', label: '服务商', desc: 'IT / 人力 / 财税等企业服务', enabled: true },
 ]
 
@@ -52,6 +57,13 @@ function loadFlow(): { status: OnboardingStatus; maxStep: number; events: Review
 
 export interface OnboardingDraft {
   supplierType: SupplierType
+  businessCategories: string[]
+  brands: BrandInfo[]
+  brandApplications: BrandApplication[]
+  businessQualifications: BusinessQualification[]
+  engineerCount: number | null
+  vehicleCount: number | null
+  warehouseAddresses: WarehouseAddress[]
   entityType: EntityType
   /* 主体核验（进入填写流程前） */
   entityName: string
@@ -114,6 +126,7 @@ export interface OnboardingDraft {
 function emptyDraft(): OnboardingDraft {
   return {
     supplierType: 'service',
+    businessCategories: [], brands: [], brandApplications: [], businessQualifications: [], engineerCount: null, vehicleCount: null, warehouseAddresses: [],
     entityType: 'enterprise',
     entityName: '',
     creditCode: '',
@@ -427,6 +440,15 @@ export const useOnboardingStore = defineStore('onboarding', () => {
 
   function fillDemoProducts(target?: OnboardingDraft) {
     const d = target || draft.value
+    if (d.supplierType === 'procurement') {
+      if (!d.businessCategories.length) d.businessCategories = ['个人防护 / 头部防护 / 安全帽']
+      if (!d.warehouseAddresses.length) d.warehouseAddresses = [{ id: crypto.randomUUID(), province: '上海市', city: '上海市', district: '浦东新区', detail: '临港新片区示例仓库' }]
+      if (d.engineerCount === null) d.engineerCount = 5
+      if (d.vehicleCount === null) d.vehicleCount = 3
+      if (!d.brands.length) d.brands = [{ id: crypto.randomUUID(), name: '3M', english: '3M', initial: 'M', nature: '一级代理商', areas: ['上海市'], document: '', documentName: '演示样例-代理授权证明.pdf', validFrom: '2020-01-01', validTo: '', forever: true }]
+      persist()
+      return
+    }
     if (!d.serviceCities.length) d.serviceCities = ['上海市 / 上海市', '江苏省 / 苏州市']
     if (!d.skills.length) d.skills = ['RPA 开发', '企业注册']
     d.caseDesc =
@@ -509,12 +531,20 @@ export const useOnboardingStore = defineStore('onboarding', () => {
       if (d.entityType !== 'personal' && d.licenseLegalPerson.trim() && d.legalPerson.trim() && d.licenseLegalPerson.trim() !== d.legalPerson.trim()) errs.push('营业执照法人姓名须与身份证姓名一致')
     }
     if (step === 3) {
+      if (d.supplierType === 'procurement' && !d.businessCategories?.length) errs.push('请选择主营类目')
+      if (d.supplierType === 'procurement' && !d.brands?.length) errs.push('请添加品牌信息')
+      if (d.supplierType === 'procurement') {
+        for (const [i, w] of (d.warehouseAddresses || []).entries()) {
+          if ([w.province, w.city, w.district, w.detail].some(v => v.trim()) && [w.province, w.city, w.district, w.detail].some(v => !v.trim())) errs.push(`仓库地址 ${i + 1}：请完整填写省、市、区县和详细地址`)
+        }
+      } else {
       if (!d.serviceCities.length) errs.push('请至少选择 1 个服务范围城市')
       if (d.skills.length > 3) errs.push('擅长领域最多 3 个')
       if (!d.skills.length) errs.push('请填写至少 1 个擅长领域')
       if (d.entityType !== 'personal' && !d.employeeScale) errs.push('请选择员工规模')
       if (!d.merchantIntro.trim()) errs.push('请填写商户介绍')
       if (d.merchantIntro.length > 5000) errs.push('商户介绍不能超过 5000 字')
+      }
     }
     if (step === 4) {
       if (!d.coopUploaded) errs.push('请上传《服务商入驻合作协议》')

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import ListPagination from '@/components/commerce/ListPagination.vue'
+import ListStatusTabs from '@/components/commerce/ListStatusTabs.vue'
+import AdvancedListFilterBar from '@/components/commerce/AdvancedListFilterBar.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElCascader, ElDatePicker, ElInput, ElOption, ElSelect, ElTag } from 'element-plus'
@@ -12,6 +14,7 @@ const router = useRouter()
 const route = useRoute()
 const filter = reactive({ park: '', category: '', service: '', order: String(route.query.order || ''), refund: '', from: '', to: '' })
 const applied = reactive({ ...filter })
+const advancedFilters = ref(false)
 watch(() => route.query.order, value => { filter.order = String(value || ''); applied.order = filter.order; page.value = 1 })
 const tab = ref('all')
 const page = ref(1)
@@ -49,8 +52,17 @@ watch(() => route.query.refund, value => { if (typeof value !== 'string') return
     <header class="biz-head"><div><h1>售后管理</h1></div></header>
     <div v-if="!c.data.walletOpen" class="biz-empty"><h3>开通钱包后查看售后</h3><ElButton type="primary" @click="router.push('/wallet')">前往我的钱包</ElButton></div>
     <template v-else>
-      <div class="biz-toolbar"><ElSelect v-model="filter.park" clearable placeholder="全部来源园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :value="p.id" :label="p.name" /></ElSelect><ElCascader :model-value="filter.category?filter.category.split(' / '):[]" :options="CATEGORY_TREE" :props="{checkStrictly:true}" clearable filterable placeholder="全部分类" @change="filter.category=Array.isArray($event)?$event.join(' / '):''" /><ElInput v-model="filter.service" placeholder="服务名称" clearable /><ElInput v-model="filter.order" placeholder="订单号" clearable /><ElInput v-model="filter.refund" placeholder="退款单号" clearable /><div class="date-filter"><span>申请时间</span><ElDatePicker :editable="false" v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><span>至</span><ElDatePicker :editable="false" v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div><ElButton type="primary" @click="query">查询</ElButton><ElButton @click="reset">重置</ElButton></div>
-      <div class="biz-tabs"><button v-for="[key,label] in tabs" :key="key" class="biz-tab" :class="{active:tab===key}" @click="tab=key;page=1">{{ label }} {{ count(key) }}</button></div>
+      <div class="refund-sticky list-sticky">
+        <AdvancedListFilterBar v-model:expanded="advancedFilters" :advanced-count="[filter.category, filter.refund, filter.from || filter.to].filter(Boolean).length" second-advanced @query="query" @reset="reset">
+          <template #first><ElSelect v-model="filter.park" clearable placeholder="全部来源园区"><ElOption v-for="p in c.joinedParks" :key="p.id" :value="p.id" :label="p.name" /></ElSelect></template>
+          <template #second><ElInput v-model="filter.service" placeholder="服务名称" clearable @keyup.enter="query" /></template>
+          <template #third><ElInput v-model="filter.order" placeholder="订单号" clearable @keyup.enter="query" /></template>
+          <template #advanced-first><ElCascader :model-value="filter.category?filter.category.split(' / '):[]" :options="CATEGORY_TREE" :props="{checkStrictly:true}" clearable filterable placeholder="全部分类" @change="filter.category=Array.isArray($event)?$event.join(' / '):''" /></template>
+          <template #advanced-second><ElInput v-model="filter.refund" placeholder="退款单号" clearable @keyup.enter="query" /></template>
+          <template #advanced-date><div class="order-date"><span>申请时间</span><ElDatePicker :editable="false" v-model="filter.from" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="开始日期" popper-class="biz-date-popper" /><b>至</b><ElDatePicker :editable="false" v-model="filter.to" type="date" value-format="YYYY-MM-DD" format="YYYY/MM/DD" placeholder="结束日期" popper-class="biz-date-popper" /></div></template>
+        </AdvancedListFilterBar>
+        <ListStatusTabs :model-value="tab" :items="tabs" :count="count" @update:model-value="tab=$event; page=1" />
+      </div>
       <div v-if="!rows.length" class="biz-empty"><h3>{{c.data.refunds.length?'暂无匹配的售后申请':'暂无售后申请'}}</h3><p>客户发起的退款申请将显示在这里。</p><ElButton v-if="c.data.refunds.length" @click="reset">清空筛选</ElButton></div>
       <table v-else class="biz-table"><thead><tr><th>退款单 / 服务</th><th>原因</th><th>来源园区</th><th>退款金额</th><th>状态</th><th>申请时间</th><th>操作</th></tr></thead><tbody><tr v-for="item in rows" :key="item.id"><td><strong>{{order(item)?.serviceName}}</strong><br><span class="biz-muted">{{item.id.slice(0,8)}} · 订单 {{item.orderId}}</span></td><td>{{item.reason}}</td><td>{{c.joinedParks.find(p=>p.id===order(item)?.parkId)?.name||'—'}}</td><td><strong><b class="money-value">{{ money(item.status==='client_confirm'?item.agreed:item.requested) }}</b></strong><br><span v-if="item.status==='client_confirm'" class="biz-muted">原申请 <b class="money-value">{{ money(item.requested) }}</b></span></td><td><ElTag :type="item.status==='refunded'?'success':item.status==='rejected'?'danger':'info'">{{STATUS_LABEL[item.status]}}</ElTag></td><td>{{dateText(item.createdAt)}}</td><td><div class="biz-actions"><ElButton v-if="item.status==='pending'" text type="primary" @click="open(item,'agree')">处理退款</ElButton><ElButton v-else text @click="open(item,'view')">退款详情</ElButton><ElButton text @click="goOrder(item)">查看订单</ElButton></div></td></tr></tbody></table>
       <ListPagination v-model:page="page" :page-size="20" :total="tabRows.length" noun="笔退款" />
@@ -58,4 +70,6 @@ watch(() => route.query.refund, value => { if (typeof value !== 'string') return
     <RefundDialog v-model="dialog" :refund-id="target?.id" :mode="mode" />
   </div>
 </template>
-<style scoped>.date-filter{display:flex;align-items:center;gap:6px;color:#69788d;font-size:12px}.date-filter :deep(.el-date-editor){width:134px;height:32px}</style>
+<style scoped>
+.refund-sticky{margin-bottom:16px}.refund-filters{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(180px,1fr) auto;gap:10px;align-items:center}.refund-filters :deep(.el-select),.refund-filters :deep(.el-cascader),.refund-filters :deep(.el-input){width:100%;min-width:0}.refund-filters>.el-select{grid-column:1;grid-row:1}.refund-filters>.el-input:not(.advanced-refund){grid-row:1}.refund-filter-actions{display:flex;gap:8px;justify-content:flex-end;grid-column:4;grid-row:1;white-space:nowrap}.refund-filter-actions :deep(.el-button){margin:0}.advanced-category{grid-column:1;grid-row:2}.advanced-refund{grid-column:2;grid-row:2}.date-filter{grid-column:3 / -1;grid-row:2;display:flex;align-items:center;gap:8px;color:#6b7a90;font-size:12px}.date-filter span{white-space:nowrap}.date-filter b{font-weight:400}.date-filter :deep(.el-date-editor){width:150px;max-width:35%;height:32px}.refund-tabs{margin:8px 0;flex-wrap:nowrap;overflow-x:auto;border-bottom:0}.refund-tabs .biz-tab{flex:none;white-space:nowrap}
+</style>

@@ -4,19 +4,26 @@ import { useRoute } from 'vue-router'
 import { ElMenu, ElMenuItem, ElSubMenu } from 'element-plus'
 import { navMenus } from '@/composables/useNavMenus'
 import { useAcceptanceStore } from '@/stores/acceptance'
+import { useOnboardingStore } from '@/stores/onboarding'
+import { Package } from 'lucide-vue-next'
 
 const route = useRoute()
 const acc = useAcceptanceStore()
+const onboarding = useOnboardingStore()
 const collapsed = defineModel<boolean>('collapsed', { default: false })
 const activePath = computed(() => {
   if (route.path.startsWith('/onboarding')) return '/workspace'
   if (route.path.startsWith('/service/')) return '/service'
   if (route.path.startsWith('/order/')) return '/order'
+  if (route.path.startsWith('/product')) return '/product'
+  if (route.path.startsWith('/procurement/orders')) return '/procurement/orders'
   return route.path
 })
 const rootItems = computed(() => acc.entryStatus === 'pending'
   ? navMenus.filter(item => item.key === 'workspace' || item.key === 'settings').map(item => item.key === 'settings' ? { ...item, children: item.children?.filter(child => child.key === 'settings-profile') } : item)
-  : navMenus)
+  : onboarding.draft.supplierType === 'procurement'
+    ? navMenus.map(item => item.key === 'service' ? { ...item, key: 'product', label: '商品管理', path: '/product', icon: Package } : item.key === 'order' ? { ...item, path: '/procurement/orders' } : item)
+    : navMenus)
 </script>
 
 <template>

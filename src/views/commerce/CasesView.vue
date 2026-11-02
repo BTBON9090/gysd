@@ -90,8 +90,8 @@ async function remove(item: Case) {
 <style scoped>
 .case-upload{position:relative;overflow:hidden}.case-upload input{display:block;position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
 .cases-page{min-width:800px}
-.cases-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
-.cases-filters{display:grid;grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:12px;min-width:0}
+.cases-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.cases-filters{display:grid;grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:10px;min-width:0}
 .cases-toolbar .cases-filters :deep(.el-cascader),.cases-toolbar .cases-filters :deep(.el-input){width:100%;min-width:0}
 .cases-filter-actions{display:flex;align-items:center;align-self:center;gap:8px;white-space:nowrap}
 .cases-filter-actions :deep(.el-button){margin:0}
