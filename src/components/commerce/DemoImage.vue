@@ -4,7 +4,7 @@ import { ElImage } from 'element-plus'
 import { Image as ImageIcon } from 'lucide-vue-next'
 import { resolveDemoImage } from '@/utils/demoMedia'
 
-const props = withDefaults(defineProps<{ source?: string; sources?: string[]; fit?: 'cover' | 'contain'; emptyText?: string }>(), { fit: 'cover', emptyText: '暂无图片' })
+const props = withDefaults(defineProps<{ source?: string; sources?: string[]; fit?: 'cover' | 'contain'; emptyText?: string; iconOnly?: boolean }>(), { fit: 'cover', emptyText: '暂无图片' })
 const url = ref('')
 const gallery = ref<string[]>([])
 const allSources = computed(() => props.sources?.length ? props.sources : props.source ? [props.source] : [])
@@ -22,7 +22,7 @@ watch(() => [props.source, ...allSources.value], async (_, __, onCleanup) => {
 
 <template>
   <ElImage v-if="url" class="demo-image" :src="url" :fit="fit" :preview-src-list="gallery" :initial-index="Math.max(0, gallery.indexOf(url))" preview-teleported @error="url = ''" />
-  <div v-else class="demo-image demo-image-empty"><ImageIcon :size="23" :stroke-width="1.6" /><span>{{ source ? '图片不可用，请重新上传' : emptyText }}</span></div>
+  <div v-else class="demo-image demo-image-empty" :aria-label="source ? '图片不可用，请重新上传' : emptyText"><ImageIcon :size="23" :stroke-width="1.6" aria-hidden="true" /><span v-if="!iconOnly">{{ source ? '图片不可用，请重新上传' : emptyText }}</span></div>
 </template>
 
 <style scoped>
