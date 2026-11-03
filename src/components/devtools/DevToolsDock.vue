@@ -27,6 +27,18 @@ const merchantChange = useMerchantChangeStore()
 const demoService = ref('')
 const demoOrder = ref('')
 const demoRefund = ref('')
+const demoBrandIndex = ref('')
+const pendingBrandApplications = computed(() => ob.draft.brandApplications.map((item, index) => ({ item, index })).filter(({ item }) => typeof item !== 'string' && item.status === 'pending'))
+function reviewBrandApplication(result: 'approved' | 'rejected') {
+  const selected = pendingBrandApplications.value.find(({ index }) => String(index) === demoBrandIndex.value)
+  if (!selected || typeof selected.item === 'string') { ElMessage.warning('请选择待审核的品牌申请'); return }
+  selected.item.status = result
+  selected.item.reviewedAt = new Date().toLocaleString('zh-CN', { hour12: false })
+  selected.item.reviewOpinion = result === 'rejected' ? '资料不完整，请补充后重新申请。' : ''
+  ob.persist()
+  demoBrandIndex.value = ''
+  ElMessage.success(result === 'approved' ? '演示审核已通过' : '演示审核已驳回')
+}
 const draft = ref('')
 const copied = ref(false)
 const dockRef = ref<HTMLElement | null>(null)
@@ -267,6 +279,13 @@ function refundCallback(action:'accept'|'decline'|'cancel') { const refund=comme
               填满并跳到确认页
             </ElButton>
             <p class="demo-hint">自动填入演示数据，可跳过手工录入；每张表单卡片右上角也有「演示填入」。</p>
+          </section>
+
+          <section v-if="toolTab === 'onboarding' && ob.draft.supplierType === 'procurement'" class="sec">
+            <h3><Wand2 :size="13" /> 品牌申请审核模拟</h3>
+            <p class="demo-hint">选择待审核的申请，模拟运营处理结果。</p>
+            <select v-model="demoBrandIndex" class="demo-select" aria-label="选择品牌申请"><option value="">选择待审核品牌</option><option v-for="{item,index} in pendingBrandApplications" :key="index" :value="String(index)">{{ typeof item === 'string' ? item : item.name }}</option></select>
+            <div class="demo-grid"><ElButton size="small" @click="reviewBrandApplication('approved')">模拟通过</ElButton><ElButton size="small" @click="reviewBrandApplication('rejected')">模拟驳回</ElButton></div>
           </section>
 
           <section v-show="toolTab === 'scenarios' && ob.draft.supplierType !== 'procurement'" class="sec">

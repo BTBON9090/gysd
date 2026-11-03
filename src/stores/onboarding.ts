@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 
 export type EntityType = 'personal' | 'individual' | 'enterprise'
 export type SupplierType = 'service' | 'procurement'
-export interface BrandApplication { name: string; english: string; initial: string; image: string; imageName: string; description: string; status: 'pending' | 'approved' | 'rejected' }
+export interface BrandApplication { name: string; english: string; initial: string; image: string; imageName: string; description: string; status: 'pending' | 'approved' | 'rejected'; submittedAt?: string; reviewedAt?: string; reviewOpinion?: string }
 export interface BusinessQualification { id: string; type: string; document: string; documentName: string; validFrom: string; validTo: string; forever: boolean }
 export interface WarehouseAddress { id: string; province: string; city: string; district: string; detail: string }
 export interface BrandInfo { id: string; name: string; english: string; initial: string; nature: string; areas: string[]; document: string; documentName: string; validFrom: string; validTo: string; forever: boolean }

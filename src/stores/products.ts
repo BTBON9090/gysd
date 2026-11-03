@@ -48,10 +48,12 @@ export const useProductsStore=defineStore('products',()=>{
     const existing=products.value.find(item=>item.id===product.id)
     if (!existing || existing.status==='draft') { save(product); return }
     if (existing.pendingPrice || existing.pendingEdit || existing.status==='reviewing' || Object.values(existing.parkStatuses || {}).includes('reviewing')) throw new Error('该商品已有待审核事项，请先完成审核')
-    const sameSupply = (a:Supply|undefined,b:Supply|undefined) => !!a && !!b && (['leadDays','minimum','increment','stock','tax','cost','original','promotion','discount','fixed'] as const).every(key=>a[key]===b[key])
+    const sameSupply = (a:Supply|undefined,b:Supply|undefined) => !!a && !!b && (['leadDays','minimum','increment','stock','cost','original','promotion','discount','fixed'] as const).every(key=>a[key]===b[key])
     const before=[...existing.parkIds].sort(), after=[...product.parkIds].sort()
     const sameParks=before.length===after.length && before.every((id,index)=>id===after[index] && sameSupply(existing.parks[id],product.parks[id]))
     if (!sameSupply(existing.supply,product.supply) || !sameParks) throw new Error('已发布商品的供货、价格或园区发生变化，请使用调价、库存或上下架操作；如配置已更新，请重新打开编辑页面')
+    const taxChanged=existing.supply.tax!==product.supply.tax || before.some(id=>existing.parks[id]?.tax!==product.parks[id]?.tax)
+    if (taxChanged && (!validSupplyPrice(product.supply) || after.some(id=>!product.parks[id] || product.parks[id].tax!==product.supply.tax))) throw new Error('税点只能统一调整，请检查所有园区的税点')
     const snapshot=productEditSnapshot(product)
     save({...existing,editDraft:snapshot,pendingEdit:snapshot,approvalLog:submitApprovals(existing,'商品资料变更',[])})
   }

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { ElInputNumber, ElOption, ElSelect } from 'element-plus'
 import { salePrice, type Supply } from '@/stores/products'
 
-const props = defineProps<{ value: Supply; priceOnly?: boolean }>()
+const props = defineProps<{ value: Supply; priceOnly?: boolean; taxLocked?: boolean }>()
 const sale = computed(() => salePrice(props.value))
 const taxMultiplier = computed(() => 1 + (Number(props.value.tax) || 0) / 100)
 const money = (value: number) => `¥${value.toFixed(2)}`
@@ -21,9 +21,10 @@ const margin = (price: number) => price > 0 ? `${((price - (Number(props.value.c
 
     <div class="price-settings">
       <label class="supply-field">税点
-        <ElSelect v-model="props.value.tax">
+        <ElSelect v-model="props.value.tax" :disabled="taxLocked" aria-label="税点">
           <ElOption v-for="n in [0,1,3,6,9,13]" :key="n" :label="n+'%'" :value="n" />
         </ElSelect>
+        <small v-if="taxLocked" class="tax-lock-hint">由统一税点设置</small>
       </label>
       <div class="promotion-group">
         <label class="supply-field">优惠类型
@@ -87,5 +88,6 @@ const margin = (price: number) => price > 0 ? `${((price - (Number(props.value.c
 .price-table tbody tr:last-child th,.price-table tbody tr:last-child td{border-bottom:0}
 .price-table td.calculated{color:#233e6a;font-weight:600}
 .discount-hint{margin:12px 0 0;color:#71829b;font-size:12px;line-height:1.6}
+.tax-lock-hint{font-size:12px;line-height:1.4;color:#78899f;font-weight:400}
 @media(max-width:760px){.supply-quantities{grid-template-columns:repeat(2,minmax(0,1fr))}.price-settings{grid-template-columns:1fr;gap:16px}}
 </style>
